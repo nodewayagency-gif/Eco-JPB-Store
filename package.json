@@ -1,0 +1,18 @@
+{
+  "name": "premium-eletronics-hub",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @premium/web",
+    "dev:next": "npm run dev -w @premium/web-next",
+    "build": "npm run build -w @premium/web",
+    "build:next": "npm run build -w @premium/web-next",
+    "lint:next": "npm run lint -w @premium/web-next",
+    "test": "npm run test -w @premium/web",
+    "lint": "npm run lint -w @premium/web"
+  }
+}
