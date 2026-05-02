@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronRight, ListChecks } from "lucide-react";
+import { CheckCircle2, ChevronRight, ListChecks, Search, Filter } from "lucide-react";
 import type { AdminOrderDetail, AdminOrderRow, AdminOrderStepKey } from "@premium/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +49,10 @@ const AdminOrdersPage = () => {
   const [orders, setOrders] = useState<AdminOrderRow[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrderDetail | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   const loadOrders = async () => {
     setOrders(await adminRepository.listOrders());
@@ -85,10 +92,55 @@ const AdminOrdersPage = () => {
 
   const isExternal = useMemo(() => selectedOrder?.channel === "Venda externa", [selectedOrder]);
 
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchesSearch = order.id.toLowerCase().includes(search.toLowerCase()) || 
+                            order.customerName.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "ALL" || order.statusLabel === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [orders, search, statusFilter]);
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedOrders = useMemo(() => {
+    return filteredOrders.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  }, [filteredOrders, page]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
   return (
     <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar pedido ou cliente..." 
+              className="pl-9 bg-card" 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-48 bg-card">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos os status</SelectItem>
+              {Object.keys(statusColor).map(status => (
+                <SelectItem key={status} value={status}>{status}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <Card className="bg-card border-border">
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <ListChecks className="w-5 h-5 text-primary" /> Gestão de Pedidos
           </CardTitle>
@@ -108,7 +160,7 @@ const AdminOrdersPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order) => (
+              {paginatedOrders.map((order) => (
                 <TableRow key={order.id} className="border-border">
                   <TableCell className="font-mono text-xs">{order.id}</TableCell>
                   <TableCell>{order.customerName}</TableCell>
@@ -128,6 +180,30 @@ const AdminOrdersPage = () => {
               ))}
             </TableBody>
           </Table>
+          
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-border">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  <span className="text-sm text-muted-foreground px-4">
+                    Página {page} de {totalPages}
+                  </span>
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 

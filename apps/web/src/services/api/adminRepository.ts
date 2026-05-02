@@ -21,8 +21,14 @@ import type {
   AdminCategoryInput,
   AdminCoupon,
   AdminCouponInput,
-  AdminProductVariant 
+  AdminProductVariant,
+  AdminUserRow,
+  AdminUserInput,
+  SupportTicketView,
+  TicketStatus,
+  SendTicketMessageInput
 } from "@premium/contracts";
+import { mockTickets } from "./customerRepository";
 
 const makeDefaultProductRow = (product: (typeof products)[number], index: number): AdminProductRow => {
   const sku = product.commercial?.sku ?? `JPB-${product.id.padStart(4, "0")}`;
@@ -52,7 +58,9 @@ const makeDefaultProductRow = (product: (typeof products)[number], index: number
     ean: product.commercial?.ean,
     taxPercent: product.commercial?.taxPercent,
     gatewayProductId: product.commercial?.gatewayProductId,
-    melhorEnvioCategory: product.shipping?.melhorEnvioCategory
+    melhorEnvioCategory: product.shipping?.melhorEnvioCategory,
+    image: product.image,
+    images: product.images
   };
 };
 
@@ -118,8 +126,15 @@ const toInput = (product: AdminProductRow): AdminProductInput => ({
   taxPercent: product.taxPercent,
   gatewayProductId: product.id,
   melhorEnvioCategory: product.melhorEnvioCategory,
+  image: product.image,
+  images: product.images,
   variants: product.variants
 });
+
+let usersStore: AdminUserRow[] = [
+  { id: "u1", name: "Admin Geral", email: "admin@nodeway.com", role: "ADMIN", status: "ACTIVE", createdAt: new Date().toISOString() },
+  { id: "u2", name: "Operador de Estoque", email: "estoque@nodeway.com", role: "OPERATOR", status: "ACTIVE", createdAt: new Date().toISOString() }
+];
 
 const progressOrderStep = (order: AdminOrderDetail, targetStep?: AdminOrderStepKey) => {
   const currentIndex = stepOrder.indexOf(order.currentStep);
@@ -170,6 +185,13 @@ export interface AdminRepository {
   createCoupon: (payload: AdminCouponInput) => Promise<AdminCoupon>;
   updateCoupon: (id: string, changes: Partial<AdminCouponInput>) => Promise<AdminCoupon>;
   deleteCoupon: (id: string) => Promise<void>;
+  listUsers: () => Promise<AdminUserRow[]>;
+  createUser: (payload: AdminUserInput) => Promise<AdminUserRow>;
+  updateUser: (id: string, changes: Partial<AdminUserInput>) => Promise<AdminUserRow>;
+  deleteUser: (id: string) => Promise<void>;
+  listTickets: () => Promise<SupportTicketView[]>;
+  updateTicketStatus: (id: string, status: TicketStatus) => Promise<SupportTicketView>;
+  replyTicket: (id: string, input: SendTicketMessageInput) => Promise<SupportTicketView>;
 }
 
 export const adminRepository: AdminRepository = {
@@ -317,6 +339,66 @@ export const adminRepository: AdminRepository = {
 
   async deleteCoupon(id) {
     couponsStore = couponsStore.filter((c) => c.id !== id);
+  },
+
+  async listUsers() {
+    return [...usersStore];
+  },
+
+  async createUser(payload) {
+    const id = `u_${Date.now()}`;
+    const created: AdminUserRow = {
+      id,
+      name: payload.name,
+      email: payload.email,
+      role: payload.role,
+      status: payload.status,
+      createdAt: new Date().toISOString()
+    };
+    usersStore = [created, ...usersStore];
+    return created;
+  },
+
+  async updateUser(id, changes) {
+    const index = usersStore.findIndex((u) => u.id === id);
+    if (index === -1) throw new Error("Usuário não encontrado.");
+
+    usersStore[index] = {
+      ...usersStore[index],
+      ...changes
+    };
+    return usersStore[index];
+  },
+
+  async deleteUser(id) {
+    usersStore = usersStore.filter((u) => u.id !== id);
+  },
+
+  async listTickets() {
+    return [...mockTickets].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  },
+
+  async updateTicketStatus(id, status) {
+    const ticket = mockTickets.find((t) => t.id === id);
+    if (!ticket) throw new Error("Ticket not found");
+    ticket.status = status;
+    ticket.updatedAt = new Date().toISOString();
+    return { ...ticket };
+  },
+
+  async replyTicket(id, input) {
+    const ticket = mockTickets.find((t) => t.id === id);
+    if (!ticket) throw new Error("Ticket not found");
+    ticket.messages.push({
+      id: `msg_${Math.random().toString(36).substring(7)}`,
+      senderId: "admin_1",
+      senderName: "Admin",
+      senderRole: "ADMIN",
+      content: input.content,
+      createdAt: new Date().toISOString()
+    });
+    ticket.updatedAt = new Date().toISOString();
+    return { ...ticket };
   }
 };
 

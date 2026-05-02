@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Mail, TrendingUp, Users } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Mail, TrendingUp, Users, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -10,11 +11,14 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import type { AdminLead } from "@premium/contracts";
 import { adminRepository } from "@/services/api/adminRepository";
-
 const AdminLeadsPage = () => {
   const [leads, setLeads] = useState<AdminLead[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const load = async () => {
@@ -25,6 +29,22 @@ const AdminLeadsPage = () => {
   }, []);
 
   const pending = leads.filter((lead) => !lead.notified).length;
+
+  const filteredLeads = useMemo(() => {
+    return leads.filter((lead) =>
+      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.product.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [leads, searchTerm]);
+
+  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
+  const paginatedLeads = useMemo(() => {
+    return filteredLeads.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  }, [filteredLeads, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -60,8 +80,22 @@ const AdminLeadsPage = () => {
         </Card>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar e-mail ou produto..." 
+              className="pl-9 bg-card" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
       <Card className="bg-card border-border">
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle>Leads de Interesse</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -75,7 +109,7 @@ const AdminLeadsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {leads.map((lead) => (
+              {paginatedLeads.map((lead) => (
                 <TableRow key={`${lead.email}-${lead.date}`} className="border-border">
                   <TableCell>{lead.email}</TableCell>
                   <TableCell className="text-muted-foreground">{lead.product}</TableCell>
@@ -96,6 +130,30 @@ const AdminLeadsPage = () => {
               ))}
             </TableBody>
           </Table>
+
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-border">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  <span className="text-sm text-muted-foreground px-4">
+                    Página {page} de {totalPages}
+                  </span>
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

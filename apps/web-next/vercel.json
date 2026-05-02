@@ -1,5 +1,0 @@
-﻿{
-  "framework": "nextjs",
-  "installCommand": "npm install --workspaces=false --cache .npm-cache",
-  "buildCommand": "npm run build --workspaces=false"
-}

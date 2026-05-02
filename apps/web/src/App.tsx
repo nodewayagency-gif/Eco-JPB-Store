@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/providers/CartContext";
 import { AuthProvider } from "@/providers/auth/AuthProvider";
 import { RequireAdminAuth, RequireCustomerAuth } from "@/providers/auth/RouteGuards";
+import ScrollToTop from "@/components/ScrollToTop";
 import Index from "./pages/Index.tsx";
 import ProductPage from "./pages/ProductPage.tsx";
 import ProductsPage from "./pages/ProductsPage.tsx";
@@ -21,6 +22,8 @@ import AdminProductsPage from "./pages/admin/AdminProductsPage.tsx";
 import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage.tsx";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage.tsx";
 import AdminLeadsPage from "./pages/admin/AdminLeadsPage.tsx";
+import AdminUsersPage from "./pages/admin/AdminUsersPage.tsx";
+import AdminSupportPage from "./pages/admin/AdminSupportPage.tsx";
 import AdminCompanySettingsPage from "./pages/admin/AdminCompanySettingsPage.tsx";
 import AdminPaymentSettingsPage from "./pages/admin/AdminPaymentSettingsPage.tsx";
 import AdminShippingSettingsPage from "./pages/admin/AdminShippingSettingsPage.tsx";
@@ -36,6 +39,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/produtos" element={<ProductsPage />} />
@@ -67,6 +71,8 @@ const App = () => (
                 <Route path="produtos" element={<AdminProductsPage />} />
                 <Route path="categorias" element={<AdminCategoriesPage />} />
                 <Route path="cupons" element={<AdminCouponsPage />} />
+                <Route path="usuarios" element={<AdminUsersPage />} />
+                <Route path="suporte" element={<AdminSupportPage />} />
                 <Route path="leads" element={<AdminLeadsPage />} />
                 <Route path="configuracoes" element={<Navigate to="/admin/configuracoes/empresa" replace />} />
                 <Route path="configuracoes/empresa" element={<AdminCompanySettingsPage />} />

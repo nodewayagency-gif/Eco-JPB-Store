@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { History, Package, PlusCircle, Save } from "lucide-react";
+import { History, Package, PlusCircle, Save, Search, Filter } from "lucide-react";
 import type {
   AdminProductInput,
   AdminProductPurchaseHistory,
@@ -38,8 +38,10 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { adminProductMapper, adminRepository } from "@/services/api/adminRepository";
 import { adminSettingsRepository } from "@/services/api/adminSettingsRepository";
+import { ImageUploader } from "@/components/ui/ImageUploader";
 
 const emptyForm: AdminProductInput = {
   sku: "",
@@ -64,6 +66,8 @@ const emptyForm: AdminProductInput = {
   taxPercent: 0,
   gatewayProductId: undefined,
   melhorEnvioCategory: "",
+  image: "",
+  images: [],
   variants: []
 };
 
@@ -85,6 +89,10 @@ const AdminProductsPage = () => {
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [defaultOriginZipCode, setDefaultOriginZipCode] = useState("01001-000");
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   const loadProducts = async () => {
     const rows = await adminRepository.listProducts();
@@ -131,6 +139,25 @@ const AdminProductsPage = () => {
     return (form.lengthCm * form.widthCm * form.heightCm) / 6000;
   }, [form.lengthCm, form.widthCm, form.heightCm]);
 
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) || 
+                            product.sku.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = categoryFilter === "ALL" || product.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, search, categoryFilter]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  }, [filteredProducts, page]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, categoryFilter]);
+
   const startCreate = () => {
     setEditingProductId(null);
     setForm({ ...emptyForm, originZipCode: defaultOriginZipCode });
@@ -166,7 +193,9 @@ const AdminProductsPage = () => {
       ncm: form.ncm || undefined,
       ean: form.ean || undefined,
       gatewayProductId: editingProductId ?? undefined,
-      melhorEnvioCategory: form.melhorEnvioCategory || undefined
+      melhorEnvioCategory: form.melhorEnvioCategory || undefined,
+      image: form.image || undefined,
+      images: form.images || undefined
     };
 
     if (editingProductId) {
@@ -186,14 +215,40 @@ const AdminProductsPage = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar produto ou SKU..." 
+              className="pl-9 bg-card" 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-48 bg-card">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todas as categorias</SelectItem>
+              {categories.map(cat => (
+                <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={startCreate} className="gap-2 shrink-0">
+          <PlusCircle className="w-4 h-4" /> Novo produto
+        </Button>
+      </div>
+
       <Card className="bg-card border-border">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="pb-2">
           <CardTitle className="text-foreground flex items-center gap-2">
             <Package className="w-5 h-5 text-primary" /> Gestão de Produtos
           </CardTitle>
-          <Button onClick={startCreate} className="gap-2">
-            <PlusCircle className="w-4 h-4" /> Novo produto
-          </Button>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -209,17 +264,28 @@ const AdminProductsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
+              {paginatedProducts.map((product) => (
                 <TableRow key={product.id} className="border-border">
                   <TableCell className="font-mono text-xs">{product.sku}</TableCell>
                   <TableCell>
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground">{product.name}</p>
-                      {product.badge ? (
-                        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
-                          {product.badge}
-                        </Badge>
-                      ) : null}
+                    <div className="flex items-center gap-3">
+                      {product.image ? (
+                        <div className="w-10 h-10 rounded-md bg-muted flex-shrink-0 overflow-hidden">
+                          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                          <Package className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">{product.name}</p>
+                        {product.badge ? (
+                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                            {product.badge}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{product.category}</TableCell>
@@ -251,6 +317,30 @@ const AdminProductsPage = () => {
               ))}
             </TableBody>
           </Table>
+
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-border">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  <span className="text-sm text-muted-foreground px-4">
+                    Página {page} de {totalPages}
+                  </span>
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -302,6 +392,27 @@ const AdminProductsPage = () => {
               <div className="space-y-2"><Label>EAN</Label><Input value={form.ean} onChange={(e) => setForm((c) => ({ ...c, ean: e.target.value }))} /></div>
               <div className="space-y-2"><Label>% imposto</Label><Input type="number" step="0.01" value={form.taxPercent} onChange={(e) => handleNumber("taxPercent")(e.target.value)} /></div>
               <div className="space-y-2 md:col-span-4"><Label>Categoria Melhor Envio</Label><Input value={form.melhorEnvioCategory} onChange={(e) => setForm((c) => ({ ...c, melhorEnvioCategory: e.target.value }))} /></div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <Label className="text-base">Imagem Principal</Label>
+                <p className="text-xs text-muted-foreground">Aparecerá nos destaques e na capa do produto.</p>
+                <ImageUploader 
+                  value={form.image} 
+                  onChange={(v) => setForm((c) => ({ ...c, image: v as string }))} 
+                  multiple={false} 
+                />
+              </div>
+              <div className="space-y-3">
+                <Label className="text-base">Galeria do Produto</Label>
+                <p className="text-xs text-muted-foreground">Imagens adicionais para os detalhes (até 5MB cada).</p>
+                <ImageUploader 
+                  value={form.images} 
+                  onChange={(v) => setForm((c) => ({ ...c, images: v as string[] }))} 
+                  multiple={true} 
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg border border-border p-4">

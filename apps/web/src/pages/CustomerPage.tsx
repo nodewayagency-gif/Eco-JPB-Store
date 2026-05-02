@@ -11,14 +11,21 @@ import {
   ShoppingBag,
   ChevronDown,
   ChevronUp,
-  LogOut
+  LogOut,
+  MessageSquare,
+  Plus
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import type { CustomerOrderTrackingStep, CustomerOrderView, CustomerProfile } from "@premium/contracts";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { CustomerOrderTrackingStep, CustomerOrderView, CustomerProfile, SupportTicketView } from "@premium/contracts";
 import { useAuth } from "@/providers/auth/AuthProvider";
 import { customerRepository } from "@/services/api/customerRepository";
 
@@ -91,21 +98,28 @@ const CustomerPage = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [orders, setOrders] = useState<CustomerOrderView[]>([]);
+  const [tickets, setTickets] = useState<SupportTicketView[]>([]);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"orders" | "addresses">("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "addresses" | "tickets">("orders");
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicketView | null>(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [newTicket, setNewTicket] = useState({ subject: "", description: "", orderId: "none" });
 
   useEffect(() => {
     const userId = customerSession?.user.id;
     if (!userId) return;
 
     const load = async () => {
-      const [profileData, orderData] = await Promise.all([
+      const [profileData, orderData, ticketsData] = await Promise.all([
         customerRepository.getProfile(userId),
-        customerRepository.getOrders(userId)
+        customerRepository.getOrders(userId),
+        customerRepository.getTickets(userId)
       ]);
 
       setProfile(profileData);
       setOrders(orderData);
+      setTickets(ticketsData);
       setExpandedOrder(orderData[0]?.id ?? null);
     };
 
@@ -124,6 +138,33 @@ const CustomerPage = () => {
 
   const toggle = (id: string) => {
     setExpandedOrder((current) => (current === id ? null : id));
+  };
+
+  const handleCreateTicket = async () => {
+    const userId = customerSession?.user.id;
+    if (!userId || !newTicket.subject || !newTicket.description) return;
+    
+    const created = await customerRepository.createTicket(userId, {
+      subject: newTicket.subject,
+      description: newTicket.description,
+      orderId: newTicket.orderId === "none" ? undefined : newTicket.orderId
+    });
+    
+    setTickets([created, ...tickets]);
+    setIsCreatingTicket(false);
+    setNewTicket({ subject: "", description: "", orderId: "none" });
+  };
+
+  const handleReplyTicket = async () => {
+    const userId = customerSession?.user.id;
+    if (!userId || !selectedTicket || !replyContent) return;
+
+    const updated = await customerRepository.replyTicket(userId, selectedTicket.id, { content: replyContent });
+    if (updated) {
+      setTickets(tickets.map(t => t.id === updated.id ? updated : t));
+      setSelectedTicket(updated);
+      setReplyContent("");
+    }
   };
 
   return (
@@ -198,6 +239,13 @@ const CustomerPage = () => {
             Meus Endereços
             {activeTab === "addresses" && <motion.div layoutId="tab-indicator" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-primary" />}
           </button>
+          <button 
+            onClick={() => setActiveTab("tickets")}
+            className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === "tickets" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Atendimento
+            {activeTab === "tickets" && <motion.div layoutId="tab-indicator" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-primary" />}
+          </button>
         </div>
 
         {activeTab === "orders" ? (
@@ -259,7 +307,7 @@ const CustomerPage = () => {
             );
           })}
         </div>
-        ) : (
+        ) : activeTab === "addresses" ? (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -295,6 +343,123 @@ const CustomerPage = () => {
                  <span className="text-sm font-medium">Cadastrar novo endereço</span>
               </Card>
             </div>
+          </motion.div>
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" /> Meus Chamados
+              </h2>
+              <Dialog open={isCreatingTicket} onOpenChange={setIsCreatingTicket}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Plus className="w-4 h-4" /> Novo Chamado
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px] bg-card border-border">
+                  <DialogHeader>
+                    <DialogTitle>Abrir Chamado</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label>Assunto</Label>
+                      <Input value={newTicket.subject} onChange={e => setNewTicket({...newTicket, subject: e.target.value})} placeholder="Ex: Produto com defeito" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Pedido Relacionado (Opcional)</Label>
+                      <Select value={newTicket.orderId} onValueChange={v => setNewTicket({...newTicket, orderId: v})}>
+                        <SelectTrigger className="w-full bg-background border-border text-foreground">
+                          <SelectValue placeholder="Selecione um pedido" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border text-foreground">
+                          <SelectItem value="none">Nenhum</SelectItem>
+                          {orders.map(o => (
+                            <SelectItem key={o.id} value={o.id}>{o.id} - {o.product}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Descrição</Label>
+                      <Textarea value={newTicket.description} onChange={e => setNewTicket({...newTicket, description: e.target.value})} placeholder="Descreva o problema..." className="min-h-[100px]" />
+                    </div>
+                    <Button className="w-full" onClick={handleCreateTicket} disabled={!newTicket.subject || !newTicket.description}>
+                      Enviar Chamado
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {selectedTicket ? (
+              <Card className="bg-card border-border overflow-hidden flex flex-col h-[500px]">
+                <div className="p-4 border-b border-border bg-secondary/30 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedTicket(null)}>
+                      <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <div>
+                      <h3 className="font-semibold text-sm">{selectedTicket.subject}</h3>
+                      <p className="text-xs text-muted-foreground">Chamado #{selectedTicket.id}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={selectedTicket.status === "CLOSED" ? "border-muted" : "border-primary text-primary"}>
+                    {selectedTicket.status === "OPEN" ? "Aberto" : selectedTicket.status === "IN_PROGRESS" ? "Em Atendimento" : "Fechado"}
+                  </Badge>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {selectedTicket.messages.map((msg) => (
+                    <div key={msg.id} className={`flex flex-col ${msg.senderRole === "CUSTOMER" ? "items-end" : "items-start"}`}>
+                      <div className={`max-w-[80%] rounded-xl px-4 py-2 ${msg.senderRole === "CUSTOMER" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground mt-1">{msg.senderName} • {new Date(msg.createdAt).toLocaleString("pt-BR")}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedTicket.status !== "CLOSED" && (
+                  <div className="p-4 border-t border-border bg-card flex gap-2">
+                    <Input 
+                      value={replyContent} 
+                      onChange={e => setReplyContent(e.target.value)} 
+                      placeholder="Digite sua resposta..." 
+                      className="flex-1"
+                      onKeyDown={e => e.key === "Enter" && handleReplyTicket()}
+                    />
+                    <Button onClick={handleReplyTicket} disabled={!replyContent}>Enviar</Button>
+                  </div>
+                )}
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {tickets.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">Nenhum chamado aberto.</p>
+                  </div>
+                ) : (
+                  tickets.map((ticket) => (
+                    <Card key={ticket.id} className="bg-card border-border hover:border-primary/50 cursor-pointer transition-colors" onClick={() => setSelectedTicket(ticket)}>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm">{ticket.subject}</span>
+                            <Badge variant="outline" className={`text-[10px] h-5 ${ticket.status === "CLOSED" ? "border-muted" : "border-primary text-primary"}`}>
+                              {ticket.status === "OPEN" ? "Aberto" : ticket.status === "IN_PROGRESS" ? "Em Atendimento" : "Fechado"}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-1">{ticket.description}</p>
+                          <p className="text-[10px] text-muted-foreground mt-2">Atualizado em {new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</p>
+                        </div>
+                        <ChevronDown className="w-5 h-5 text-muted-foreground -rotate-90" />
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </main>

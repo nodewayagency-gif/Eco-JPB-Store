@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +55,8 @@ const AdminCouponsPage = () => {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
   
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<AdminCouponInput>(emptyForm);
@@ -77,6 +80,13 @@ const AdminCouponsPage = () => {
   const filteredCoupons = coupons.filter((cp) =>
     cp.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredCoupons.length / itemsPerPage);
+  const paginatedCoupons = filteredCoupons.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -147,28 +157,29 @@ const AdminCouponsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Cupons de Desconto</h1>
-          <p className="text-muted-foreground">Gerencie ofertas e promoções para seus clientes.</p>
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar código..."
+              className="pl-9 bg-card border-border"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-        <Button onClick={handleOpenCreate} className="gap-2 bg-primary hover:bg-primary/90">
+        <Button onClick={handleOpenCreate} className="gap-2 bg-primary hover:bg-primary/90 shrink-0">
           <Plus className="w-4 h-4" /> Novo Cupom
         </Button>
       </div>
 
       <Card className="bg-card border-border">
         <CardHeader className="pb-3 px-6 pt-6 text-foreground">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar código..."
-                className="pl-9 bg-background border-border"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Ticket className="w-5 h-5 text-primary" /> Cupons de Desconto
+            </CardTitle>
             <Badge variant="outline" className="border-border text-xs font-normal">
               {filteredCoupons.length} Total
             </Badge>
@@ -195,7 +206,7 @@ const AdminCouponsPage = () => {
                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Nenhum cupom encontrado.</TableCell>
                   </TableRow>
                 ) : (
-                  filteredCoupons.map((coupon) => (
+                  paginatedCoupons.map((coupon) => (
                     <TableRow key={coupon.id} className="border-border hover:bg-muted/30">
                       <TableCell className="pl-6 font-mono font-bold text-primary">
                         {coupon.code}
@@ -259,6 +270,30 @@ const AdminCouponsPage = () => {
               </TableBody>
             </Table>
           </div>
+
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-border">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  <span className="text-sm text-muted-foreground px-4">
+                    Página {page} de {totalPages}
+                  </span>
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 

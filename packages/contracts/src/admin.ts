@@ -88,6 +88,8 @@ export interface AdminProductRow {
   taxPercent?: number;
   gatewayProductId?: string;
   melhorEnvioCategory?: string;
+  image?: string;
+  images?: string[];
   variants?: AdminProductVariant[];
 }
 
@@ -114,6 +116,8 @@ export interface AdminProductInput {
   taxPercent?: number;
   gatewayProductId?: string;
   melhorEnvioCategory?: string;
+  image?: string;
+  images?: string[];
   variants?: AdminProductVariant[];
 }
 
@@ -219,4 +223,21 @@ export interface AdminCouponInput {
   expiryDate?: string;
   usageLimit?: number;
   active: boolean;
+}
+
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: "ADMIN" | "OPERATOR" | "CUSTOMER";
+  status: "ACTIVE" | "INACTIVE";
+  createdAt: string;
+}
+
+export interface AdminUserInput {
+  name: string;
+  email: string;
+  password?: string;
+  role: "ADMIN" | "OPERATOR" | "CUSTOMER";
+  status: "ACTIVE" | "INACTIVE";
 }

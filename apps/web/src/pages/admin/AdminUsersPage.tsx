@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, Tag, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, User, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -28,61 +28,61 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import type { AdminCategory, AdminCategoryInput } from "@premium/contracts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import type { AdminUserRow, AdminUserInput } from "@premium/contracts";
 import { adminRepository } from "@/services/api/adminRepository";
 import { toast } from "sonner";
 
-const emptyForm: AdminCategoryInput = {
+const emptyForm: AdminUserInput = {
   name: "",
-  slug: "",
-  active: true
+  email: "",
+  role: "CUSTOMER",
+  status: "ACTIVE"
 };
 
-const AdminCategoriesPage = () => {
-  const [categories, setCategories] = useState<AdminCategory[]>([]);
+const AdminUsersPage = () => {
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
-  
+
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState<AdminCategoryInput>(emptyForm);
+  const [form, setForm] = useState<AdminUserInput>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadCategories();
+    loadUsers();
   }, []);
 
-  const loadCategories = async () => {
+  const loadUsers = async () => {
     try {
-      const data = await adminRepository.listCategories();
-      setCategories(data);
+      const data = await adminRepository.listUsers();
+      setUsers(data);
     } catch (error) {
-      toast.error("Erro ao carregar categorias");
+      toast.error("Erro ao carregar usuários");
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter((user) =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
-  const paginatedCategories = filteredCategories.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   useEffect(() => {
     setPage(1);
   }, [searchTerm]);
-
-  const slugify = (text: string) =>
-    text
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -90,47 +90,60 @@ const AdminCategoriesPage = () => {
     setModalOpen(true);
   };
 
-  const handleOpenEdit = (category: AdminCategory) => {
-    setEditingId(category.id);
+  const handleOpenEdit = (user: AdminUserRow) => {
+    setEditingId(user.id);
     setForm({
-      name: category.name,
-      slug: category.slug,
-      active: category.active
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status
     });
     setModalOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) {
-      toast.error("O nome da categoria é obrigatório");
+    if (!form.name.trim() || !form.email.trim()) {
+      toast.error("Nome e email são obrigatórios");
       return;
     }
 
     try {
       if (editingId) {
-        await adminRepository.updateCategory(editingId, form);
-        toast.success("Categoria atualizada com sucesso");
+        await adminRepository.updateUser(editingId, form);
+        toast.success("Usuário atualizado com sucesso");
       } else {
-        await adminRepository.createCategory(form);
-        toast.success("Categoria criada com sucesso");
+        await adminRepository.createUser(form);
+        toast.success("Usuário criado com sucesso");
       }
       setModalOpen(false);
-      loadCategories();
+      loadUsers();
     } catch (error) {
-      toast.error("Erro ao salvar categoria");
+      toast.error("Erro ao salvar usuário");
     }
   };
 
   const handleDelete = async (id: string) => {
-     if (window.confirm("Tem certeza que deseja excluir esta categoria?")) {
-        try {
-            await adminRepository.deleteCategory(id);
-            setCategories(categories.filter(c => c.id !== id));
-            toast.success("Categoria excluída com sucesso");
-        } catch (error) {
-            toast.error("Erro ao excluir categoria");
-        }
-     }
+    if (window.confirm("Tem certeza que deseja excluir este usuário?")) {
+      try {
+        await adminRepository.deleteUser(id);
+        setUsers(users.filter((u) => u.id !== id));
+        toast.success("Usuário excluído com sucesso");
+      } catch (error) {
+        toast.error("Erro ao excluir usuário");
+      }
+    }
+  };
+
+  const roleLabels: Record<string, string> = {
+    ADMIN: "Administrador",
+    OPERATOR: "Operador",
+    CUSTOMER: "Cliente"
+  };
+
+  const roleColors: Record<string, string> = {
+    ADMIN: "bg-red-500/10 text-red-500 border-red-500/20",
+    OPERATOR: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    CUSTOMER: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
   };
 
   return (
@@ -140,7 +153,7 @@ const AdminCategoriesPage = () => {
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar categoria..."
+              placeholder="Buscar usuário..."
               className="pl-9 bg-card border-border"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -148,7 +161,7 @@ const AdminCategoriesPage = () => {
           </div>
         </div>
         <Button onClick={handleOpenCreate} className="gap-2 bg-primary hover:bg-primary/90 shrink-0">
-          <Plus className="w-4 h-4" /> Nova Categoria
+          <Plus className="w-4 h-4" /> Novo Usuário
         </Button>
       </div>
 
@@ -156,10 +169,10 @@ const AdminCategoriesPage = () => {
         <CardHeader className="pb-3 px-6 pt-6">
           <div className="flex items-center justify-between">
             <CardTitle className="text-foreground flex items-center gap-2">
-              <Tag className="w-5 h-5 text-primary" /> Categorias
+              <User className="w-5 h-5 text-primary" /> Usuários
             </CardTitle>
             <Badge variant="outline" className="border-border text-xs font-normal">
-                {filteredCategories.length} Total
+              {filteredUsers.length} Total
             </Badge>
           </div>
         </CardHeader>
@@ -169,52 +182,54 @@ const AdminCategoriesPage = () => {
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="pl-6 w-[300px]">Nome</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead className="text-center">Produtos</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead className="text-center">Papel</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-right pr-6 w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                   <TableRow>
-                     <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                        Carregando categorias...
-                     </TableCell>
-                   </TableRow>
-                ) : filteredCategories.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                      Nenhuma categoria encontrada.
+                      Carregando usuários...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                      Nenhum usuário encontrado.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedCategories.map((category) => (
-                    <TableRow key={category.id} className="border-border hover:bg-muted/30">
+                  paginatedUsers.map((user) => (
+                    <TableRow key={user.id} className="border-border hover:bg-muted/30">
                       <TableCell className="pl-6 font-medium text-foreground">
                         <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <Tag className="w-4 h-4 text-primary" />
-                           </div>
-                           {category.name}
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="w-4 h-4 text-primary" />
+                          </div>
+                          {user.name}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground font-mono text-xs">
-                        {category.slug}
+                      <TableCell className="text-muted-foreground text-sm">
+                        {user.email}
                       </TableCell>
-                      <TableCell className="text-center text-muted-foreground">
-                        {category.productCount}
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={roleColors[user.role]}>
+                          {roleLabels[user.role]}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
                           variant="outline"
                           className={
-                            category.active
+                            user.status === "ACTIVE"
                               ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                               : "bg-muted text-muted-foreground border-border"
                           }
                         >
-                          {category.active ? "Ativa" : "Inativa"}
+                          {user.status === "ACTIVE" ? "Ativo" : "Inativo"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right pr-6">
@@ -225,15 +240,15 @@ const AdminCategoriesPage = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-card border-border">
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="gap-2 cursor-pointer"
-                              onClick={() => handleOpenEdit(category)}
+                              onClick={() => handleOpenEdit(user)}
                             >
                               <Edit className="w-4 h-4" /> Editar
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                                className="gap-2 text-destructive cursor-pointer hover:bg-destructive/10"
-                                onClick={() => handleDelete(category.id)}
+                            <DropdownMenuItem
+                              className="gap-2 text-destructive cursor-pointer hover:bg-destructive/10"
+                              onClick={() => handleDelete(user.id)}
                             >
                               <Trash2 className="w-4 h-4" /> Excluir
                             </DropdownMenuItem>
@@ -276,46 +291,69 @@ const AdminCategoriesPage = () => {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md bg-card border-border">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+            <DialogTitle>{editingId ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
             <DialogDescription>
-              Defina o nome e o status da categoria. O slug será gerado automaticamente.
+              Defina as credenciais e nível de acesso do usuário.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome da Categoria</Label>
+              <Label htmlFor="name">Nome</Label>
               <Input
                 id="name"
-                placeholder="Ex: Headphones"
+                placeholder="Ex: João Silva"
                 value={form.name}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setForm({ ...form, name, slug: slugify(name) });
-                }}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug (URL)</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="slug"
-                readOnly
-                className="bg-muted text-muted-foreground"
-                value={form.slug}
+                id="email"
+                type="email"
+                placeholder="exemplo@nodeway.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
-              <p className="text-[11px] text-muted-foreground">Gerado automaticamente para SEO.</p>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
-              <div className="space-y-0.5">
-                <Label>Categoria Ativa</Label>
-                <p className="text-xs text-muted-foreground">Exibir nas opções de cadastro</p>
-              </div>
-              <Switch
-                checked={form.active}
-                onCheckedChange={(checked) => setForm({ ...form, active: checked })}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="role">Papel / Nível de Acesso</Label>
+              <Select
+                value={form.role}
+                onValueChange={(value: "ADMIN" | "OPERATOR" | "CUSTOMER") =>
+                  setForm({ ...form, role: value })
+                }
+              >
+                <SelectTrigger id="role" className="bg-background border-border">
+                  <SelectValue placeholder="Selecione o papel" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="CUSTOMER">Cliente</SelectItem>
+                  <SelectItem value="OPERATOR">Operador</SelectItem>
+                  <SelectItem value="ADMIN">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status da Conta</Label>
+              <Select
+                value={form.status}
+                onValueChange={(value: "ACTIVE" | "INACTIVE") =>
+                  setForm({ ...form, status: value })
+                }
+              >
+                <SelectTrigger id="status" className="bg-background border-border">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="ACTIVE">Ativo</SelectItem>
+                  <SelectItem value="INACTIVE">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -324,7 +362,7 @@ const AdminCategoriesPage = () => {
               Cancelar
             </Button>
             <Button onClick={handleSave} className="bg-primary text-primary-foreground">
-              Salvar Categoria
+              Salvar Usuário
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -333,4 +371,4 @@ const AdminCategoriesPage = () => {
   );
 };
 
-export default AdminCategoriesPage;
+export default AdminUsersPage;
