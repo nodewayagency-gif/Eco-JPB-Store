@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/providers/CartContext";
 import { useAuth } from "@/providers/auth/AuthProvider";
 import { CartSheet } from "./CartSheet";
+import logo from "@/assets/brand/jpb_sem_fundo_32x32.png";
 
 const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -22,7 +23,7 @@ const Navbar = () => {
             <Link to="/" className="flex items-center gap-2 group">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <img src="/jpb_sem_fundo_32x32.png" alt="JPB Store" className="relative h-10 w-10 object-contain transition-transform duration-500 group-hover:scale-110" />
+                <img src={logo} alt="JPB Store" className="relative h-10 w-10 object-contain transition-transform duration-500 group-hover:scale-110" />
               </div>
               <span className="hidden sm:inline text-xl font-black tracking-tight gold-text">JPB STORE</span>
             </Link>

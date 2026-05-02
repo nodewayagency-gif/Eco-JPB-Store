@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  publicDir: path.resolve(__dirname, "../../public"),
+  publicDir: path.resolve(__dirname, "public"),
   server: {
     host: "::",
     port: 8080,

@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "JPB Store",
   "short_name": "JPB Store",
   "description": "Eletrônicos premium para quem exige qualidade.",
@@ -10,18 +10,18 @@
   "theme_color": "#0b0b0c",
   "icons": [
     {
-      "src": "/jpb_sem_fundo_32x32.png",
+      "src": "/brand/jpb_sem_fundo_32x32.png",
       "sizes": "32x32",
       "type": "image/png"
     },
     {
-      "src": "/jpb_sem_fundo.png",
+      "src": "/brand/jpb_sem_fundo.png",
       "sizes": "500x500",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/jpb_store_qualidade.png",
+      "src": "/brand/jpb_store_qualidade.png",
       "sizes": "2048x2048",
       "type": "image/png",
       "purpose": "any"

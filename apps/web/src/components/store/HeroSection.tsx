@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Users } from "lucide-react";
+import logo from "@/assets/brand/jpb_sem_fundo.png";
 
 const HeroSection = () => {
   return (
@@ -63,7 +64,7 @@ const HeroSection = () => {
             <div className="relative">
               <div className="absolute inset-0 w-[300px] h-[300px] sm:w-[420px] sm:h-[420px] lg:w-[560px] lg:h-[560px] bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0.08)_35%,rgba(225,171,45,0)_72%)] blur-2xl rounded-full" />
               <motion.img
-                src="/jpb_sem_fundo.png"
+                src={logo}
                 alt="Logo JPB Store"
                 className="relative w-[220px] sm:w-[300px] lg:w-[460px] object-contain"
                 animate={{ y: [0, -10, 0] }}
