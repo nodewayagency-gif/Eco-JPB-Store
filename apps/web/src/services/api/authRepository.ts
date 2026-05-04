@@ -1,13 +1,14 @@
-﻿import type { AuthSession, LoginRequest, RefreshSessionRequest, Role, SessionScope } from "@premium/contracts";
+import type { AuthSession, LoginRequest, RefreshSessionRequest, Role, SessionScope } from "@premium/contracts";
 import { mockAuthUsers, type MockAuthUser } from "@/mocks/auth";
 
-const SESSION_DURATION_MS = 1000 * 60 * 60 * 8;
+const SESSION_DURATION_CUSTOMER_MS = 1000 * 60 * 60 * 24; // 24 hours
+const SESSION_DURATION_ADMIN_MS = 1000 * 60 * 60 * 8; // 8 hours
 
 const allowedAdminRoles: Role[] = ["ADMIN", "OPERATOR"];
 
 const randomToken = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2)}_${Date.now()}`;
 
-const buildSession = (user: MockAuthUser, scope: SessionScope): AuthSession => ({
+const buildSession = (user: MockAuthUser, scope: SessionScope, duration: number): AuthSession => ({
   tokenId: randomToken("tid"),
   scope,
   user,
@@ -15,7 +16,7 @@ const buildSession = (user: MockAuthUser, scope: SessionScope): AuthSession => (
     accessToken: randomToken(`access_${scope}_${user.id}`),
     refreshToken: `refresh_${scope}_${user.id}_${Math.random().toString(36).slice(2)}`
   },
-  expiresAt: new Date(Date.now() + SESSION_DURATION_MS).toISOString()
+  expiresAt: new Date(Date.now() + duration).toISOString()
 });
 
 const validateCredentials = (user: MockAuthUser, password: string) => {
@@ -36,6 +37,7 @@ export interface AuthRepository {
   loginAdmin: (payload: LoginRequest) => Promise<AuthSession>;
   refreshSession: (payload: RefreshSessionRequest) => Promise<AuthSession>;
   logout: (tokenId: string, scope: SessionScope) => Promise<void>;
+  registerCustomer: (payload: any) => Promise<AuthSession>;
 }
 
 export const demoCredentials = {
@@ -44,49 +46,84 @@ export const demoCredentials = {
   operator: { email: "operador@jpb.com", password: "Operador@123" }
 };
 
+import { api } from "../api";
+
 export const authRepository: AuthRepository = {
   async loginCustomer(payload) {
-    const user = findUserByEmail(payload.email);
-    if (!user || user.role !== "CUSTOMER" || !validateCredentials(user, payload.password)) {
-      throw new Error("Credenciais de cliente inválidas.");
-    }
+    try {
+      const { data } = await api.post("/auth/login", {
+        email: payload.email,
+        password: payload.password
+      });
 
-    return buildSession(user, "CUSTOMER");
+      return {
+        tokenId: data.token,
+        scope: "CUSTOMER",
+        user: data.user,
+        tokens: {
+          accessToken: data.token,
+          refreshToken: data.token // Por enquanto usando o mesmo
+        },
+        expiresAt: new Date(Date.now() + SESSION_DURATION_CUSTOMER_MS).toISOString()
+      };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Erro na autenticação do cliente.");
+    }
   },
 
   async loginAdmin(payload) {
-    const user = findUserByEmail(payload.email);
-    if (
-      !user ||
-      !allowedAdminRoles.includes(user.role) ||
-      !validateCredentials(user, payload.password)
-    ) {
-      throw new Error("Credenciais administrativas inválidas.");
-    }
+    try {
+      const { data } = await api.post("/auth/login", {
+        email: payload.email,
+        password: payload.password
+      });
 
-    return buildSession(user, "ADMIN");
+      if (!allowedAdminRoles.includes(data.user.role)) {
+        throw new Error("Você não tem permissão para acessar o painel administrativo.");
+      }
+
+      return {
+        tokenId: data.token,
+        scope: "ADMIN",
+        user: data.user,
+        tokens: {
+          accessToken: data.token,
+          refreshToken: data.token
+        },
+        expiresAt: new Date(Date.now() + SESSION_DURATION_ADMIN_MS).toISOString()
+      };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Erro na autenticação administrativa.");
+    }
   },
 
   async refreshSession(payload) {
-    const userId = parseUserIdFromRefreshToken(payload.refreshToken);
-    const user = mockAuthUsers.find((candidate) => candidate.id === userId);
-
-    if (!user) {
-      throw new Error("Sessão inválida para refresh.");
-    }
-
-    if (payload.scope === "ADMIN" && !allowedAdminRoles.includes(user.role)) {
-      throw new Error("Sessão administrativa inválida.");
-    }
-
-    if (payload.scope === "CUSTOMER" && user.role !== "CUSTOMER") {
-      throw new Error("Sessão de cliente inválida.");
-    }
-
-    return buildSession(user, payload.scope);
+    // Para um MVP, podemos retornar a sessão atual se o token ainda for válido
+    // Em um sistema real, teríamos uma rota de /auth/refresh
+    throw new Error("Sessão expirada. Por favor, faça login novamente.");
   },
 
   async logout() {
     return;
+  },
+
+  async registerCustomer(payload) {
+    try {
+      const { data } = await api.post("/auth/register", payload);
+
+      return {
+        tokenId: data.token,
+        scope: "CUSTOMER",
+        user: data.user,
+        tokens: {
+          accessToken: data.token,
+          refreshToken: data.token
+        },
+        expiresAt: new Date(Date.now() + SESSION_DURATION_CUSTOMER_MS).toISOString()
+      };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Erro ao realizar o cadastro.");
+    }
   }
 };
+

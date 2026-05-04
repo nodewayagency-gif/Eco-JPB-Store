@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { History, Package, PlusCircle, Save, Search, Filter } from "lucide-react";
 import type {
   AdminProductInput,
@@ -46,7 +47,8 @@ import { ImageUploader } from "@/components/ui/ImageUploader";
 const emptyForm: AdminProductInput = {
   sku: "",
   name: "",
-  category: "",
+  description: "",
+  categoryId: "",
   price: 0,
   costPrice: 0,
   inStock: true,
@@ -91,6 +93,7 @@ const AdminProductsPage = () => {
   const [defaultOriginZipCode, setDefaultOriginZipCode] = useState("01001-000");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -144,9 +147,12 @@ const AdminProductsPage = () => {
       const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) || 
                             product.sku.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = categoryFilter === "ALL" || product.category === categoryFilter;
-      return matchesSearch && matchesCategory;
+      const matchesStatus = statusFilter === "ALL" || 
+                            (statusFilter === "ACTIVE" && product.active) || 
+                            (statusFilter === "INACTIVE" && !product.active);
+      return matchesSearch && matchesCategory && matchesStatus;
     });
-  }, [products, search, categoryFilter]);
+  }, [products, search, categoryFilter, statusFilter]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = useMemo(() => {
@@ -156,7 +162,7 @@ const AdminProductsPage = () => {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, categoryFilter]);
+  }, [search, categoryFilter, statusFilter]);
 
   const startCreate = () => {
     setEditingProductId(null);
@@ -198,15 +204,34 @@ const AdminProductsPage = () => {
       images: form.images || undefined
     };
 
+    // Remover campo legado se existir para evitar erro no banco
+    if ('category' in payload) {
+        delete (payload as any).category;
+    }
+
     if (editingProductId) {
       await adminRepository.updateProduct(editingProductId, payload);
+      toast.success("Produto atualizado com sucesso!");
     } else {
       await adminRepository.createProduct(payload);
+      toast.success("Produto criado com sucesso!");
     }
 
     setProductModalOpen(false);
     setEditingProductId(null);
     await loadProducts();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este produto?")) {
+      try {
+        await adminRepository.deleteProduct(id);
+        toast.success("Produto excluído com sucesso!");
+        await loadProducts();
+      } catch (error) {
+        toast.error("Erro ao excluir produto");
+      }
+    }
   };
 
   const handleNumber = (field: keyof AdminProductInput) => (value: string) => {
@@ -236,6 +261,16 @@ const AdminProductsPage = () => {
               {categories.map(cat => (
                 <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-40 bg-card">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos os status</SelectItem>
+              <SelectItem value="ACTIVE">Ativos</SelectItem>
+              <SelectItem value="INACTIVE">Inativos</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -311,6 +346,14 @@ const AdminProductsPage = () => {
                       <Button variant="secondary" size="sm" onClick={() => openHistory(product)} className="gap-1">
                         <History className="w-3.5 h-3.5" /> Histórico
                       </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDelete(product.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -355,17 +398,34 @@ const AdminProductsPage = () => {
 
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2"><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm((c) => ({ ...c, sku: e.target.value }))} /></div>
+              <div className="space-y-2">
+                <Label>SKU</Label>
+                <Input 
+                  placeholder="Ex: JPB-WTC-001" 
+                  value={form.sku} 
+                  onChange={(e) => setForm((c) => ({ ...c, sku: e.target.value.toUpperCase() }))} 
+                />
+                <p className="text-[10px] text-muted-foreground">Padrão sugerido: JPB-[SIGLA]-[NUM]</p>
+              </div>
               <div className="space-y-2 md:col-span-2"><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} /></div>
+              <div className="space-y-2 md:col-span-4">
+                <Label>Descrição do Produto</Label>
+                <textarea 
+                  className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={form.description}
+                  onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
+                  placeholder="Descreva os detalhes premium do produto..."
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <Select value={form.category} onValueChange={(v) => setForm((c) => ({ ...c, category: v }))}>
+                <Select value={form.categoryId} onValueChange={(v) => setForm((c) => ({ ...c, categoryId: v }))}>
                   <SelectTrigger className="bg-background border-border">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
                     {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.name}>
+                      <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
                       </SelectItem>
                     ))}
@@ -458,10 +518,11 @@ const AdminProductsPage = () => {
                     size="sm" 
                     className="gap-2"
                     onClick={() => {
-                        const newVariant: AdminProductVariant = {
+                        const newVariant: any = {
                             id: `v_${Date.now()}`,
                             sku: `${form.sku}-${(form.variants?.length || 0) + 1}`,
                             name: "",
+                            colorHex: "#000000",
                             stockQuantity: 0
                         };
                         setForm(c => ({ ...c, variants: [...(c.variants || []), newVariant] }));
@@ -475,8 +536,8 @@ const AdminProductsPage = () => {
                   <div className="space-y-3">
                      {form.variants.map((variant, index) => (
                         <div key={variant.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg border border-border bg-muted/20 items-end">
-                           <div className="md:col-span-4 space-y-1.5">
-                              <Label className="text-xs">Nome (ex: Preto / G)</Label>
+                            <div className="md:col-span-3 space-y-1.5">
+                              <Label className="text-xs">Nome (ex: Preto Espacial)</Label>
                               <Input 
                                 value={variant.name} 
                                 className="h-8 text-sm"
@@ -486,6 +547,30 @@ const AdminProductsPage = () => {
                                     setForm(c => ({ ...c, variants: newVariants }));
                                 }}
                               />
+                           </div>
+                           <div className="md:col-span-2 space-y-1.5">
+                              <Label className="text-xs">Cor</Label>
+                              <div className="flex gap-2">
+                                <Input 
+                                  type="color"
+                                  value={(variant as any).colorHex || "#000000"} 
+                                  className="h-8 w-10 p-0 border-none bg-transparent cursor-pointer"
+                                  onChange={(e) => {
+                                      const newVariants = [...(form.variants || [])];
+                                      (newVariants[index] as any).colorHex = e.target.value;
+                                      setForm(c => ({ ...c, variants: newVariants }));
+                                  }}
+                                />
+                                <Input 
+                                  value={(variant as any).colorHex || "#000000"} 
+                                  className="h-8 text-[10px] font-mono"
+                                  onChange={(e) => {
+                                      const newVariants = [...(form.variants || [])];
+                                      (newVariants[index] as any).colorHex = e.target.value;
+                                      setForm(c => ({ ...c, variants: newVariants }));
+                                  }}
+                                />
+                              </div>
                            </div>
                            <div className="md:col-span-3 space-y-1.5">
                               <Label className="text-xs">SKU</Label>

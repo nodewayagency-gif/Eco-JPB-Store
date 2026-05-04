@@ -28,7 +28,6 @@ import type {
   TicketStatus,
   SendTicketMessageInput
 } from "@premium/contracts";
-import { mockTickets } from "./customerRepository";
 
 const makeDefaultProductRow = (product: (typeof products)[number], index: number): AdminProductRow => {
   const sku = product.commercial?.sku ?? `JPB-${product.id.padStart(4, "0")}`;
@@ -104,31 +103,32 @@ let categoriesStore: AdminCategory[] = [...mockCategories];
 let couponsStore: AdminCoupon[] = [...mockCoupons];
 
 const toInput = (product: AdminProductRow): AdminProductInput => ({
-  sku: product.sku,
-  name: product.name,
-  category: product.category,
-  price: product.price,
-  costPrice: product.costPrice,
+  sku: product.sku || "",
+  name: product.name || "",
+  description: product.description || "",
+  categoryId: (product as any).categoryId || "",
+  price: product.price || 0,
+  costPrice: product.costPrice || 0,
   inStock: product.inStock,
-  stockQuantity: product.stockQuantity,
-  minStockAlert: product.minStockAlert,
+  stockQuantity: product.stockQuantity || 0,
+  minStockAlert: product.minStockAlert || 0,
   active: product.active,
-  badge: product.badge,
-  weightKg: product.weightKg,
-  lengthCm: product.lengthCm,
-  widthCm: product.widthCm,
-  heightCm: product.heightCm,
-  originZipCode: product.originZipCode,
+  badge: product.badge || "",
+  weightKg: product.weightKg || 0,
+  lengthCm: product.lengthCm || 0,
+  widthCm: product.widthCm || 0,
+  heightCm: product.heightCm || 0,
+  originZipCode: product.originZipCode || "",
   fragile: product.fragile,
   freeShipping: product.freeShipping,
-  ncm: product.ncm,
-  ean: product.ean,
-  taxPercent: product.taxPercent,
+  ncm: product.ncm || "",
+  ean: product.ean || "",
+  taxPercent: product.taxPercent || 0,
   gatewayProductId: product.id,
-  melhorEnvioCategory: product.melhorEnvioCategory,
-  image: product.image,
-  images: product.images,
-  variants: product.variants
+  melhorEnvioCategory: product.melhorEnvioCategory || "",
+  image: product.image || "",
+  images: product.images || [],
+  variants: product.variants || []
 });
 
 let usersStore: AdminUserRow[] = [
@@ -175,6 +175,7 @@ export interface AdminRepository {
   getProduct: (id: string) => Promise<AdminProductRow | null>;
   createProduct: (payload: AdminProductInput) => Promise<AdminProductRow>;
   updateProduct: (id: string, changes: Partial<AdminProductInput>) => Promise<AdminProductRow>;
+  deleteProduct: (id: string) => Promise<void>;
   listProductPurchaseHistory: (productId: string) => Promise<AdminProductPurchaseHistory[]>;
   listLeads: () => Promise<typeof mockLeads>;
   listCategories: () => Promise<AdminCategory[]>;
@@ -194,81 +195,193 @@ export interface AdminRepository {
   replyTicket: (id: string, input: SendTicketMessageInput) => Promise<SupportTicketView>;
 }
 
+import { api } from "../api.ts";
+
 export const adminRepository: AdminRepository = {
   async getMetrics() {
-    return mockAdminMetrics;
+    const { data } = await api.get("/admin/metrics");
+    // Mapeia o objeto de métricas para o array que o dashboard espera
+    return [
+      {
+        title: "Receita Total",
+        value: data.revenue.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        change: `+${data.revenue.trend}%`,
+        trend: data.revenue.trendDirection
+      },
+      {
+        title: "Pedidos",
+        value: data.orders.value.toString(),
+        change: `+${data.orders.trend}%`,
+        trend: data.orders.trendDirection
+      },
+      {
+        title: "Clientes",
+        value: data.customers.value.toString(),
+        change: `+${data.customers.trend}%`,
+        trend: data.customers.trendDirection
+      },
+      {
+        title: "Taxa de Conversão",
+        value: `${data.conversionRate.value}%`,
+        change: `${data.conversionRate.trend}%`,
+        trend: data.conversionRate.trendDirection
+      }
+    ];
   },
 
   async getRecentOrders() {
-    return mockRecentOrders;
+    const { data } = await api.get<any[]>("/admin/orders");
+    return data.slice(0, 5).map((order) => ({
+      id: order.id,
+      customerName: order.guestName || order.customer?.customerProfile?.name || "Cliente",
+      productName: order.items[0]?.product?.name || "Vários itens",
+      total: Number(order.total),
+      status: this.mapStatusToLabel(order.status, order.steps)
+    }));
   },
 
   async listOrders() {
-    return makeRowsFromOrders(ordersStore);
+    const { data } = await api.get<any[]>("/admin/orders");
+    return data.map((order) => ({
+      id: order.id,
+      customerId: order.customerId,
+      customerName: order.guestName || order.customer?.customerProfile?.name || order.customer?.name || "Cliente",
+      total: Number(order.total),
+      currentStep: order.steps.find((s: any) => s.active)?.key || "created",
+      statusLabel: this.mapStatusToLabel(order.status, order.steps),
+      createdAt: order.createdAt,
+      channel: order.channel || "Loja Virtual",
+      paymentGateway: order.paymentGateway,
+      shippingProvider: order.shippingCarrier
+    }));
   },
 
   async getOrder(id) {
-    return ordersStore.find((order) => order.id === id) ?? null;
+    const { data } = await api.get<any>(`/admin/orders/${id}`);
+    return {
+      id: data.id,
+      customerName: data.guestName || data.customer?.customerProfile?.name || "Cliente",
+      customerEmail: data.guestEmail || data.customer?.email || "",
+      total: Number(data.total),
+      currentStep: data.steps.find((s: any) => s.active)?.key || "created",
+      statusLabel: this.mapStatusToLabel(data.status, data.steps),
+      createdAt: data.createdAt,
+      channel: data.channel || "Loja Virtual",
+      paymentGateway: data.paymentGateway,
+      shippingProvider: data.shippingCarrier,
+      items: data.items.map((item: any) => ({
+        productName: item.product.name,
+        productImage: item.product.image,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice)
+      })),
+      steps: data.steps.map((step: any) => ({
+        key: step.key,
+        label: step.label,
+        completed: step.completed,
+        active: step.active,
+        source: step.source,
+        updatedAt: new Date(step.updatedAt).toLocaleString("pt-BR")
+      })),
+      shippingAddress: data.shippingAddress ? {
+        zipCode: data.shippingAddress.zipCode,
+        street: data.shippingAddress.street,
+        number: data.shippingAddress.number,
+        complement: data.shippingAddress.complement,
+        neighborhood: data.shippingAddress.neighborhood,
+        city: data.shippingAddress.city,
+        state: data.shippingAddress.state
+      } : undefined
+    };
   },
 
   async advanceOrderStep(id) {
-    const index = ordersStore.findIndex((order) => order.id === id);
-    if (index === -1) {
-      throw new Error("Pedido não encontrado.");
-    }
-
-    ordersStore[index] = progressOrderStep(ordersStore[index]);
-    return ordersStore[index];
+    // Busca o pedido atual para descobrir o próximo passo
+    const order = await this.getOrder(id);
+    const stepOrder = ["created", "payment_confirmed", "in_separation", "ready_to_ship", "shipped", "out_for_delivery", "delivered"];
+    const currentIndex = stepOrder.indexOf(order.currentStep);
+    const nextStep = stepOrder[Math.min(currentIndex + 1, stepOrder.length - 1)];
+    
+    const { data } = await api.patch(`/admin/orders/${id}/step`, { stepKey: nextStep, source: 'manual' });
+    return this.getOrder(id); // Recarrega com todos os detalhes
   },
 
   async setOrderStep(id, step) {
-    const index = ordersStore.findIndex((order) => order.id === id);
-    if (index === -1) {
-      throw new Error("Pedido não encontrado.");
-    }
+    const { data } = await api.patch(`/admin/orders/${id}/step`, { stepKey: step, source: 'manual' });
+    return this.getOrder(id);
+  },
 
-    ordersStore[index] = progressOrderStep(ordersStore[index], step);
-    return ordersStore[index];
+  // Helper para mapear status do banco para label amigável
+  mapStatusToLabel(status: string, steps: any[]): any {
+    const activeStep = steps.find(s => s.active);
+    if (activeStep) return activeStep.label.replace("Pedido ", "").replace("Em ", "");
+    
+    const labels: Record<string, string> = {
+      CREATED: "Criado",
+      PAID: "Pago",
+      SHIPPED: "Enviado",
+      DELIVERED: "Entregue",
+      CANCELLED: "Cancelado"
+    };
+    return labels[status] || "Processando";
   },
 
   async listProducts() {
-    return [...productRows];
+    const { data } = await api.get<any[]>("/products");
+    return data.map((p) => ({
+      id: p.id,
+      sku: p.sku || `JPB-${p.id.slice(-4).toUpperCase()}`,
+      name: p.name,
+      description: p.description,
+      categoryId: p.categoryId,
+      category: p.category?.name || "Geral",
+      price: Number(p.price),
+      costPrice: Number(p.costPrice) || 0,
+      rating: p.rating || 5,
+      reviews: p.reviewCount || 0,
+      inStock: p.stockQuantity > 0,
+      stockQuantity: p.stockQuantity,
+      minStockAlert: p.minStockAlert || 5,
+      active: p.active,
+      badge: p.badge,
+      weightKg: p.weightKg || 0,
+      lengthCm: p.lengthCm || 0,
+      widthCm: p.widthCm || 0,
+      heightCm: p.heightCm || 0,
+      originZipCode: p.originZipCode || "",
+      fragile: p.fragile || false,
+      freeShipping: p.freeShipping || false,
+      ncm: p.ncm,
+      ean: p.ean,
+      taxPercent: p.taxPercent,
+      gatewayProductId: p.id,
+      image: p.image,
+      images: p.images || [],
+      variants: p.variants || []
+    }));
   },
 
   async getProduct(id) {
-    return productRows.find((product) => product.id === id) ?? null;
+    const { data } = await api.get<any>(`/products/${id}`);
+    return {
+      ...data,
+      price: Number(data.price),
+      category: data.category?.name || "Geral",
+    } as AdminProductRow;
   },
 
   async createProduct(payload) {
-    const id = `${Date.now()}`;
-    const created: AdminProductRow = {
-      id,
-      rating: 0,
-      reviews: 0,
-      ...payload,
-      gatewayProductId: id
-    };
-
-    productRows = [created, ...productRows];
-    return created;
+    const { data } = await api.post("/products", payload);
+    return data as AdminProductRow;
   },
 
   async updateProduct(id, changes) {
-    const index = productRows.findIndex((product) => product.id === id);
+    const { data } = await api.put(`/products/${id}`, changes);
+    return data as AdminProductRow;
+  },
 
-    if (index === -1) {
-      throw new Error("Produto não encontrado.");
-    }
-
-    const current = productRows[index];
-    productRows[index] = {
-      ...current,
-      ...changes,
-      gatewayProductId: current.id,
-      inStock: changes.stockQuantity !== undefined ? changes.stockQuantity > 0 : changes.inStock ?? current.inStock
-    };
-
-    return productRows[index];
+  async deleteProduct(id) {
+    await api.delete(`/products/${id}`);
   },
 
   async listProductPurchaseHistory(productId) {
@@ -282,67 +395,75 @@ export const adminRepository: AdminRepository = {
   },
 
   async listCategories() {
-    return [...categoriesStore];
+    const { data } = await api.get<any[]>("/categories");
+    return data.map(c => ({
+      ...c,
+      productCount: c._count?.products || 0
+    }));
   },
 
   async createCategory(payload) {
-    const id = `cat_${Date.now()}`;
-    const created: AdminCategory = {
-      id,
-      ...payload,
-      productCount: 0
-    };
-    categoriesStore = [created, ...categoriesStore];
-    return created;
+    const { data } = await api.post("/categories", payload);
+    return data as AdminCategory;
   },
 
   async updateCategory(id, changes) {
-    const index = categoriesStore.findIndex((c) => c.id === id);
-    if (index === -1) throw new Error("Categoria não encontrada.");
-
-    categoriesStore[index] = {
-      ...categoriesStore[index],
-      ...changes
-    };
-    return categoriesStore[index];
+    const { data } = await api.put(`/categories/${id}`, changes);
+    return data as AdminCategory;
   },
 
   async deleteCategory(id) {
-    categoriesStore = categoriesStore.filter((c) => c.id !== id);
+    await api.delete(`/categories/${id}`);
   },
 
   async listCoupons() {
-    return [...couponsStore];
+    const { data } = await api.get<any[]>("/coupons");
+    return data.map(c => ({
+      id: c.id,
+      code: c.code,
+      type: c.discountType.toLowerCase(),
+      value: Number(c.discountValue),
+      minPurchase: Number(c.minOrderValue) || 0,
+      usageCount: c.usedCount || 0,
+      usageLimit: c.maxUses || 0,
+      active: c.active,
+      expiryDate: c.endDate ? new Date(c.endDate).toISOString().split('T')[0] : undefined
+    }));
   },
 
   async createCoupon(payload) {
-    const id = `cp_${Date.now()}`;
-    const created: AdminCoupon = {
-      id,
-      ...payload,
-      usageCount: 0
-    };
-    couponsStore = [created, ...couponsStore];
-    return created;
+    const { data } = await api.post("/coupons", {
+      code: payload.code,
+      discountType: payload.type.toUpperCase(),
+      discountValue: payload.value,
+      minOrderValue: payload.minPurchase,
+      maxUses: payload.usageLimit,
+      endDate: payload.expiryDate ? new Date(payload.expiryDate).toISOString() : undefined,
+      active: payload.active
+    });
+    return data;
   },
 
   async updateCoupon(id, changes) {
-    const index = couponsStore.findIndex((c) => c.id === id);
-    if (index === -1) throw new Error("Cupom não encontrado.");
-
-    couponsStore[index] = {
-      ...couponsStore[index],
-      ...changes
-    };
-    return couponsStore[index];
+    const { data } = await api.put(`/coupons/${id}`, {
+      code: changes.code,
+      discountType: changes.type?.toUpperCase(),
+      discountValue: changes.value,
+      minOrderValue: changes.minPurchase,
+      maxUses: changes.usageLimit,
+      endDate: changes.expiryDate ? new Date(changes.expiryDate).toISOString() : undefined,
+      active: changes.active
+    });
+    return data;
   },
 
   async deleteCoupon(id) {
-    couponsStore = couponsStore.filter((c) => c.id !== id);
+    await api.delete(`/coupons/${id}`);
   },
 
   async listUsers() {
-    return [...usersStore];
+    const { data } = await api.get<AdminUserRow[]>("/admin/users");
+    return data;
   },
 
   async createUser(payload) {
@@ -371,34 +492,27 @@ export const adminRepository: AdminRepository = {
   },
 
   async deleteUser(id) {
-    usersStore = usersStore.filter((u) => u.id !== id);
+    // Para usuários reais no banco, você precisaria de uma rota DELETE /admin/users/:id
+    await api.delete(`/admin/users/${id}`);
+  },
+  
+  async updateUserPassword(id, password) {
+    await api.patch(`/admin/users/${id}/password`, { password });
   },
 
   async listTickets() {
-    return [...mockTickets].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    const { data } = await api.get("/support/tickets");
+    return data;
   },
 
   async updateTicketStatus(id, status) {
-    const ticket = mockTickets.find((t) => t.id === id);
-    if (!ticket) throw new Error("Ticket not found");
-    ticket.status = status;
-    ticket.updatedAt = new Date().toISOString();
-    return { ...ticket };
+    const { data } = await api.patch(`/support/tickets/${id}/status`, { status });
+    return data;
   },
 
   async replyTicket(id, input) {
-    const ticket = mockTickets.find((t) => t.id === id);
-    if (!ticket) throw new Error("Ticket not found");
-    ticket.messages.push({
-      id: `msg_${Math.random().toString(36).substring(7)}`,
-      senderId: "admin_1",
-      senderName: "Admin",
-      senderRole: "ADMIN",
-      content: input.content,
-      createdAt: new Date().toISOString()
-    });
-    ticket.updatedAt = new Date().toISOString();
-    return { ...ticket };
+    const { data } = await api.post(`/support/tickets/${id}/messages`, input);
+    return data;
   }
 };
 

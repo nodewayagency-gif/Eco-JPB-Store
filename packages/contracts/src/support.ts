@@ -6,6 +6,7 @@ export interface SupportTicketMessage {
   senderName: string;
   senderRole: "CUSTOMER" | "ADMIN" | "OPERATOR";
   content: string;
+  images?: string[];
   createdAt: string;
 }
 
@@ -21,6 +22,7 @@ export interface SupportTicketView {
   orderCode?: string;
   createdAt: string;
   updatedAt: string;
+  images?: string[];
   messages: SupportTicketMessage[];
 }
 
@@ -28,8 +30,10 @@ export interface CreateSupportTicketInput {
   subject: string;
   description: string;
   orderId?: string;
+  images?: string[];
 }
 
 export interface SendTicketMessageInput {
   content: string;
+  images?: string[];
 }

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/providers/CartContext";
 import { AuthProvider } from "@/providers/auth/AuthProvider";
+import { ConfigProvider } from "@/providers/ConfigContext";
 import { RequireAdminAuth, RequireCustomerAuth } from "@/providers/auth/RouteGuards";
 import ScrollToTop from "@/components/ScrollToTop";
 import Index from "./pages/Index.tsx";
@@ -14,6 +15,7 @@ import AboutPage from "./pages/AboutPage.tsx";
 import CheckoutPage from "./pages/CheckoutPage.tsx";
 import CustomerPage from "./pages/CustomerPage.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
+import RegisterPage from "./pages/RegisterPage.tsx";
 import AdminLoginPage from "./pages/AdminLoginPage.tsx";
 import AdminLayout from "./pages/admin/AdminLayout.tsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.tsx";
@@ -23,6 +25,7 @@ import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage.tsx";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage.tsx";
 import AdminLeadsPage from "./pages/admin/AdminLeadsPage.tsx";
 import AdminUsersPage from "./pages/admin/AdminUsersPage.tsx";
+import AdminCustomersPage from "./pages/admin/AdminCustomersPage.tsx";
 import AdminSupportPage from "./pages/admin/AdminSupportPage.tsx";
 import AdminCompanySettingsPage from "./pages/admin/AdminCompanySettingsPage.tsx";
 import AdminPaymentSettingsPage from "./pages/admin/AdminPaymentSettingsPage.tsx";
@@ -31,14 +34,16 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <CartProvider>
-        <AuthProvider>
+      <ConfigProvider>
+        <CartProvider>
+          <AuthProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <ScrollToTop />
             <Routes>
               <Route path="/" element={<Index />} />
@@ -47,6 +52,7 @@ const App = () => (
               <Route path="/product/:id" element={<ProductPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/cadastro" element={<RegisterPage />} />
               <Route path="/admin/login" element={<AdminLoginPage />} />
 
               <Route
@@ -72,6 +78,7 @@ const App = () => (
                 <Route path="categorias" element={<AdminCategoriesPage />} />
                 <Route path="cupons" element={<AdminCouponsPage />} />
                 <Route path="usuarios" element={<AdminUsersPage />} />
+                <Route path="clientes" element={<AdminCustomersPage />} />
                 <Route path="suporte" element={<AdminSupportPage />} />
                 <Route path="leads" element={<AdminLeadsPage />} />
                 <Route path="configuracoes" element={<Navigate to="/admin/configuracoes/empresa" replace />} />
@@ -84,7 +91,8 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </AuthProvider>
-      </CartProvider>
+        </CartProvider>
+      </ConfigProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

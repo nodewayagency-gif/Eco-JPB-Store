@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, User, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Search, User, MoreHorizontal, Edit, Trash2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -54,8 +54,32 @@ const AdminUsersPage = () => {
   const itemsPerPage = 10;
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [form, setForm] = useState<AdminUserInput>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const handleOpenPasswordModal = (user: AdminUserRow) => {
+    setSelectedUserId(user.id);
+    setNewPassword("");
+    setPasswordModalOpen(true);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!selectedUserId || newPassword.length < 4) {
+      toast.error("A senha deve ter pelo menos 4 caracteres");
+      return;
+    }
+
+    try {
+      await adminRepository.updateUserPassword(selectedUserId, newPassword);
+      toast.success("Senha atualizada com sucesso!");
+      setPasswordModalOpen(false);
+    } catch (error) {
+      toast.error("Erro ao atualizar senha");
+    }
+  };
 
   useEffect(() => {
     loadUsers();
@@ -64,7 +88,7 @@ const AdminUsersPage = () => {
   const loadUsers = async () => {
     try {
       const data = await adminRepository.listUsers();
-      setUsers(data);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error("Erro ao carregar usuários");
     } finally {
@@ -73,8 +97,8 @@ const AdminUsersPage = () => {
   };
 
   const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (user.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (user.email?.toLowerCase() || "").includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -160,9 +184,6 @@ const AdminUsersPage = () => {
             />
           </div>
         </div>
-        <Button onClick={handleOpenCreate} className="gap-2 bg-primary hover:bg-primary/90 shrink-0">
-          <Plus className="w-4 h-4" /> Novo Usuário
-        </Button>
       </div>
 
       <Card className="bg-card border-border">
@@ -202,16 +223,18 @@ const AdminUsersPage = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedUsers.map((user) => (
-                    <TableRow key={user.id} className="border-border hover:bg-muted/30">
-                      <TableCell className="pl-6 font-medium text-foreground">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="w-4 h-4 text-primary" />
+                  paginatedUsers.map((user) => {
+                    const displayName = user.customerProfile?.name || user.name || "Sem Nome";
+                    return (
+                      <TableRow key={user.id} className="border-border hover:bg-muted/30">
+                        <TableCell className="pl-6 font-medium text-foreground">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="w-4 h-4 text-primary" />
+                            </div>
+                            {displayName}
                           </div>
-                          {user.name}
-                        </div>
-                      </TableCell>
+                        </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {user.email}
                       </TableCell>
@@ -247,6 +270,12 @@ const AdminUsersPage = () => {
                               <Edit className="w-4 h-4" /> Editar
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                              className="gap-2 cursor-pointer"
+                              onClick={() => handleOpenPasswordModal(user)}
+                            >
+                              <KeyRound className="w-4 h-4" /> Alterar Senha
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               className="gap-2 text-destructive cursor-pointer hover:bg-destructive/10"
                               onClick={() => handleDelete(user.id)}
                             >
@@ -256,8 +285,9 @@ const AdminUsersPage = () => {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  );
+                })
+              )}
               </TableBody>
             </Table>
           </div>
@@ -363,6 +393,40 @@ const AdminUsersPage = () => {
             </Button>
             <Button onClick={handleSave} className="bg-primary text-primary-foreground">
               Salvar Usuário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Modal de Alteração de Senha */}
+      <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
+        <DialogContent className="max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Alterar Senha</DialogTitle>
+            <DialogDescription>
+              Digite a nova senha para este usuário.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nova Senha</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Mínimo 4 caracteres"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdatePassword} className="bg-primary text-primary-foreground">
+              Confirmar Nova Senha
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,6 +13,7 @@ interface AuthContextValue {
   loginAdmin: (payload: LoginRequest) => Promise<void>;
   logoutCustomer: () => Promise<void>;
   logoutAdmin: () => Promise<void>;
+  registerCustomer: (payload: any) => Promise<void>;
   isCustomerAuthenticated: boolean;
   isAdminAuthenticated: boolean;
   hasAdminRole: (roles: Role[]) => boolean;
@@ -34,15 +35,22 @@ const isExpired = (session: AuthSession) => {
   return new Date(session.expiresAt).getTime() <= Date.now();
 };
 
+const SESSION_DURATION_CUSTOMER_MS = 1000 * 60 * 60 * 24; // 24 horas
+const SESSION_DURATION_ADMIN_MS = 1000 * 60 * 60 * 8; // 8 horas
+
 const saveSession = (scope: SessionScope, session: AuthSession | null) => {
   const storageKey = scope === "CUSTOMER" ? CUSTOMER_SESSION_KEY : ADMIN_SESSION_KEY;
+  const storage = scope === "CUSTOMER" ? localStorage : sessionStorage;
 
   if (!session) {
+    storage.removeItem(storageKey);
+    // Garantir que limpa dos dois por segurança
     localStorage.removeItem(storageKey);
+    sessionStorage.removeItem(storageKey);
     return;
   }
 
-  localStorage.setItem(storageKey, JSON.stringify(session));
+  storage.setItem(storageKey, JSON.stringify(session));
 };
 
 const refreshSessionIfNeeded = async (scope: SessionScope, session: AuthSession | null) => {
@@ -70,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const restore = async () => {
       const customerStored = safeParseSession(localStorage.getItem(CUSTOMER_SESSION_KEY));
-      const adminStored = safeParseSession(localStorage.getItem(ADMIN_SESSION_KEY));
+      const adminStored = safeParseSession(sessionStorage.getItem(ADMIN_SESSION_KEY));
 
       const [restoredCustomer, restoredAdmin] = await Promise.all([
         refreshSessionIfNeeded("CUSTOMER", customerStored),
@@ -112,6 +120,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAdminSession(null);
     saveSession("ADMIN", null);
   };
+  
+  const registerCustomer = async (payload: any) => {
+    const session = await authRepository.registerCustomer(payload);
+    setCustomerSession(session);
+    saveSession("CUSTOMER", session);
+  };
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -122,6 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       loginAdmin,
       logoutCustomer,
       logoutAdmin,
+      registerCustomer,
       isCustomerAuthenticated: Boolean(customerSession && !isExpired(customerSession)),
       isAdminAuthenticated: Boolean(adminSession && !isExpired(adminSession)),
       hasAdminRole: (roles) => Boolean(adminSession && roles.includes(adminSession.user.role))

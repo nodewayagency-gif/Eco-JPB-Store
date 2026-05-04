@@ -42,7 +42,7 @@ export const CartSheet = () => {
                   >
                     <div className="h-20 w-20 rounded-lg bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
                       <img
-                        src={productImages[item.product.image]}
+                        src={item.product.image?.startsWith('http') ? item.product.image : (productImages[item.product.image] || item.product.image)}
                         alt={item.product.name}
                         className="h-16 w-16 object-contain"
                       />

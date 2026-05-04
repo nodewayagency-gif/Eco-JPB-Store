@@ -4,20 +4,30 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Star, ChevronDown, Mail, Check, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { products } from "@/data/products";
+import { products as mockProducts } from "@/data/products";
 import { productImages } from "@/lib/productImages";
 import { useCart } from "@/providers/CartContext";
 import Navbar from "@/components/store/Navbar";
 import Footer from "@/components/store/Footer";
+import { useProduct } from "@/hooks/useProducts";
 
 const ProductPage = () => {
   const { id } = useParams();
-  const product = products.find((p) => p.id === id);
+  const { data: product, isLoading } = useProduct(id);
   const { addItem } = useCart();
   const [selectedColor, setSelectedColor] = useState(0);
   const [selectedImage, setSelectedImage] = useState(0);
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+        <p className="text-muted-foreground mt-4 font-medium">Buscando detalhes do produto...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -28,7 +38,10 @@ const ProductPage = () => {
   }
 
   // Mocking multiple images for the new gallery (until real DB connects)
-  const productImagesArray = [product.image, product.image, product.image];
+  // Usar a galeria real do banco ou cair para a imagem principal se estiver vazia
+  const productImagesArray = product.images && product.images.length > 0 
+    ? product.images 
+    : [product.image];
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
@@ -75,7 +88,7 @@ const ProductPage = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
-                    src={productImages[productImagesArray[selectedImage]]}
+                    src={productImagesArray[selectedImage]?.startsWith('http') ? productImagesArray[selectedImage] : (productImages[productImagesArray[selectedImage]] || productImagesArray[selectedImage])}
                     alt={product.name}
                     className="w-full h-full object-contain drop-shadow-lg"
                   />
@@ -91,7 +104,7 @@ const ProductPage = () => {
                         selectedImage === idx ? 'border-primary' : 'border-transparent hover:border-white/20'
                       }`}
                     >
-                      <img src={productImages[img]} alt={`Thumb ${idx}`} className="w-full h-full object-contain opacity-80 hover:opacity-100" />
+                      <img src={img?.startsWith('http') ? img : (productImages[img] || img)} alt={`Thumb ${idx}`} className="w-full h-full object-contain opacity-80 hover:opacity-100" />
                     </button>
                   ))}
                 </div>

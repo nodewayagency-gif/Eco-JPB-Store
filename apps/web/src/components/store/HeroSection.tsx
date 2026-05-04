@@ -11,32 +11,23 @@ const HeroSection = () => {
       <div className="container mx-auto px-4 md:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-          <div className="order-2 lg:order-1 max-w-[560px] text-left">
+          <div className="order-2 lg:order-1 max-w-[700px] text-left">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6"
             >
-              <span className="inline-block text-[11px] sm:text-xs font-bold tracking-[0.14em] uppercase text-primary mb-6">
-                Destaque em áudio premium
-              </span>
-
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-[0.92] tracking-[-0.03em] text-foreground">
-                O Som
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+                Seu Ecossistema de
                 <br />
-                <span className="gold-text">Perfeito.</span>
+                <span className="gold-text">Alta Performance.</span>
               </h1>
-            </motion.div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.12, ease: "easeOut" }}
-              className="mt-6 max-w-md text-sm sm:text-lg text-muted-foreground leading-relaxed"
-            >
-              Fones premium para quem exige potência, conforto e clareza absoluta. Descubra também smartwatches,
-              speakers e acessórios com padrão JPB.
-            </motion.p>
+              <p className="max-w-xl text-base sm:text-lg text-zinc-400 leading-relaxed font-medium">
+                Não aceite menos que a performance máxima. Garanta o seu iPhone, MacBook ou iPad com as melhores condições do Brasil e o selo de confiança JPB.
+              </p>
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 14 }}

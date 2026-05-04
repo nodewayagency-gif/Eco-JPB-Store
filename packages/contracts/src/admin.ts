@@ -41,6 +41,7 @@ export interface AdminOrderWorkflowStep {
 
 export interface AdminOrderRow {
   id: string;
+  customerId?: string;
   customerName: string;
   total: number;
   currentStep: AdminOrderStepKey;
@@ -54,12 +55,22 @@ export interface AdminOrderRow {
 export interface AdminOrderDetail extends AdminOrderRow {
   items: Array<{
     productName: string;
+    productImage?: string;
     quantity: number;
     unitPrice: number;
   }>;
   trackingCode?: string;
   shippingQuoteId?: string;
   steps: AdminOrderWorkflowStep[];
+  shippingAddress?: {
+    zipCode: string;
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  };
 }
 
 export interface AdminProductRow {
@@ -146,6 +157,7 @@ export interface CompanySettings {
   addressLine: string;
   city: string;
   state: string;
+  instagramUrl?: string;
 }
 
 export interface PaymentGatewaySettings {
@@ -232,6 +244,9 @@ export interface AdminUserRow {
   role: "ADMIN" | "OPERATOR" | "CUSTOMER";
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
+  customerProfile?: {
+    name: string;
+  };
 }
 
 export interface AdminUserInput {

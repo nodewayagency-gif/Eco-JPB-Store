@@ -231,7 +231,7 @@ const AdminCouponsPage = () => {
                       <TableCell className="text-muted-foreground">
                         {coupon.expiryDate ? (
                           <div className="flex items-center gap-1.5">
-                             <Calendar className="w-3 h-3" /> {coupon.expiryDate}
+                             <Calendar className="w-3 h-3" /> {new Date(coupon.expiryDate).toLocaleDateString('pt-BR')}
                           </div>
                         ) : "Sem expiração"}
                       </TableCell>

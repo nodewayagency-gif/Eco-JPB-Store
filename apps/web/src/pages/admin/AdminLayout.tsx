@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -25,14 +25,17 @@ import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { adminRepository } from "@/services/api/adminRepository";
+
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: BarChart3, end: true },
   { to: "/admin/pedidos", label: "Pedidos", icon: PackageCheck },
+  { to: "/admin/clientes", label: "Clientes", icon: Users },
   { to: "/admin/produtos", label: "Produtos", icon: Package },
   { to: "/admin/categorias", label: "Categorias", icon: Tags },
   { to: "/admin/cupons", label: "Cupons", icon: Ticket },
-  { to: "/admin/suporte", label: "Suporte", icon: MessageSquare },
-  { to: "/admin/usuarios", label: "Usuários", icon: Users },
+  { to: "/admin/suporte", label: "Suporte", icon: MessageSquare, badge: true },
+  { to: "/admin/usuarios", label: "Equipe", icon: Users },
   { to: "/admin/leads", label: "Leads", icon: Users }
 ];
 
@@ -47,8 +50,25 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
 
   const settingsOpen = location.pathname.startsWith("/admin/configuracoes");
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const tickets = await adminRepository.listTickets();
+        const count = Array.isArray(tickets) ? tickets.filter(t => t?.status === "OPEN").length : 0;
+        setOpenTicketsCount(count);
+      } catch (error) {
+        console.error("Erro ao buscar contagem de tickets:", error);
+      }
+    };
+
+    fetchCount();
+    const interval = setInterval(fetchCount, 10000); // Polling cada 10s
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = async () => {
     await logoutAdmin();
@@ -65,15 +85,22 @@ const AdminLayout = () => {
           onClick={() => setMobileMenuOpen(false)}
           className={({ isActive }) =>
             cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm border transition-colors",
+              "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm border transition-colors",
               isActive
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-card text-muted-foreground border-border hover:text-foreground"
             )
           }
         >
-          <item.icon className="w-4 h-4" />
-          {item.label}
+          <div className="flex items-center gap-3">
+            <item.icon className="w-4 h-4" />
+            {item.label}
+          </div>
+          {item.badge && openTicketsCount > 0 && (
+            <Badge className="h-5 px-1.5 min-w-[20px] justify-center bg-destructive text-white border-none text-[10px] animate-pulse">
+              {openTicketsCount}
+            </Badge>
+          )}
         </NavLink>
       ))}
 

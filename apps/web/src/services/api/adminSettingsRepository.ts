@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   CompanySettings,
   PaymentGatewaySettings,
   ShippingIntegrationSettings
@@ -66,6 +66,8 @@ const writeJSON = <T>(key: string, value: T) => {
   localStorage.setItem(key, JSON.stringify(value));
 };
 
+import { api } from "../api";
+
 export interface AdminSettingsRepository {
   getCompanySettings: () => Promise<CompanySettings>;
   saveCompanySettings: (payload: CompanySettings) => Promise<CompanySettings>;
@@ -77,12 +79,17 @@ export interface AdminSettingsRepository {
 
 export const adminSettingsRepository: AdminSettingsRepository = {
   async getCompanySettings() {
-    return readJSON(COMPANY_KEY, defaultCompanySettings);
+    try {
+      const { data } = await api.get("/admin/settings/company");
+      return data;
+    } catch {
+      return defaultCompanySettings;
+    }
   },
 
   async saveCompanySettings(payload) {
-    writeJSON(COMPANY_KEY, payload);
-    return payload;
+    const { data } = await api.put("/admin/settings/company", payload);
+    return data;
   },
 
   async getPaymentSettings() {

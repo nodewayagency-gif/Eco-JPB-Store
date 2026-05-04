@@ -55,7 +55,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
           <div className="aspect-square flex items-center justify-center p-8 md:p-14 overflow-hidden relative">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.05)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <img
-              src={productImages[product.image]}
+              src={product.image?.startsWith('http') ? product.image : (productImages[product.image] || product.image)}
               alt={product.name}
               className="w-full h-full object-contain transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-110 group-hover:-rotate-2 drop-shadow-md group-hover:drop-shadow-[0_20px_30px_rgba(225,171,45,0.15)]"
             />
@@ -99,7 +99,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
                 {formatPrice(product.originalPrice)}
               </span>
             )}
-            {product.price > 500 && (
+            {product.freeShipping && (
               <span className="ml-auto text-[9px] font-black uppercase tracking-tighter text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 Frete Grátis
               </span>

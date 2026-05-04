@@ -7,9 +7,15 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @premium/web",
+    "dev": "concurrently \"npm run dev -w @premium/web\" \"npm run dev -w @premium/api\"",
+    "dev:api": "npm run dev -w @premium/api",
     "build": "npm run build -w @premium/web",
     "test": "npm run test -w @premium/web",
-    "lint": "npm run lint -w @premium/web"
+    "lint": "npm run lint -w @premium/web",
+    "db:generate": "npm run db:generate -w @premium/database",
+    "db:push": "npm run db:push -w @premium/database"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

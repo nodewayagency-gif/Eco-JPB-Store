@@ -4,6 +4,7 @@ import { Search, ShoppingBag, Menu, X, User, Instagram } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/providers/CartContext";
 import { useAuth } from "@/providers/auth/AuthProvider";
+import { useConfig } from "@/providers/ConfigContext";
 import { CartSheet } from "./CartSheet";
 import logo from "@/assets/brand/jpb_sem_fundo_32x32.png";
 
@@ -12,8 +13,10 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { totalItems, setIsOpen } = useCart();
   const { customerSession, isCustomerAuthenticated } = useAuth();
+  const { config } = useConfig();
 
   const userName = customerSession?.user.displayName;
+  const instagramUrl = config?.instagramUrl || "https://www.instagram.com";
 
   return (
     <>
@@ -68,7 +71,7 @@ const Navbar = () => {
               </AnimatePresence>
 
               <a
-                href="https://www.instagram.com"
+                href={instagramUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="hidden md:flex p-2 rounded-lg hover:bg-secondary transition-colors duration-200"
@@ -153,7 +156,7 @@ const Navbar = () => {
                 <Link to="/login" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileMenuOpen(false)}>
                   {isCustomerAuthenticated && userName ? `Minha conta (${userName})` : "Minha conta"}
                 </Link>
-                <a href="https://www.instagram.com" target="_blank" rel="noreferrer" className="block text-sm font-medium text-foreground py-2">
+                <a href={instagramUrl} target="_blank" rel="noreferrer" className="block text-sm font-medium text-foreground py-2">
                   Instagram
                 </a>
               </div>

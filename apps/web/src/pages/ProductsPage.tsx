@@ -1,23 +1,27 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search } from "lucide-react";
 import Navbar from "@/components/store/Navbar";
 import Footer from "@/components/store/Footer";
 import ProductCard from "@/components/store/ProductCard";
 import { Input } from "@/components/ui/input";
-import { products } from "@/data/products";
+import { products as mockProducts } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 
 const ProductsPage = () => {
+  const { data: products, isLoading } = useProducts();
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const allProducts = products || mockProducts;
+
   const categories = useMemo(() => {
-    const cats = Array.from(new Set(products.map((product) => product.category)));
+    const cats = Array.from(new Set(allProducts.map((product) => product.category)));
     return ["Todos", ...cats];
-  }, []);
+  }, [allProducts]);
 
   const filtered = useMemo(() => {
-    return products.filter((product) => {
+    return allProducts.filter((product) => {
       const byCategory = activeCategory === "Todos" || product.category === activeCategory;
       const normalizedSearch = searchTerm.trim().toLowerCase();
       const byName =
@@ -26,7 +30,16 @@ const ProductsPage = () => {
 
       return byCategory && byName;
     });
-  }, [activeCategory, searchTerm]);
+  }, [allProducts, activeCategory, searchTerm]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+        <p className="text-muted-foreground mt-4 font-medium">Carregando catálogo...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

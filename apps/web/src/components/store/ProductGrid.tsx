@@ -1,13 +1,25 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { products } from "@/data/products";
+import { products as mockProducts } from "@/data/products";
 import ProductCard from "./ProductCard";
-
-const featuredProducts = products.slice(0, 6);
+import { useProducts } from "@/hooks/useProducts";
 
 const ProductGrid = () => {
+  const { data: products, isLoading, error } = useProducts();
+
+  if (isLoading) {
+    return (
+      <div className="py-24 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+        <p className="text-muted-foreground mt-4 font-medium">Carregando curadoria...</p>
+      </div>
+    );
+  }
+
+  const displayProducts = products || mockProducts.slice(0, 6);
+  const featuredProducts = displayProducts.slice(0, 6);
   return (
     <section className="py-24 md:py-32 bg-[#0a0a0a] relative overflow-hidden">
       <div className="absolute inset-0 bg-background/50 pointer-events-none" />

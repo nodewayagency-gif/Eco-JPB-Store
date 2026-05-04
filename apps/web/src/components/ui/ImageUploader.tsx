@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { UploadCloud, X, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 
 interface ImageUploaderProps {
   value?: string | string[];
@@ -18,9 +19,33 @@ export function ImageUploader({
   maxWidth = 800
 }: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const images = Array.isArray(value) ? value : value ? [value] : [];
+
+  const uploadToSupabase = async (base64: string, fileName: string): Promise<string> => {
+    // Converter Base64 para Blob
+    const response = await fetch(base64);
+    const blob = await response.blob();
+
+    const fileExt = fileName.split('.').pop();
+    const filePath = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+
+    const { data, error } = await supabase.storage
+      .from('jpb_products')
+      .upload(filePath, blob);
+
+    if (error) {
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('jpb_products')
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -54,6 +79,7 @@ export function ImageUploader({
     const validFiles = files.filter(f => f.type.startsWith("image/"));
     const filesToProcess = multiple ? validFiles : validFiles.slice(0, 1);
 
+    setIsUploading(true);
     const newImages: string[] = [];
 
     for (const file of filesToProcess) {
@@ -63,11 +89,15 @@ export function ImageUploader({
       }
       try {
         const base64 = await compressImage(file, maxWidth);
-        newImages.push(base64);
+        const url = await uploadToSupabase(base64, file.name);
+        newImages.push(url);
       } catch (error) {
-        console.error("Erro ao comprimir a imagem:", error);
+        console.error("Erro no upload da imagem:", error);
+        alert("Erro ao enviar imagem para o servidor.");
       }
     }
+
+    setIsUploading(false);
 
     if (newImages.length > 0) {
       if (multiple) {
@@ -129,15 +159,19 @@ export function ImageUploader({
       <div
         className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
           isDragging ? "border-primary bg-primary/10" : "border-border hover:bg-muted/30"
-        } ${!multiple && images.length > 0 ? "hidden" : "block"}`}
+        } ${!multiple && images.length > 0 ? "hidden" : "block"} ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => !isUploading && fileInputRef.current?.click()}
       >
-        <UploadCloud className="w-10 h-10 text-muted-foreground mb-3" />
+        {isUploading ? (
+          <Loader2 className="w-10 h-10 text-primary animate-spin mb-3" />
+        ) : (
+          <UploadCloud className="w-10 h-10 text-muted-foreground mb-3" />
+        )}
         <p className="text-sm font-medium text-foreground">
-          Clique ou arraste a imagem aqui
+          {isUploading ? "Enviando imagem..." : "Clique ou arraste a imagem aqui"}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           SVG, PNG, JPG ou GIF (max. {maxSizeMB}MB)
