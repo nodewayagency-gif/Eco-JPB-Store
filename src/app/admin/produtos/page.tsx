@@ -269,6 +269,21 @@ export default function AdminProductsPage() {
     }
   };
 
+  const toggleActive = async (product: AdminProductRow) => {
+    try {
+      const newStatus = !product.active;
+      await adminRepository.updateProduct(product.id, { active: newStatus });
+      
+      setProducts(current => 
+        current.map(p => p.id === product.id ? { ...p, active: newStatus } : p)
+      );
+      
+      toast.success(`Produto ${newStatus ? 'ativado' : 'inativado'} com sucesso!`);
+    } catch (error) {
+      toast.error("Erro ao alterar status do produto");
+    }
+  };
+
   const handleNumber = (field: keyof AdminProductInput) => (value: string) => {
     setForm((current) => ({ ...current, [field]: Number(value) }));
   };
@@ -366,20 +381,24 @@ export default function AdminProductsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge
-                      variant="outline"
-                      className={product.active ? "text-primary border-primary/40" : "text-muted-foreground"}
-                    >
-                      {product.active ? "Ativo" : "Inativo"}
-                    </Badge>
+                    <div className="flex items-center justify-center gap-2">
+                      <Switch 
+                        checked={product.active} 
+                        onCheckedChange={() => toggleActive(product)}
+                        className="data-[state=checked]:bg-primary"
+                      />
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase w-12 text-left",
+                        product.active ? "text-primary" : "text-muted-foreground"
+                      )}>
+                        {product.active ? "Ativo" : "Off"}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => startEdit(product)}>
                         Editar
-                      </Button>
-                      <Button variant="secondary" size="sm" onClick={() => openHistory(product)} className="gap-1">
-                        <History className="w-3.5 h-3.5" /> Histórico
                       </Button>
                       <Button 
                         variant="ghost" 
