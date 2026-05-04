@@ -651,80 +651,83 @@ export default function CheckoutPage() {
                         </Button>
                       </motion.div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {paymentMethods.map((method) => (
-                        <button
-                          key={method.id}
-                          type="button"
-                          onClick={() => setPayment(method.id)}
-                          className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-300 ${
-                            payment === method.id
-                              ? "border-primary bg-primary/8"
-                              : "border-border hover:border-muted-foreground/30"
-                          }`}
-                        >
-                          <method.icon
-                            className={`h-5 w-5 ${payment === method.id ? "text-primary" : "text-muted-foreground"}`}
-                          />
-                          <span className="text-xs font-semibold text-foreground">{method.label}</span>
-                          <span className="text-[10px] text-muted-foreground">{method.desc}</span>
-                          {payment === method.id ? (
-                            <motion.div layoutId="payment-check" className="absolute top-2 right-2">
-                              <Check className="h-3.5 w-3.5 text-primary" />
-                            </motion.div>
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
-
-                    {payment === "card" ? (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="space-y-4 pt-2"
-                      >
-                        <FloatingInput label="Número do cartão" required />
-                        <div className="grid grid-cols-2 gap-4">
-                          <FloatingInput label="Validade (MM/AA)" required />
-                          <FloatingInput label="CVV" required />
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {paymentMethods.map((method) => (
+                            <button
+                              key={method.id}
+                              type="button"
+                              onClick={() => setPayment(method.id)}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-300 ${
+                                payment === method.id
+                                  ? "border-primary bg-primary/8"
+                                  : "border-border hover:border-muted-foreground/30"
+                              }`}
+                            >
+                              <method.icon
+                                className={`h-5 w-5 ${payment === method.id ? "text-primary" : "text-muted-foreground"}`}
+                              />
+                              <span className="text-xs font-semibold text-foreground">{method.label}</span>
+                              <span className="text-[10px] text-muted-foreground">{method.desc}</span>
+                              {payment === method.id ? (
+                                <motion.div layoutId="payment-check" className="absolute top-2 right-2">
+                                  <Check className="h-3.5 w-3.5 text-primary" />
+                                </motion.div>
+                              ) : null}
+                            </button>
+                          ))}
                         </div>
-                        <FloatingInput label="Nome no cartão" required />
-                      </motion.div>
-                    ) : null}
 
-                    {!showPaymentForm && (
-                      <div className="space-y-4 pt-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <Button 
-                            type="button" 
-                            variant="outline"
-                            onClick={prevStep} 
-                            className="h-14 rounded-xl text-base font-bold"
+                        {payment === "card" ? (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="space-y-4 pt-2"
                           >
-                            <ChevronLeft className="mr-2 w-5 h-5" /> Voltar
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={handleSubmit}
-                            size="lg"
-                            className="h-14 shimmer-btn rounded-xl text-base font-bold"
-                            disabled={processing}
-                          >
-                            {processing ? (
-                              <span className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" /> Processando...
-                              </span>
-                            ) : (
-                              `Finalizar - ${formatPrice(finalTotal)}`
-                            )}
-                          </Button>
-                        </div>
+                            <FloatingInput label="Número do cartão" required />
+                            <div className="grid grid-cols-2 gap-4">
+                              <FloatingInput label="Validade (MM/AA)" required />
+                              <FloatingInput label="CVV" required />
+                            </div>
+                            <FloatingInput label="Nome no cartão" required />
+                          </motion.div>
+                        ) : null}
 
-                        <div className="rounded-xl border border-border/70 bg-card/50 px-4 py-3 flex items-center gap-2 justify-center text-xs text-muted-foreground">
-                          <Lock className="h-4 w-4 text-primary" />
-                          Pagamento criptografado e 100% seguro.
-                        </div>
-                      </div>
+                        {!showPaymentForm && (
+                          <div className="space-y-4 pt-6">
+                            <div className="grid grid-cols-2 gap-4">
+                              <Button 
+                                type="button" 
+                                variant="outline"
+                                onClick={prevStep} 
+                                className="h-14 rounded-xl text-base font-bold"
+                              >
+                                <ChevronLeft className="mr-2 w-5 h-5" /> Voltar
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={handleSubmit}
+                                size="lg"
+                                className="h-14 shimmer-btn rounded-xl text-base font-bold"
+                                disabled={processing}
+                              >
+                                {processing ? (
+                                  <span className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" /> Processando...
+                                  </span>
+                                ) : (
+                                  `Finalizar - ${formatPrice(finalTotal)}`
+                                )}
+                              </Button>
+                            </div>
+
+                            <div className="rounded-xl border border-border/70 bg-card/50 px-4 py-3 flex items-center gap-2 justify-center text-xs text-muted-foreground">
+                              <Lock className="h-4 w-4 text-primary" />
+                              Pagamento criptografado e 100% seguro.
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </motion.section>
                 )}

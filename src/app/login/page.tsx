@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LogIn, User, ArrowLeft, ShieldCheck, Mail, Lock } from "lucide-react";
@@ -12,7 +12,7 @@ import { useAuth } from "@/providers/auth/AuthProvider";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
-export default function LoginPage() {
+function LoginForm() {
   const { isCustomerAuthenticated, loginCustomer } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -160,5 +160,13 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#050505] flex items-center justify-center text-primary">Carregando...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

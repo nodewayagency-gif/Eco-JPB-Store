@@ -148,7 +148,6 @@ function OrdersContent() {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Header & Filters */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
@@ -185,7 +184,6 @@ function OrdersContent() {
         </div>
       </div>
 
-      {/* Desktop Table View */}
       <Card className="hidden lg:block bg-card border-border overflow-hidden">
         <CardContent className="p-0">
           <Table>
@@ -242,7 +240,6 @@ function OrdersContent() {
         </CardContent>
       </Card>
 
-      {/* Mobile Card View */}
       <div className="grid grid-cols-1 gap-4 lg:hidden">
         {paginatedOrders.map((order) => (
           <Card key={order.id} className="bg-card border-border active:scale-[0.98] transition-transform" onClick={() => openOrder(order.id)}>
@@ -279,7 +276,6 @@ function OrdersContent() {
         ))}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center mt-6">
           <Pagination>
@@ -304,7 +300,6 @@ function OrdersContent() {
         </div>
       )}
 
-      {/* Detail Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-4xl w-[95vw] h-[90vh] md:h-auto overflow-y-auto bg-card border-border text-foreground">
           <DialogHeader>
@@ -338,7 +333,6 @@ function OrdersContent() {
                 </TabsList>
               </div>
 
-              {/* Logistics Tab */}
               <TabsContent value="logistics" className="space-y-6 focus-visible:outline-none">
                 <div className="bg-secondary/50 border border-border rounded-3xl p-6 md:p-8 overflow-x-auto no-scrollbar">
                   <div className="min-w-[700px] relative flex justify-between items-center px-4">
@@ -470,7 +464,6 @@ function OrdersContent() {
                 </div>
               </TabsContent>
 
-              {/* Customer Tab */}
               <TabsContent value="customer" className="space-y-4 focus-visible:outline-none">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-secondary/50 border border-border rounded-xl p-4 flex items-center gap-4">
@@ -490,7 +483,6 @@ function OrdersContent() {
                 </div>
               </TabsContent>
 
-              {/* Items Tab */}
               <TabsContent value="items" className="space-y-4 focus-visible:outline-none">
                 <div className="bg-secondary/30 border border-border rounded-2xl p-4 md:p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -547,7 +539,7 @@ function OrdersContent() {
 
 export default function AdminOrdersPage() {
   return (
-    <Suspense fallback={<div>Carregando pedidos...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Carregando painel de pedidos...</div>}>
       <OrdersContent />
     </Suspense>
   );

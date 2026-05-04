@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, LogIn, ArrowLeft, Mail, Lock, Settings } from "lucide-react";
@@ -12,7 +12,7 @@ import { useAuth } from "@/providers/auth/AuthProvider";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
-export default function AdminLoginPage() {
+function AdminLoginForm() {
   const { isAdminAuthenticated, loginAdmin, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,7 +49,6 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background Orbs with darker colors for Admin */}
       <div className="absolute top-[-10%] right-[-10%] w-[45%] h-[45%] bg-amber-500/5 rounded-full blur-[140px] animate-pulse" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[45%] h-[45%] bg-amber-500/10 rounded-full blur-[140px] animate-pulse" />
       
@@ -144,5 +143,13 @@ export default function AdminLoginPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-amber-500">Acessando sistema seguro...</div>}>
+      <AdminLoginForm />
+    </Suspense>
   );
 }
