@@ -161,6 +161,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
               <BarChart3 className="w-5 h-5 text-primary hidden sm:block" />
+              <img src="/brand/logo-32.png" alt="JPB Logo" className="w-8 h-8 object-contain" />
               <span className="text-lg font-bold gold-text">JPB Admin</span>
             </div>
             <div className="flex items-center gap-3">

@@ -86,7 +86,8 @@ export interface AdminProductRow {
   stockQuantity: number;
   minStockAlert: number;
   active: boolean;
-  badge?: "Premium" | "Limited" | "Novo";
+  badge?: "Premium" | "Limited" | "Novo" | "";
+  description: string;
   weightKg: number;
   lengthCm: number;
   widthCm: number;
@@ -114,7 +115,7 @@ export interface AdminProductInput {
   stockQuantity: number;
   minStockAlert: number;
   active: boolean;
-  badge?: "Premium" | "Limited" | "Novo";
+  badge?: "Premium" | "Limited" | "Novo" | "";
   weightKg: number;
   lengthCm: number;
   widthCm: number;

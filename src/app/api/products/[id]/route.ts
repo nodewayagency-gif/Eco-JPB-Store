@@ -7,10 +7,14 @@ type Params = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<Params> }
+  props: { params: Promise<Params> }
 ) {
+  const { id } = await props.params;
+  
+  console.log(`🔍 Buscando produto: ${id}`);
+  const startTime = Date.now();
+
   try {
-    const { id } = await params;
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
@@ -19,23 +23,29 @@ export async function GET(
       },
     });
 
+    const duration = Date.now() - startTime;
+    console.log(`✅ Produto ${id} encontrado em ${duration}ms`);
+
     if (!product) {
       return NextResponse.json({ message: 'Produto não encontrado' }, { status: 404 });
     }
 
     return NextResponse.json(product);
-  } catch (error) {
-    console.error('Error getting product:', error);
-    return NextResponse.json({ message: 'Erro ao buscar produto', error }, { status: 500 });
+  } catch (error: any) {
+    console.error(`❌ Erro ao buscar produto ${id}:`, error);
+    return NextResponse.json({ 
+      message: 'Erro ao buscar produto', 
+      error: error.message 
+    }, { status: 500 });
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<Params> }
+  props: { params: Promise<Params> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await props.params;
     const data = await request.json();
     const { 
       id: _, 
@@ -137,10 +147,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<Params> }
+  props: { params: Promise<Params> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await props.params;
     await prisma.product.delete({
       where: { id }
     });

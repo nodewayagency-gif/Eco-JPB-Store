@@ -68,6 +68,9 @@ function LoginForm() {
             <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Voltar para a loja</span>
           </Link>
           
+          <div className="mb-6">
+            <img src="/brand/logo.png" alt="JPB Logo" className="h-20 w-auto object-contain" />
+          </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">Acesso ao Cliente</h1>
           <p className="text-muted-foreground text-sm">Bem-vindo à Eco-JPB Store. Faça login para continuar.</p>
         </div>

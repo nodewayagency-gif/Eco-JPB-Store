@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useConfig } from "@/providers/ConfigContext";
-import logo from "@/assets/brand/jpb_sem_fundo_32x32.png";
+const logo = "/brand/logo-32.png";
 
 const Footer = () => {
   const { config } = useConfig();
@@ -12,7 +12,7 @@ const Footer = () => {
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center gap-3">
-            <img src={(logo as any).src || logo} alt={companyName} className="h-8 w-8 object-contain" />
+            <img src={logo} alt={companyName} className="h-8 w-8 object-contain" />
             <div>
               <p className="text-sm font-semibold gold-text uppercase">{companyName}</p>
               <p className="text-xs text-muted-foreground">© {year} {companyName}. Todos os direitos reservados.</p>

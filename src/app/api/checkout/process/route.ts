@@ -40,7 +40,7 @@ export async function POST(req: Request) {
           },
         },
         external_reference: order.id,
-        notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago`,
+        notification_url: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago` : undefined,
       },
     });
 
@@ -70,10 +70,16 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("❌ Erro ao processar pagamento transparente:", error);
+    console.error("❌ Erro detalhado no pagamento:", {
+      message: error.message,
+      cause: error.cause,
+      stack: error.stack
+    });
+    
     return NextResponse.json({ 
       message: "Erro ao processar pagamento", 
-      error: error.cause?.[0]?.description || error.message 
+      error: error.message,
+      details: error.cause?.[0]?.description || "Ocorreu um erro interno ao processar com o Mercado Pago."
     }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { 
   Search, 
   MessageSquare, 
@@ -47,6 +47,17 @@ export default function AdminSupportPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const itemsPerPage = 8;
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (selectedTicket) {
+      scrollToBottom();
+    }
+  }, [selectedTicket?.messages, selectedTicket?.id]);
 
   const safeDateFormat = (date: any) => {
     try {
@@ -374,6 +385,7 @@ export default function AdminSupportPage() {
                       </span>
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 {selectedTicket.status !== "CLOSED" && (

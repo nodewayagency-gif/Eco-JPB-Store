@@ -20,10 +20,11 @@ export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const { data } = await api.get<any[]>('/products?active=true');
+      const { data } = await api.get<{ products: any[] }>('/products?active=true');
+      const products = Array.isArray(data) ? data : data.products;
       
       // Mapeando os dados do banco para o formato que o frontend espera
-      return data.map(p => ({
+      return products.map(p => ({
         ...p,
         category: p.category?.name || 'Geral',
         price: Number(p.price),

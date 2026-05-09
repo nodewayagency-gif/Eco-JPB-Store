@@ -59,8 +59,8 @@ function AdminLoginForm() {
         className="w-full max-w-[420px] z-10"
       >
         <div className="mb-10 flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 flex items-center justify-center mb-6 shadow-xl shadow-amber-500/5">
-            <Shield className="w-8 h-8 text-amber-500" />
+          <div className="w-24 h-24 rounded-2xl flex items-center justify-center mb-6">
+            <img src="/brand/logo.png" alt="JPB Logo" className="w-full h-full object-contain" />
           </div>
           
           <h1 className="text-2xl font-bold tracking-tight text-foreground mb-1 uppercase tracking-widest">Admin Control</h1>

@@ -16,41 +16,7 @@ import type {
   TicketStatus,
   SendTicketMessageInput
 } from "@premium/contracts";
-import { products } from "@/data/products";
-
-const makeDefaultProductRow = (product: (typeof products)[number], index: number): AdminProductRow => {
-  const sku = product.commercial?.sku ?? `JPB-${product.id.padStart(4, "0")}`;
-
-  return {
-    id: product.id,
-    sku,
-    name: product.name,
-    category: product.category,
-    price: product.price,
-    costPrice: product.commercial?.costPrice ?? Number((product.price * 0.62).toFixed(2)),
-    rating: product.rating,
-    reviews: product.reviews,
-    inStock: product.inStock,
-    stockQuantity: product.stockQuantity ?? (product.inStock ? 30 - index * 2 : 0),
-    minStockAlert: product.minStockAlert ?? 5,
-    active: product.active ?? true,
-    badge: product.badge,
-    weightKg: product.shipping?.weightKg ?? 0.8,
-    lengthCm: product.shipping?.dimensions.lengthCm ?? 22,
-    widthCm: product.shipping?.dimensions.widthCm ?? 16,
-    heightCm: product.shipping?.dimensions.heightCm ?? 10,
-    originZipCode: product.shipping?.originZipCode ?? "01001-000",
-    fragile: product.shipping?.fragile ?? true,
-    freeShipping: product.shipping?.freeShipping ?? false,
-    ncm: product.commercial?.ncm,
-    ean: product.commercial?.ean,
-    taxPercent: product.commercial?.taxPercent,
-    gatewayProductId: product.commercial?.gatewayProductId,
-    melhorEnvioCategory: product.shipping?.melhorEnvioCategory,
-    image: product.image,
-    images: product.images
-  };
-};
+import { api } from "../api.ts";
 
 const stepOrder: AdminOrderStepKey[] = [
   "created",
@@ -149,8 +115,8 @@ const progressOrderStep = (order: AdminOrderDetail, targetStep?: AdminOrderStepK
 };
 
 export interface AdminRepository {
-  getMetrics: () => Promise<typeof mockAdminMetrics>;
-  getRecentOrders: () => Promise<typeof mockRecentOrders>;
+  getMetrics: () => Promise<import("@premium/contracts").AdminMetric[]>;
+  getRecentOrders: () => Promise<import("@premium/contracts").AdminOrderSummary[]>;
   listOrders: () => Promise<AdminOrderRow[]>;
   getOrder: (id: string) => Promise<AdminOrderDetail | null>;
   advanceOrderStep: (id: string) => Promise<AdminOrderDetail>;
@@ -161,7 +127,7 @@ export interface AdminRepository {
   updateProduct: (id: string, changes: Partial<AdminProductInput>) => Promise<AdminProductRow>;
   deleteProduct: (id: string) => Promise<void>;
   listProductPurchaseHistory: (productId: string) => Promise<AdminProductPurchaseHistory[]>;
-  listLeads: () => Promise<typeof mockLeads>;
+  listLeads: () => Promise<import("@premium/contracts").AdminLead[]>;
   listCategories: () => Promise<AdminCategory[]>;
   createCategory: (payload: AdminCategoryInput) => Promise<AdminCategory>;
   updateCategory: (id: string, changes: Partial<AdminCategoryInput>) => Promise<AdminCategory>;
@@ -174,12 +140,13 @@ export interface AdminRepository {
   createUser: (payload: AdminUserInput) => Promise<AdminUserRow>;
   updateUser: (id: string, changes: Partial<AdminUserInput>) => Promise<AdminUserRow>;
   deleteUser: (id: string) => Promise<void>;
-  listTickets: () => Promise<SupportTicketView[]>;
-  updateTicketStatus: (id: string, status: TicketStatus) => Promise<SupportTicketView>;
-  replyTicket: (id: string, input: SendTicketMessageInput) => Promise<SupportTicketView>;
+  listTickets: () => Promise<import("@premium/contracts").SupportTicketView[]>;
+  updateTicketStatus: (id: string, status: import("@premium/contracts").TicketStatus) => Promise<import("@premium/contracts").SupportTicketView>;
+  replyTicket: (id: string, input: import("@premium/contracts").SendTicketMessageInput) => Promise<import("@premium/contracts").SupportTicketView>;
+  mapStatusToLabel: (status: string, steps: any[]) => string;
 }
 
-import { api } from "../api.ts";
+
 
 export const adminRepository: AdminRepository = {
   async getMetrics() {

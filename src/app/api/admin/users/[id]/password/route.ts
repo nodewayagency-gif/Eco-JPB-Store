@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth-utils";
+import bcrypt from "bcrypt";
 
 type Params = {
   id: string;
@@ -24,9 +25,11 @@ export async function PATCH(
       return NextResponse.json({ message: "Senha inválida" }, { status: 400 });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     await prisma.user.update({
       where: { id },
-      data: { password }
+      data: { passwordHash: hashedPassword }
     });
 
     return NextResponse.json({ message: "Senha atualizada com sucesso" });

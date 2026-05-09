@@ -210,7 +210,7 @@ function OrdersContent() {
                     <TableCell className="font-medium">{order.customerName}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-background border-border font-normal">
-                        {order.channel === "Loja Virtual" ? "🌐 Loja" : "🏷️ Externa"}
+                        {order.channel === "Loja" ? "🌐 Loja" : "🏷️ Externa"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground capitalize">{order.paymentGateway ?? "-"}</TableCell>

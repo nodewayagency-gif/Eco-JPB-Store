@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ShoppingCart, Battery, Radio, Volume2 } from "lucide-react";
-import logo from "@/assets/brand/jpb_sem_fundo.png";
+const logo = "/brand/logo.png";
 
 const FeaturedShowcase = () => {
   return (
@@ -91,7 +91,7 @@ const FeaturedShowcase = () => {
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.2)_0%,transparent_70%)] blur-3xl" />
             <img 
-              src={(logo as any).src || logo} 
+              src={logo} 
               alt="JPB Studio Pro Max" 
               className="relative w-full max-w-[500px] object-contain drop-shadow-[0_20px_50px_rgba(225,171,45,0.3)]"
             />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Package,
@@ -119,6 +119,18 @@ export default function CustomerPage() {
   const [selectedImages, setSelectedImages] = useState<{file: File, preview: string}[]>([]);
   const [replyImages, setReplyImages] = useState<{file: File, preview: string}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (selectedTicket) {
+      scrollToBottom();
+    }
+  }, [selectedTicket?.messages, selectedTicket?.id]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, isReply = false) => {
     const files = e.target.files;
@@ -826,6 +838,7 @@ export default function CustomerPage() {
                       <span className="text-[10px] text-muted-foreground mt-1 px-1">{msg.senderName} • {new Date(msg.createdAt).toLocaleString("pt-BR")}</span>
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
                 
                 {selectedTicket.status !== "CLOSED" && (
