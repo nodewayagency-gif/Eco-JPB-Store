@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import {
   Dialog,
   DialogContent,
@@ -38,14 +38,16 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 
 const statusColor: Record<string, string> = {
-  "Criado": "bg-zinc-800 text-zinc-400 border-zinc-700",
+  "Criado": "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
   "Pagamento confirmado": "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   "Separação": "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  "Pronto para envio": "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  "Pronto para envio": "bg-sky-500/10 text-sky-500 border-sky-500/20",
   "Enviado": "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
-  "Saiu para entrega": "bg-purple-500/10 text-purple-500 border-purple-500/20",
-  "Entregue": "bg-emerald-500 text-white border-none"
+  "Saiu para entrega": "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  "Entregue": "bg-emerald-500/20 text-emerald-500 border-emerald-500/30"
 };
+
+import { motion, AnimatePresence } from "framer-motion";
 
 function OrdersContent() {
   const searchParams = useSearchParams();
@@ -58,6 +60,8 @@ function OrdersContent() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
+  const [loadingOrderId, setLoadingOrderId] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const loadOrders = async () => {
     try {
@@ -81,6 +85,7 @@ function OrdersContent() {
 
   const openOrder = async (id: string) => {
     try {
+      setLoadingOrderId(id);
       const order = await adminRepository.getOrder(id);
       if (!order) return;
       setSelectedOrder(order);
@@ -88,6 +93,8 @@ function OrdersContent() {
     } catch (error) {
       console.error("Erro ao abrir pedido:", error);
       toast.error("Erro ao abrir detalhes do pedido.");
+    } finally {
+      setLoadingOrderId(null);
     }
   };
 
@@ -105,26 +112,34 @@ function OrdersContent() {
   };
 
   const nextStep = async () => {
-    if (!selectedOrder) return;
+    if (!selectedOrder || isUpdating) return;
     try {
-      await adminRepository.advanceOrderStep(selectedOrder.id);
-      toast.success("Status avançado com sucesso!");
-      await refreshSelected();
+      setIsUpdating(true);
+      const updated = await adminRepository.advanceOrderStep(selectedOrder.id);
+      setSelectedOrder(updated);
+      toast.success("Status avançado!");
+      loadOrders(); // Atualiza a lista em background
     } catch (error) {
       console.error("Erro ao avançar status:", error);
       toast.error("Erro ao avançar status.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const setManualStep = async (step: AdminOrderStepKey) => {
-    if (!selectedOrder) return;
+    if (!selectedOrder || isUpdating) return;
     try {
-      await adminRepository.setOrderStep(selectedOrder.id, step);
+      setIsUpdating(true);
+      const updated = await adminRepository.setOrderStep(selectedOrder.id, step);
+      setSelectedOrder(updated);
       toast.success("Status atualizado!");
-      await refreshSelected();
+      loadOrders(); // Atualiza a lista em background
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
       toast.error("Erro ao atualizar status.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -184,57 +199,96 @@ function OrdersContent() {
         </div>
       </div>
 
-      <Card className="hidden lg:block bg-card border-border overflow-hidden">
+      <Card className="hidden lg:block bg-card/50 border-border overflow-hidden shadow-xl">
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-secondary/50">
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="w-[120px]">ID</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Canal</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right w-[140px]">Ações</TableHead>
+            <TableHeader className="bg-secondary/10">
+              <TableRow className="border-border/50 hover:bg-transparent">
+                <TableHead className="w-[140px] text-[11px] uppercase font-bold text-muted-foreground py-4">ID Pedido</TableHead>
+                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Cliente</TableHead>
+                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground text-center">Origem</TableHead>
+                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Pagamento</TableHead>
+                <TableHead className="text-right text-[11px] uppercase font-bold text-muted-foreground">Total</TableHead>
+                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Status</TableHead>
+                <TableHead className="text-right w-[100px] text-[11px] uppercase font-bold text-muted-foreground">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedOrders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">Nenhum pedido encontrado.</TableCell>
-                </TableRow>
-              ) : (
-                paginatedOrders.map((order) => (
-                  <TableRow key={order.id} className="border-border hover:bg-secondary/20 transition-colors">
-                    <TableCell className="font-mono text-[10px] text-muted-foreground">#{order.id.slice(-8).toUpperCase()}</TableCell>
-                    <TableCell className="font-medium">{order.customerName}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-background border-border font-normal">
-                        {order.channel === "Loja" ? "🌐 Loja" : "🏷️ Externa"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground capitalize">{order.paymentGateway ?? "-"}</TableCell>
-                    <TableCell className="text-right font-bold text-primary">
-                      {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn("px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", statusColor[order.statusLabel])}>
-                        {order.statusLabel}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="hover:bg-primary/20 hover:text-primary transition-all gap-2"
-                        onClick={() => openOrder(order.id)}
-                      >
-                        Gerenciar <ChevronRight className="w-3 h-3" />
-                      </Button>
+              <AnimatePresence mode="popLayout">
+                {paginatedOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-40 text-center text-muted-foreground italic opacity-40">
+                      Nenhum pedido encontrado.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ) : (
+                  paginatedOrders.map((order, idx) => (
+                    <motion.tr
+                      key={order.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      onClick={() => openOrder(order.id)}
+                      className={cn(
+                        "border-border/40 group hover:bg-secondary/20 transition-all duration-200 cursor-pointer",
+                        loadingOrderId === order.id && "opacity-50 pointer-events-none"
+                      )}
+                    >
+                      <TableCell className="py-5">
+                        <span className="font-mono text-[11px] text-muted-foreground group-hover:text-primary transition-colors">
+                          #{order.id.slice(-8).toUpperCase()}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-none mb-1">
+                            {order.customerName}
+                          </p>
+                          <span className="text-[11px] text-muted-foreground/60">
+                            {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-background/40 border-border/40 font-bold text-[9px] py-1 px-2 uppercase tracking-tight whitespace-nowrap">
+                          {order.channel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-3.5 h-3.5 opacity-40" />
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {order.paymentGateway ?? "-"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-bold text-sm text-foreground tracking-tight">
+                          {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn(
+                          "px-3 py-1 text-[10px] font-bold uppercase border min-w-[120px] justify-center text-center", 
+                          statusColor[order.statusLabel]
+                        )}>
+                          {order.statusLabel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end items-center">
+                          {loadingOrderId === order.id ? (
+                            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all duration-200 shadow-sm">
+                              <ChevronRight className="w-4 h-4" />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </motion.tr>
+                  ))
+                )}
+              </AnimatePresence>
             </TableBody>
           </Table>
         </CardContent>
@@ -286,9 +340,42 @@ function OrdersContent() {
                   className={cn("rounded-full h-8 w-8 p-0 cursor-pointer", page === 1 && "pointer-events-none opacity-20")}
                 />
               </PaginationItem>
-              <div className="px-4 text-xs font-medium text-muted-foreground">
-                Página <span className="text-primary">{page}</span> de {totalPages}
-              </div>
+              
+              {/* Números das páginas */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                // Mostrar primeira, última, atual, e páginas ao redor da atual
+                if (
+                  p === 1 || 
+                  p === totalPages || 
+                  (p >= page - 1 && p <= page + 1)
+                ) {
+                  return (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        onClick={() => setPage(p)}
+                        isActive={page === p}
+                        className={cn(
+                          "h-8 w-8 rounded-full cursor-pointer text-xs",
+                          page === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                        )}
+                      >
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                }
+                
+                // Mostrar reticências
+                if (p === 2 && page > 3) {
+                  return <PaginationItem key="dots-1"><PaginationEllipsis className="w-4 h-4" /></PaginationItem>;
+                }
+                if (p === totalPages - 1 && page < totalPages - 2) {
+                  return <PaginationItem key="dots-2"><PaginationEllipsis className="w-4 h-4" /></PaginationItem>;
+                }
+                
+                return null;
+              })}
+
               <PaginationItem>
                 <PaginationNext 
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -382,12 +469,15 @@ function OrdersContent() {
                                   ? "bg-background border-primary ring-4 ring-primary/20 scale-110"
                                   : isNext
                                   ? "bg-background border-blue-500 animate-pulse"
-                                  : "bg-background border-border opacity-100"
+                                  : "bg-background border-border opacity-100",
+                                isUpdating && "opacity-50 cursor-wait"
                               )}
-                              onClick={() => setManualStep(step.key as AdminOrderStepKey)}
+                              onClick={() => !isUpdating && setManualStep(step.key as AdminOrderStepKey)}
                               role="button"
                             >
-                              {isCompleted ? (
+                              {isUpdating && isActive ? (
+                                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              ) : isCompleted ? (
                                 <Check className="w-6 h-6 text-black font-bold" />
                               ) : (
                                 <StepIcon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
@@ -457,8 +547,15 @@ function OrdersContent() {
                     <Button 
                       className="w-full gap-2 bg-gradient-to-r from-primary to-orange-500 text-black font-black hover:opacity-90 h-16 rounded-2xl shadow-[0_10px_30px_rgba(251,191,36,0.2)] transition-all active:scale-95 text-lg" 
                       onClick={nextStep}
+                      disabled={isUpdating || selectedOrder.currentStep === "delivered"}
                     >
-                      {selectedOrder.currentStep === "delivered" ? "Pedido Concluído" : "Avançar para Próxima Etapa"} <ChevronRight className="w-5 h-5" />
+                      {isUpdating ? (
+                        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          {selectedOrder.currentStep === "delivered" ? "Pedido Concluído" : "Avançar para Próxima Etapa"} <ChevronRight className="w-5 h-5" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>

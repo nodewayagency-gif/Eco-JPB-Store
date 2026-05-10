@@ -207,11 +207,30 @@ export const adminRepository: AdminRepository = {
     }));
   },
 
+  async advanceOrderStep(id) {
+    const order = await this.getOrder(id);
+    const stepOrder = ["created", "paid", "in_separation", "ready_for_shipping", "shipped", "out_for_delivery", "delivered"];
+    const currentIndex = stepOrder.indexOf(order.currentStep);
+    const nextStep = stepOrder[Math.min(currentIndex + 1, stepOrder.length - 1)];
+    
+    const { data } = await api.patch(`/admin/orders/${id}/step`, { stepKey: nextStep, source: 'manual' });
+    return this.mapToOrderDetail(data);
+  },
+
+  async setOrderStep(id, step) {
+    const { data } = await api.patch(`/admin/orders/${id}/step`, { stepKey: step, source: 'manual' });
+    return this.mapToOrderDetail(data);
+  },
+
   async getOrder(id) {
     const { data } = await api.get<any>(`/admin/orders/${id}`);
+    return this.mapToOrderDetail(data);
+  },
+
+  mapToOrderDetail(data: any): AdminOrderDetail {
     return {
       id: data.id,
-      customerName: data.guestName || data.customer?.customerProfile?.name || "Cliente",
+      customerName: data.guestName || data.customer?.customerProfile?.name || data.customer?.name || "Cliente",
       customerEmail: data.guestEmail || data.customer?.email || "",
       total: Number(data.total),
       currentStep: data.steps.find((s: any) => s.active)?.key || "created",
@@ -244,22 +263,6 @@ export const adminRepository: AdminRepository = {
         state: data.shippingAddress.state
       } : undefined
     };
-  },
-
-  async advanceOrderStep(id) {
-    // Busca o pedido atual para descobrir o próximo passo
-    const order = await this.getOrder(id);
-    const stepOrder = ["created", "paid", "in_separation", "ready_for_shipping", "shipped", "out_for_delivery", "delivered"];
-    const currentIndex = stepOrder.indexOf(order.currentStep);
-    const nextStep = stepOrder[Math.min(currentIndex + 1, stepOrder.length - 1)];
-    
-    const { data } = await api.patch(`/admin/orders/${id}/step`, { stepKey: nextStep, source: 'manual' });
-    return this.getOrder(id); // Recarrega com todos os detalhes
-  },
-
-  async setOrderStep(id, step) {
-    const { data } = await api.patch(`/admin/orders/${id}/step`, { stepKey: step, source: 'manual' });
-    return this.getOrder(id);
   },
 
   // Helper para mapear status do banco para label amigável

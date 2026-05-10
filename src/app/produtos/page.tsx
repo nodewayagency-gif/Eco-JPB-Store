@@ -35,9 +35,13 @@ export default function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
-        <p className="text-muted-foreground mt-4 font-medium">Carregando catálogo...</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground mt-4 text-xs font-black uppercase tracking-widest">Organizando catálogo...</p>
+        </div>
+        <Footer />
       </div>
     );
   }

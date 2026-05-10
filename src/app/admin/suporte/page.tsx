@@ -9,8 +9,12 @@ import {
   X, 
   Package, 
   ChevronRight,
-  Filter
+  Filter,
+  Send,
+  CheckCircle2,
+  Clock
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -232,69 +236,103 @@ export default function AdminSupportPage() {
               <Badge variant="outline" className="text-[10px] bg-primary/5">{filteredTickets.length}</Badge>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-2 space-y-2">
-              {paginatedTickets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-30">
-                  <MessageSquare className="w-10 h-10 mb-2" />
-                  <p className="text-sm">Nenhum chamado</p>
-                </div>
-              ) : (
-                paginatedTickets.map(ticket => (
-                  <button 
-                    key={ticket.id}
-                    onClick={() => setSelectedTicket(ticket)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-xl border transition-all relative overflow-hidden group",
-                      selectedTicket?.id === ticket.id 
-                        ? "bg-primary/5 border-primary shadow-lg shadow-primary/5" 
-                        : "bg-background/50 border-border/50 hover:border-primary/30"
-                    )}
+            <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+              <AnimatePresence mode="popLayout">
+                {paginatedTickets.length === 0 ? (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-30"
                   >
-                    {selectedTicket?.id === ticket.id && (
-                      <div className="absolute left-0 top-0 w-1 h-full bg-primary" />
-                    )}
-                    
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-sm truncate pr-2 flex-1">{ticket.subject || "Sem Assunto"}</h4>
-                      <Badge className={cn(
-                        "text-[9px] h-5 font-bold uppercase tracking-tighter",
-                        ticket.status === "OPEN" ? "bg-destructive/20 text-destructive border-destructive/30" :
-                        ticket.status === "IN_PROGRESS" ? "bg-amber-500/20 text-amber-500 border-amber-500/30" :
-                        "bg-emerald-500/20 text-emerald-500 border-emerald-500/30"
-                      )} variant="outline">
-                        {ticket.status === "OPEN" ? "Aberto" : ticket.status === "IN_PROGRESS" ? "Em Atend." : "Resolvido"}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <User className="w-3 h-3" />
-                      <span className="truncate">{ticket.customerName || "Desconhecido"}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-border/30">
-                      <span className="text-[10px] font-mono opacity-50">#{ticket.id.slice(-6)}</span>
-                      <span className="text-[10px] opacity-50">{safeDateFormat(ticket.updatedAt)}</span>
-                    </div>
-                  </button>
-                ))
-              )}
+                    <MessageSquare className="w-10 h-10 mb-2" />
+                    <p className="text-sm">Nenhum chamado</p>
+                  </motion.div>
+                ) : (
+                  paginatedTickets.map((ticket, idx) => (
+                    <motion.button 
+                      key={ticket.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      onClick={() => setSelectedTicket(ticket)}
+                      className={cn(
+                        "w-full text-left p-4 rounded-2xl border transition-all relative overflow-hidden group",
+                        selectedTicket?.id === ticket.id 
+                          ? "bg-primary/10 border-primary shadow-[0_8px_30px_rgb(251,191,36,0.1)] scale-[1.02] z-10" 
+                          : "bg-[#111111] border-border/40 hover:border-primary/30 hover:bg-[#151515]"
+                      )}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className={cn(
+                          "font-bold text-sm truncate pr-2 flex-1 transition-colors",
+                          selectedTicket?.id === ticket.id ? "text-primary" : "text-foreground"
+                        )}>
+                          {ticket.subject || "Sem Assunto"}
+                        </h4>
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          ticket.status === "OPEN" ? "bg-destructive animate-pulse" :
+                          ticket.status === "IN_PROGRESS" ? "bg-amber-500" : "bg-emerald-500"
+                        )} />
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60 mb-3">
+                        <User className="w-3 h-3" />
+                        <span className="truncate font-medium">{ticket.customerName || "Desconhecido"}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center pt-3 border-t border-border/10">
+                        <Badge variant="outline" className={cn(
+                          "text-[8px] h-4 font-black uppercase tracking-widest px-2 border-none",
+                          ticket.status === "OPEN" ? "bg-destructive/10 text-destructive" :
+                          ticket.status === "IN_PROGRESS" ? "bg-amber-500/10 text-amber-500" :
+                          "bg-emerald-500/10 text-emerald-500"
+                        )}>
+                          {ticket.status === "OPEN" ? "Aberto" : ticket.status === "IN_PROGRESS" ? "Em Atend." : "Resolvido"}
+                        </Badge>
+                        <span className="text-[10px] opacity-30 font-mono">#{ticket.id.slice(-6).toUpperCase()}</span>
+                      </div>
+                    </motion.button>
+                  ))
+                )}
+              </AnimatePresence>
             </div>
 
             {totalPages > 1 && (
-              <div className="p-2 border-t border-border bg-secondary/5">
+              <div className="p-3 border-t border-border bg-secondary/5 flex justify-center">
                 <Pagination>
-                  <PaginationContent className="gap-1">
+                  <PaginationContent className="bg-card border border-border rounded-full px-1.5 py-0.5 scale-90">
                     <PaginationItem>
                       <PaginationPrevious 
                         onClick={() => setPage(p => Math.max(1, p - 1))}
-                        className={cn("h-8 w-8 p-0 cursor-pointer", page === 1 && "pointer-events-none opacity-20")}
+                        className={cn("rounded-full h-7 w-7 p-0 cursor-pointer", page === 1 && "pointer-events-none opacity-20")}
                       />
                     </PaginationItem>
-                    <span className="text-[10px] font-bold px-2">{page}/{totalPages}</span>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                      if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                        return (
+                          <PaginationItem key={p}>
+                            <PaginationLink
+                              onClick={() => setPage(p)}
+                              isActive={page === p}
+                              className={cn(
+                                "h-7 w-7 rounded-full cursor-pointer text-[10px]",
+                                page === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                              )}
+                            >
+                              {p}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      }
+                      return null;
+                    })}
+
                     <PaginationItem>
                       <PaginationNext 
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        className={cn("h-8 w-8 p-0 cursor-pointer", page === totalPages && "pointer-events-none opacity-20")}
+                        className={cn("rounded-full h-7 w-7 p-0 cursor-pointer", page === totalPages && "pointer-events-none opacity-20")}
                       />
                     </PaginationItem>
                   </PaginationContent>
@@ -363,28 +401,36 @@ export default function AdminSupportPage() {
                     <span className="text-[10px] text-muted-foreground ml-2">{safeDateFormat(selectedTicket.createdAt)}</span>
                   </div>
 
-                  {selectedTicket?.messages?.map((msg) => (
-                    <div key={msg.id} className={cn("flex flex-col space-y-1", msg.senderRole === "CUSTOMER" ? "items-start" : "items-end")}>
-                      <div className={cn(
-                        "max-w-[85%] p-4 rounded-2xl shadow-sm",
-                        msg.senderRole === "CUSTOMER" 
-                          ? "bg-secondary/50 border border-border/50 rounded-tl-none" 
-                          : "bg-primary text-primary-foreground rounded-tr-none"
-                      )}>
-                        {msg.images && msg.images.length > 0 && (
-                          <div className="grid grid-cols-2 gap-2 mb-3">
-                            {msg.images.map((img, i) => (
-                              <img key={i} src={img} alt="Anexo" className="rounded-lg w-full aspect-square object-cover border border-white/5" />
-                            ))}
-                          </div>
-                        )}
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                      </div>
-                      <span className={cn("text-[10px] text-muted-foreground", msg.senderRole === "CUSTOMER" ? "ml-2" : "mr-2")}>
-                        {msg.senderName} • {safeDateFormat(msg.createdAt)}
-                      </span>
-                    </div>
-                  ))}
+                  <AnimatePresence initial={false}>
+                    {selectedTicket?.messages?.map((msg, mIdx) => (
+                      <motion.div 
+                        key={msg.id} 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: mIdx * 0.05 }}
+                        className={cn("flex flex-col space-y-1", msg.senderRole === "CUSTOMER" ? "items-start" : "items-end")}
+                      >
+                        <div className={cn(
+                          "max-w-[85%] p-4 rounded-2xl",
+                          msg.senderRole === "CUSTOMER" 
+                            ? "bg-secondary/50 border border-border/50 rounded-tl-none" 
+                            : "bg-primary text-black font-medium rounded-tr-none"
+                        )}>
+                          {msg.images && msg.images.length > 0 && (
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                              {msg.images.map((img, i) => (
+                                <img key={i} src={img} alt="Anexo" className="rounded-lg w-full aspect-square object-cover border border-white/5 cursor-pointer" onClick={() => window.open(img, '_blank')} />
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                        <span className={cn("text-[10px] text-muted-foreground", msg.senderRole === "CUSTOMER" ? "ml-2" : "mr-2")}>
+                          {msg.senderName} • {safeDateFormat(msg.createdAt)}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                   <div ref={messagesEndRef} />
                 </div>
 

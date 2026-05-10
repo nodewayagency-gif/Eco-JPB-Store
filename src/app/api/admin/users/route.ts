@@ -16,7 +16,7 @@ export async function GET() {
       },
       take: 100,
       orderBy: {
-        createdAt: 'desc'
+        name: 'asc'
       }
     });
 

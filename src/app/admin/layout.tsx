@@ -60,7 +60,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const settingsOpen = pathname.startsWith("/admin/configuracoes");
 
   useEffect(() => {
-    if (isAdminLogin) return;
+    if (isAdminLogin || !adminSession) {
+      setOpenTicketsCount(0);
+      return;
+    }
     
     const fetchCount = async () => {
       try {
@@ -68,14 +71,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const count = Array.isArray(tickets) ? tickets.filter(t => t?.status === "OPEN").length : 0;
         setOpenTicketsCount(count);
       } catch (error) {
+        // Silently fail if 403 (likely logged out)
+        if ((error as any)?.response?.status === 403) return;
         console.error("Erro ao buscar contagem de tickets:", error);
       }
     };
 
     fetchCount();
-    const interval = setInterval(fetchCount, 10000); // Polling cada 10s
+    const interval = setInterval(fetchCount, 30000); // Polling cada 30s (aumentado para economizar recursos)
     return () => clearInterval(interval);
-  }, [isAdminLogin]);
+  }, [isAdminLogin, adminSession]);
 
   const handleLogout = async () => {
     await logoutAdmin();

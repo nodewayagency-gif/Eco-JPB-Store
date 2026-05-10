@@ -54,7 +54,8 @@ const emptyForm: AdminUserInput = {
 export default function AdminCustomersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<AdminUserRow[]>([]);
-  const [orders, setOrders] = useState<AdminOrderRow[]>([]);
+  const [customerOrders, setCustomerOrders] = useState<AdminOrderRow[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -76,15 +77,11 @@ export default function AdminCustomersPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [usersData, ordersData] = await Promise.all([
-        adminRepository.listUsers(),
-        adminRepository.listOrders()
-      ]);
+      const usersData = await adminRepository.listUsers();
       setAllUsersCount(Array.isArray(usersData) ? usersData.length : 0);
       setUsers(Array.isArray(usersData) ? usersData.filter(u => (u.role as string)?.toUpperCase() === "CUSTOMER") : []);
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
     } catch (error) {
-      toast.error("Erro ao carregar dados");
+      toast.error("Erro ao carregar clientes");
     } finally {
       setLoading(false);
     }
@@ -111,9 +108,20 @@ export default function AdminCustomersPage() {
     }
   };
 
-  const handleOpenOrdersModal = (user: AdminUserRow) => {
+  const handleOpenOrdersModal = async (user: AdminUserRow) => {
     setSelectedUser(user);
     setOrdersModalOpen(true);
+    setLoadingOrders(true);
+    try {
+      // Aqui poderíamos ter uma rota filtrada, mas por enquanto usamos o listOrders
+      // e filtramos no cliente, mas agora apenas quando necessário.
+      const allOrders = await adminRepository.listOrders();
+      setCustomerOrders(allOrders.filter(o => o.customerId === user.id));
+    } catch (error) {
+      toast.error("Erro ao carregar pedidos do cliente");
+    } finally {
+      setLoadingOrders(false);
+    }
   };
 
   const filteredUsers = users.filter((user) => {
@@ -125,10 +133,7 @@ export default function AdminCustomersPage() {
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const paginatedUsers = filteredUsers.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  const customerOrders = useMemo(() => {
-    if (!selectedUser) return [];
-    return orders.filter(o => o.customerId === selectedUser.id);
-  }, [selectedUser, orders]);
+
 
   useEffect(() => {
     setPage(1);
@@ -465,7 +470,12 @@ export default function AdminCustomersPage() {
           </DialogHeader>
 
           <div className="py-4">
-            {customerOrders.length === 0 ? (
+            {loadingOrders ? (
+              <div className="text-center py-20">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-zinc-500 text-sm">Carregando histórico...</p>
+              </div>
+            ) : customerOrders.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-800 rounded-xl">
                 <p className="text-zinc-500">Este cliente ainda não possui pedidos.</p>
               </div>

@@ -12,7 +12,8 @@ import { resolveProductImage } from "@/lib/imageResolver";
 import { useCart } from "@/providers/CartContext";
 import Navbar from "@/components/store/Navbar";
 import Footer from "@/components/store/Footer";
-import { useProduct } from "@/hooks/useProducts";
+import ProductCard from "@/components/store/ProductCard";
+import { useProduct, useProducts } from "@/hooks/useProducts";
 
 export default function ProductPage() {
   const params = useParams();
@@ -26,9 +27,13 @@ export default function ProductPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
-        <p className="text-muted-foreground mt-4 font-medium">Buscando detalhes do produto...</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground mt-4 text-xs font-black uppercase tracking-widest">Sincronizando detalhes...</p>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -294,63 +299,52 @@ export default function ProductPage() {
             </motion.div>
           </div>
           
-          <div className="mt-32 max-w-5xl mx-auto">
-            <div className="flex items-center justify-between mb-10">
-              <div>
-                <h2 className="text-3xl font-black text-foreground">Avaliações de Clientes</h2>
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`h-5 w-5 ${i < Math.floor(product.rating) ? "fill-primary text-primary" : "text-border"}`} />
-                    ))}
-                  </div>
-                  <span className="text-lg font-bold text-foreground">{product.rating}</span>
-                  <span className="text-sm text-muted-foreground">de 5 baseado em {product.reviews} avaliações</span>
-                </div>
-              </div>
-              <Button variant="outline" className="hidden sm:flex border-white/10 hover:border-primary/50">Escrever Avaliação</Button>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              {[
-                { name: "Carlos S.", rating: 5, date: "Há 2 dias", text: "Som incrivelmente nítido e os graves são potentes. Melhor compra do ano, a entrega foi super rápida e o material do produto é absurdamente premium!" },
-                { name: "Mariana L.", rating: 5, date: "Há 1 semana", text: "Qualidade de construção impecável. Encaixa perfeitamente e a bateria dura exatamente o que prometem. Recomendo de olhos fechados." },
-                { name: "Roberto F.", rating: 4, date: "Há 2 semanas", text: "Muito bom, só não dou 5 estrelas porque a caixa chegou um pouco amassada na ponta, mas o produto em si é sensacional e funciona maravilhosamente bem." },
-                { name: "Amanda K.", rating: 5, date: "Há 1 mês", text: "Perfeito! Uso todos os dias para trabalhar e treinar, não cai e o cancelamento de ruído é surreal." },
-              ].map((review, idx) => (
-                <div key={idx} className="bg-secondary/40 p-6 rounded-2xl border border-border/50 hover:border-border transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`h-4 w-4 ${i < review.rating ? "fill-primary text-primary" : "text-border"}`} />
-                      ))}
-                    </div>
-                    <span className="text-xs text-muted-foreground">{review.date}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">"{review.text}"</p>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary border border-primary/20">
-                      {review.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-foreground">{review.name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Check className="h-3 w-3 text-primary" /> Compra Verificada
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-8 flex justify-center sm:hidden">
-               <Button variant="outline" className="w-full border-white/10">Escrever Avaliação</Button>
-            </div>
-          </div>
+          {/* Related Products Section */}
+          <RelatedProducts currentProductId={product.id} category={product.category} />
         </div>
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+function RelatedProducts({ currentProductId, category }: { currentProductId: string, category: string }) {
+  const { data: products, isLoading } = useProducts();
+  
+  if (isLoading) return null;
+
+  const allProducts = products || [];
+  
+  // Tenta filtrar pela mesma categoria (case-insensitive)
+  let related = allProducts.filter(p => 
+    p.category.toLowerCase() === category.toLowerCase() && 
+    p.id !== currentProductId
+  );
+
+  // Se não houver nada na mesma categoria, pega produtos aleatórios/recentes como fallback
+  if (related.length === 0) {
+    related = allProducts
+      .filter(p => p.id !== currentProductId)
+      .sort(() => 0.5 - Math.random()); // Shuffle simples
+  }
+
+  const finalRelated = related.slice(0, 4);
+
+  if (finalRelated.length === 0) return null;
+
+  return (
+    <div className="mt-32">
+      <div className="flex flex-col mb-12">
+        <span className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-3">Você também pode gostar</span>
+        <h2 className="text-3xl md:text-4xl font-black text-foreground">Produtos <span className="gold-text">{related.length > 0 && finalRelated[0].category.toLowerCase() === category.toLowerCase() ? "Relacionados" : "em Destaque"}</span></h2>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {finalRelated.map((p, idx) => (
+          <ProductCard key={p.id} product={p} index={idx} />
+        ))}
+      </div>
     </div>
   );
 }

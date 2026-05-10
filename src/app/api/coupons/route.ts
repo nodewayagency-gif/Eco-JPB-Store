@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const coupons = await prisma.coupon.findMany({
       orderBy: {
-        createdAt: 'desc'
+        code: 'asc'
       }
     });
 

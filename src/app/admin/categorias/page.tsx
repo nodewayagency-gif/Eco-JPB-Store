@@ -206,8 +206,11 @@ export default function AdminCategoriesPage() {
               <TableBody>
                 {loading ? (
                    <TableRow>
-                     <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                        Carregando categorias...
+                     <TableCell colSpan={5} className="h-40 text-center py-10">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <p className="text-muted-foreground text-sm">Carregando categorias...</p>
+                        </div>
                      </TableCell>
                    </TableRow>
                 ) : filteredCategories.length === 0 ? (

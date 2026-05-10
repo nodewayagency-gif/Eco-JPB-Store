@@ -40,11 +40,12 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { adminProductMapper, adminRepository } from "@/services/api/adminRepository";
 import { adminSettingsRepository } from "@/services/api/adminSettingsRepository";
 import { ImageUploader } from "@/components/ui/ImageUploader";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 const emptyForm: AdminProductInput = {
   sku: "",
@@ -96,16 +97,14 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
   const loadProducts = async () => {
     try {
-      const rows = await adminRepository.listProducts();
-      setProducts(rows);
-      if (!selectedProductId && rows[0]) {
-        setSelectedProductId(rows[0].id);
-      }
+      const data = await adminRepository.listProducts();
+      setProducts(data);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
     }
@@ -119,18 +118,26 @@ export default function AdminProductsPage() {
     }
   };
 
-  useEffect(() => {
-    loadProducts();
-    loadCategories();
-  }, []);
-
-  const loadCategories = async () => {
+  const loadData = async () => {
     try {
-      setCategories(await adminRepository.listCategories());
+      setLoading(true);
+      const [productsData, categoriesData] = await Promise.all([
+        adminRepository.listProducts(),
+        adminRepository.listCategories()
+      ]);
+      setProducts(productsData);
+      setCategories(categoriesData);
     } catch (error) {
-      console.error("Erro ao carregar categorias:", error);
+      console.error("Erro ao carregar dados:", error);
+      toast.error("Erro ao carregar produtos ou categorias");
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   useEffect(() => {
     const loadCompanyDefaults = async () => {
@@ -349,89 +356,146 @@ export default function AdminProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedProducts.map((product) => (
-                <TableRow key={product.id} className="border-border">
-                  <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      {product.image ? (
-                        <div className="w-10 h-10 rounded-md bg-muted flex-shrink-0 overflow-hidden">
-                          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                {loading ? (
+                   <TableRow>
+                     <TableCell colSpan={7} className="h-40 text-center py-10">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <p className="text-muted-foreground text-sm">Carregando produtos...</p>
                         </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                          <Package className="w-5 h-5 text-muted-foreground" />
+                     </TableCell>
+                   </TableRow>
+                ) : paginatedProducts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-40 text-center text-muted-foreground italic opacity-40">
+                      Nenhum produto cadastrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedProducts.map((product) => (
+                    <TableRow 
+                      key={product.id}
+                      className="border-border/50 group hover:bg-secondary/10 transition-colors"
+                    >
+                      <TableCell className="py-4">
+                        <span className="font-mono text-[11px] text-muted-foreground">
+                          {product.sku}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {product.image ? (
+                            <div className="w-10 h-10 rounded bg-muted flex-shrink-0 overflow-hidden border border-border">
+                              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0 border border-border">
+                              <Package className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-1">
+                            <p className="font-semibold text-sm text-foreground">{product.name}</p>
+                            {product.badge ? (
+                              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary h-4 px-1.5 uppercase font-bold">
+                                {product.badge}
+                              </Badge>
+                            ) : null}
+                          </div>
                         </div>
-                      )}
-                      <div className="space-y-1">
-                        <p className="font-medium text-foreground">{product.name}</p>
-                        {product.badge ? (
-                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
-                            {product.badge}
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{product.category}</TableCell>
-                  <TableCell className="text-right font-medium">{money(product.price)}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline" className={stockColor(product.inStock)}>
-                      {product.stockQuantity} un
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <Switch 
-                        checked={product.active} 
-                        onCheckedChange={() => toggleActive(product)}
-                        className="data-[state=checked]:bg-primary"
-                      />
-                      <span className={cn(
-                        "text-[10px] font-bold uppercase w-12 text-left",
-                        product.active ? "text-primary" : "text-muted-foreground"
-                      )}>
-                        {product.active ? "Ativo" : "Off"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => startEdit(product)}>
-                        Editar
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(product.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-secondary/20 border-border/40 font-medium text-[10px]">
+                          {product.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-bold text-sm text-foreground">
+                          {money(product.price)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={cn("px-2 py-0.5 text-[10px] font-bold border", stockColor(product.inStock))}>
+                          {product.stockQuantity} un
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Switch 
+                            checked={product.active} 
+                            onCheckedChange={() => toggleActive(product)}
+                            className="data-[state=checked]:bg-primary"
+                          />
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase w-10 text-left",
+                            product.active ? "text-primary" : "text-muted-foreground"
+                          )}>
+                            {product.active ? "Ativo" : "Off"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 border-border/60 hover:border-primary hover:text-primary font-bold text-xs px-3"
+                            onClick={() => startEdit(product)}
+                          >
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDelete(product.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
             </TableBody>
           </Table>
 
           {totalPages > 1 && (
-            <div className="p-4 border-t border-border">
+            <div className="p-4 border-t border-border flex justify-center">
               <Pagination>
-                <PaginationContent>
+                <PaginationContent className="bg-card border border-border rounded-full px-2 py-1">
                   <PaginationItem>
                     <PaginationPrevious 
                       onClick={() => setPage(p => Math.max(1, p - 1))}
-                      className={cn("cursor-pointer", page === 1 && "pointer-events-none opacity-50")}
+                      className={cn("rounded-full h-8 w-8 p-0 cursor-pointer", page === 1 && "pointer-events-none opacity-20")}
                     />
                   </PaginationItem>
-                  <span className="text-sm text-muted-foreground px-4">
-                    Página {page} de {totalPages}
-                  </span>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                      return (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            onClick={() => setPage(p)}
+                            isActive={page === p}
+                            className={cn(
+                              "h-8 w-8 rounded-full cursor-pointer text-xs",
+                              page === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                            )}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    if (p === 2 && page > 3) return <PaginationItem key="dots-1"><PaginationEllipsis className="w-4 h-4" /></PaginationItem>;
+                    if (p === totalPages - 1 && page < totalPages - 2) return <PaginationItem key="dots-2"><PaginationEllipsis className="w-4 h-4" /></PaginationItem>;
+                    return null;
+                  })}
+
                   <PaginationItem>
                     <PaginationNext 
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                      className={cn("cursor-pointer", page === totalPages && "pointer-events-none opacity-50")}
+                      className={cn("rounded-full h-8 w-8 p-0 cursor-pointer", page === totalPages && "pointer-events-none opacity-20")}
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -542,7 +606,7 @@ export default function AdminProductsPage() {
                     className="gap-2"
                     onClick={() => {
                         const newVariant: any = {
-                            id: `v_${Date.now()}`,
+                            id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
                             sku: `${form.sku}-${(form.variants?.length || 0) + 1}`,
                             name: "",
                             colorHex: "#000000",
@@ -558,7 +622,7 @@ export default function AdminProductsPage() {
                {form.variants && form.variants.length > 0 ? (
                   <div className="space-y-3">
                      {form.variants.map((variant, index) => (
-                        <div key={variant.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg border border-border bg-muted/20 items-end">
+                        <div key={variant.id || `idx-${index}`} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg border border-border bg-muted/20 items-end">
                             <div className="md:col-span-4 space-y-1.5">
                               <Label className="text-xs">Nome</Label>
                               <Input 

@@ -31,13 +31,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import type { CustomerOrderTrackingStep, CustomerOrderView, CustomerProfile, SupportTicketView } from "@premium/contracts";
 import { useAuth } from "@/providers/auth/AuthProvider";
 import { customerRepository } from "@/services/api/customerRepository";
 import { productImages } from "@/lib/productImages";
 import { resolveProductImage } from "@/lib/imageResolver";
 import { supabase } from "@/lib/supabase";
+
+const statusColor: Record<string, string> = {
+  "Criado": "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  "Pagamento confirmado": "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]",
+  "Separação": "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  "Pronto para envio": "bg-sky-500/10 text-sky-500 border-sky-500/20",
+  "Enviado": "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+  "Saiu para entrega": "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  "Entregue": "bg-emerald-500 text-black border-none font-bold"
+};
 
 const statusStyle: Record<string, string> = {
   Entregue: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
@@ -110,6 +122,7 @@ export default function CustomerPage() {
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [orders, setOrders] = useState<CustomerOrderView[]>([]);
   const [tickets, setTickets] = useState<SupportTicketView[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"orders" | "addresses" | "tickets">("orders");
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketView | null>(null);
@@ -119,6 +132,13 @@ export default function CustomerPage() {
   const [selectedImages, setSelectedImages] = useState<{file: File, preview: string}[]>([]);
   const [replyImages, setReplyImages] = useState<{file: File, preview: string}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const ordersPerPage = 5;
+
+  const totalOrdersPages = Math.ceil(orders.length / ordersPerPage);
+  const paginatedOrders = useMemo(() => {
+    return orders.slice((ordersPage - 1) * ordersPerPage, ordersPage * ordersPerPage);
+  }, [orders, ordersPage]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -285,7 +305,7 @@ export default function CustomerPage() {
 
   const loadTickets = async () => {
     const userId = customerSession?.user.id;
-    if (!userId) return;
+    if (!userId || !customerSession) return;
     try {
       const ticketsData = await customerRepository.getTickets(userId);
       setTickets(ticketsData);
@@ -328,15 +348,23 @@ export default function CustomerPage() {
     if (!userId) return;
 
     const load = async () => {
-      const [profileData, orderData] = await Promise.all([
-        customerRepository.getProfile(userId),
-        customerRepository.getOrders(userId)
-      ]);
+      try {
+        setLoading(true);
+        const [profileData, orderData, ticketsData] = await Promise.all([
+          customerRepository.getProfile(userId),
+          customerRepository.getOrders(userId),
+          customerRepository.getTickets(userId)
+        ]);
 
-      setProfile(profileData);
-      setOrders(orderData);
-      setExpandedOrder(orderData[0]?.id ?? null);
-      await loadTickets();
+        setProfile(profileData);
+        setOrders(orderData);
+        setTickets(ticketsData);
+        setExpandedOrder(orderData[0]?.id ?? null);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     load();
@@ -438,7 +466,14 @@ export default function CustomerPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 space-y-4">
+            <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary/60">Sincronizando sua conta</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <Card className="bg-card border-border">
             <CardContent className="p-5 text-center">
               <p className="text-2xl font-bold text-foreground">{orders.length}</p>
@@ -493,74 +528,132 @@ export default function CustomerPage() {
               <Clock className="w-4 h-4 text-primary" /> Últimos Pedidos
             </h2>
 
-          {orders.map((order) => {
-            const open = expandedOrder === order.id;
+          <AnimatePresence mode="popLayout">
+            {paginatedOrders.map((order, idx) => {
+              const open = expandedOrder === order.id;
 
-            return (
-              <div key={order.id}>
-                <Card className="bg-card border-border overflow-hidden">
-                  <button
-                    onClick={() => toggle(order.id)}
-                    className="w-full text-left p-5 flex items-center justify-between hover:bg-secondary/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center overflow-hidden border border-border/50">
-                        {resolveProductImage((order as any).productImage) ? (
-                          <img 
-                            src={resolveProductImage((order as any).productImage)!} 
-                            alt={order.product}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Package className="w-4 h-4 text-primary" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{order.product}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {order.orderCode} - {order.date}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className={statusStyle[order.status]}>
-                        {order.status}
-                      </Badge>
-                      <span className="font-medium text-foreground text-sm">
-                        {order.total.toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL"
-                        })}
-                      </span>
-                      {open ? (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </button>
-
-                  <AnimatePresence>
-                    {open ? (
-                      <motion.div 
-                        key="content"
-                        initial={{ height: 0, opacity: 0 }} 
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                      >
-                        <Separator className="bg-border" />
-                        <div className="p-5 pt-4 overflow-hidden">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-4">Rastreio</p>
-                          <OrderTimeline steps={order.tracking} />
+              return (
+                <motion.div 
+                  key={order.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="mb-4"
+                >
+                  <Card className="bg-card border-border overflow-hidden group">
+                    <button
+                      onClick={() => toggle(order.id)}
+                      className="w-full p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center border border-border/50 overflow-hidden">
+                          {resolveProductImage((order as any).productImage) ? (
+                            <img 
+                              src={resolveProductImage((order as any).productImage)!} 
+                              alt={order.product}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Package className="w-6 h-6 text-primary" />
+                          )}
                         </div>
-                      </motion.div>
-                    ) : null}
-                  </AnimatePresence>
-                </Card>
-              </div>
-            );
-          })}
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-mono text-muted-foreground">{order.orderCode}</span>
+                            <Badge variant="outline" className={cn("px-2 py-0 h-5 text-[10px] font-bold uppercase", statusStyle[order.status])}>
+                              {order.status}
+                            </Badge>
+                          </div>
+                          <h3 className="font-semibold text-sm text-foreground">
+                            {order.product}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            Realizado em {order.date}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-8">
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total</p>
+                          <p className="font-bold text-primary">
+                            {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                          </p>
+                        </div>
+                        <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform", open && "rotate-180")} />
+                      </div>
+                    </button>
+
+                    <AnimatePresence>
+                      {open && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }} 
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                        >
+                          <Separator className="bg-border/20" />
+                          <div className="p-6 sm:p-8 bg-secondary/10">
+                            <div className="flex items-center gap-2 mb-6">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Truck className="w-4 h-4 text-primary" />
+                              </div>
+                              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Acompanhamento Logístico</h4>
+                            </div>
+                            <OrderTimeline steps={order.tracking} />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
+          {totalOrdersPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <Pagination>
+                <PaginationContent className="bg-card border border-border rounded-full px-2 py-1">
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
+                      className={cn("rounded-full h-8 w-8 p-0 cursor-pointer", ordersPage === 1 && "pointer-events-none opacity-20")}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalOrdersPages }, (_, i) => i + 1).map((p) => {
+                    if (p === 1 || p === totalOrdersPages || (p >= ordersPage - 1 && p <= ordersPage + 1)) {
+                      return (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            onClick={() => setOrdersPage(p)}
+                            isActive={ordersPage === p}
+                            className={cn(
+                              "h-8 w-8 rounded-full cursor-pointer text-xs",
+                              ordersPage === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                            )}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    if (p === 2 && ordersPage > 3) return <PaginationItem key="dots-1"><PaginationEllipsis className="w-4 h-4" /></PaginationItem>;
+                    if (p === totalOrdersPages - 1 && ordersPage < totalOrdersPages - 2) return <PaginationItem key="dots-2"><PaginationEllipsis className="w-4 h-4" /></PaginationItem>;
+                    return null;
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setOrdersPage(p => Math.min(totalOrdersPages, p + 1))}
+                      className={cn("rounded-full h-8 w-8 p-0 cursor-pointer", ordersPage === totalOrdersPages && "pointer-events-none opacity-20")}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
         ) : activeTab === "addresses" ? (
           <motion.div 
@@ -917,7 +1010,9 @@ export default function CustomerPage() {
             )}
           </motion.div>
         )}
-      </main>
-    </div>
+      </>
+    )}
+  </main>
+</div>
   );
 }
