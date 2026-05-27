@@ -15,6 +15,11 @@ export async function POST(req: Request) {
     // 1. Buscar o pedido para garantir o valor correto
     const order = await prisma.order.findUnique({
       where: { id: orderId },
+      include: { 
+        customer: {
+          include: { customerProfile: true }
+        } 
+      }
     });
 
     if (!order) {
@@ -23,21 +28,25 @@ export async function POST(req: Request) {
 
     // 2. Processar o pagamento no Mercado Pago
     const payment = new Payment(mpClient);
+    
+    const doc = order.guestDocument || order.customer?.customerProfile?.document || '';
 
     const paymentResponse = await payment.create({
       body: {
         transaction_amount: Number(order.total),
         token: formData.token,
         description: `Pedido ${order.orderCode} - JPB Store`,
-        installments: Number(formData.installments),
+        installments: Number(formData.installments) || 1,
         payment_method_id: formData.payment_method_id,
         issuer_id: formData.issuer_id,
         payer: {
-          email: formData.payer.email,
-          identification: {
-            type: formData.payer.identification.type,
-            number: formData.payer.identification.number,
-          },
+          email: formData.payer?.email || order.guestEmail || order.customer?.email || 'cliente@sem-email.com',
+          ...( (formData.payer?.identification?.number || doc.replace(/\D/g, '')) ? {
+            identification: {
+              type: formData.payer?.identification?.type || (doc.length > 14 ? 'CNPJ' : 'CPF'),
+              number: formData.payer?.identification?.number || doc.replace(/\D/g, ''),
+            }
+          } : {})
         },
         external_reference: order.id,
         notification_url: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago` : undefined,
@@ -51,7 +60,7 @@ export async function POST(req: Request) {
     await prisma.order.update({
       where: { id: order.id },
       data: {
-        status: mpStatus === 'approved' ? "PAID" : "CREATED",
+        status: "CREATED", // Aguarda webhook do Mercado Pago para confirmar
         paymentStatus: mpStatus,
         gatewayTransactionId: mpId?.toString(),
         paymentMethodId: paymentResponse.payment_method_id,

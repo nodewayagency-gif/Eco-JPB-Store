@@ -40,6 +40,8 @@ import { customerRepository } from "@/services/api/customerRepository";
 import { productImages } from "@/lib/productImages";
 import { resolveProductImage } from "@/lib/imageResolver";
 import { supabase } from "@/lib/supabase";
+import PaymentBrick from "@/components/store/PaymentBrick";
+import { api } from "@/services/api";
 
 const statusColor: Record<string, string> = {
   "Criado": "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
@@ -133,6 +135,7 @@ export default function CustomerPage() {
   const [replyImages, setReplyImages] = useState<{file: File, preview: string}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [ordersPage, setOrdersPage] = useState(1);
+  const [repayOrder, setRepayOrder] = useState<CustomerOrderView | null>(null);
   const ordersPerPage = 5;
 
   const totalOrdersPages = Math.ceil(orders.length / ordersPerPage);
@@ -434,6 +437,33 @@ export default function CustomerPage() {
     }
   };
 
+  const handleRepaySubmit = async (param: any) => {
+    if (!repayOrder) return;
+    try {
+      const actualFormData = param.formData ? param.formData : param;
+      
+      const { data } = await api.post("/checkout/process", {
+        formData: actualFormData,
+        orderId: repayOrder.id
+      });
+      
+      if (data.status === 'approved' || data.status === 'in_process' || data.status === 'pending') {
+        toast.success(data.status === 'approved' ? "Pagamento aprovado!" : "Pagamento em processamento.");
+        setRepayOrder(null);
+        // Atualiza a lista de pedidos silenciosamente
+        const userId = customerSession?.user.id;
+        if (userId) {
+          const orderData = await customerRepository.getOrders(userId);
+          setOrders(orderData);
+        }
+      } else {
+        toast.error("Pagamento recusado ou com erro.");
+      }
+    } catch (error) {
+      toast.error("Erro ao processar pagamento.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border glass-surface sticky top-0 z-50">
@@ -573,14 +603,29 @@ export default function CustomerPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-8">
-                        <div className="text-right">
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total</p>
-                          <p className="font-bold text-primary">
-                            {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                          </p>
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center justify-between sm:justify-end gap-3 sm:gap-8">
+                        {order.status === "Criado" && (
+                          <Button 
+                            size="sm" 
+                            variant="default"
+                            className="h-8 shimmer-btn text-xs px-4"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRepayOrder(order);
+                            }}
+                          >
+                            Pagar Agora
+                          </Button>
+                        )}
+                        <div className="text-right flex items-center gap-4">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Total</p>
+                            <p className="font-bold text-primary">
+                              {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            </p>
+                          </div>
+                          <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform", open && "rotate-180")} />
                         </div>
-                        <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform", open && "rotate-180")} />
                       </div>
                     </button>
 
@@ -1012,6 +1057,33 @@ export default function CustomerPage() {
         )}
       </>
     )}
+
+    <Dialog open={!!repayOrder} onOpenChange={(open) => !open && setRepayOrder(null)}>
+      <DialogContent className="sm:max-w-[500px] bg-card border-border p-6 max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-bold">Finalizar Pagamento</DialogTitle>
+        </DialogHeader>
+        {repayOrder && (
+          <div className="pt-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Finalize o pagamento do pedido <strong className="text-foreground">{repayOrder.orderCode}</strong> no valor de <strong className="text-primary">{repayOrder.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>.
+            </p>
+            <div className="mt-2 min-h-[300px]">
+              <PaymentBrick
+                amount={repayOrder.total}
+                onSubmit={handleRepaySubmit}
+                payer={{
+                  email: customerSession?.user.email || profile?.email || 'cliente@eco.com',
+                  firstName: (customerSession?.user.name?.split(' ')[0] || profile?.name?.split(' ')[0]) || undefined,
+                  lastName: (customerSession?.user.name?.split(' ').slice(1).join(' ') || profile?.name?.split(' ').slice(1).join(' ')) || undefined,
+                  documents: profile?.document ? [{ type: profile.document.length > 14 ? 'CNPJ' : 'CPF', number: profile.document.replace(/\D/g, '') }] : undefined,
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   </main>
 </div>
   );

@@ -1,4 +1,4 @@
-﻿export type OrderStatus = "CREATED" | "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+export type OrderStatus = "CREATED" | "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED";
 
 export interface ProductDimensions {
   lengthCm: number;
@@ -32,6 +32,7 @@ export interface Product {
   price: number;
   originalPrice?: number;
   image: string;
+  images?: string[];
   hoverImage?: string;
   badge?: "Premium" | "Limited" | "Novo";
   inStock: boolean;

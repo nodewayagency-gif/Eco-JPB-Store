@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BadgeCheck,
@@ -39,7 +39,6 @@ import PaymentBrick from "@/components/store/PaymentBrick";
 
 const paymentMethods = [
   { id: "MERCADO_PAGO", label: "Mercado Pago", icon: CreditCard, desc: "Cartão, Pix ou Boleto" },
-  { id: "pix_manual", label: "Pix Manual", icon: QrCode, desc: "Enviar comprovante" },
 ];
 
 const checkoutSteps = ["Identificação", "Entrega", "Pagamento", "Confirmação"];
@@ -55,7 +54,7 @@ const FloatingInput = ({
   type = "text",
   required = false,
   value = "",
-  onChange = () => {}
+  onChange = () => { }
 }: {
   label: string;
   type?: string;
@@ -78,11 +77,10 @@ const FloatingInput = ({
         placeholder=" "
       />
       <label
-        className={`absolute left-4 transition-all duration-200 pointer-events-none ${
-          focused || value
-            ? "top-2 text-[10px] text-primary font-medium"
-            : "top-4 text-sm text-muted-foreground"
-        }`}
+        className={`absolute left-4 transition-all duration-200 pointer-events-none ${focused || value
+          ? "top-2 text-[10px] text-primary font-medium"
+          : "top-4 text-sm text-muted-foreground"
+          }`}
       >
         {label}
       </label>
@@ -101,7 +99,14 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const currentOrderIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    currentOrderIdRef.current = currentOrderId;
+  }, [currentOrderId]);
+
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState<any>(null);
 
   const [form, setForm] = useState({
     email: "",
@@ -133,6 +138,9 @@ export default function CheckoutPage() {
       if (!form.zipCode || !form.street || !form.number || !form.city) {
         return toast.error("Por favor, preencha o endereço completo");
       }
+      if (!selectedShipping) {
+        return toast.error("Por favor, selecione uma opção de frete");
+      }
     }
     setCurrentStep(prev => Math.min(prev + 1, 2));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -157,6 +165,53 @@ export default function CheckoutPage() {
     toast.success("Endereço selecionado!");
   };
 
+  const handleDocumentChange = (v: string) => {
+    let value = v.replace(/\D/g, "");
+    if (value.length <= 11) {
+      value = value.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    } else {
+      value = value.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
+      value = value.substring(0, 18);
+    }
+    setForm(prev => ({ ...prev, document: value }));
+  };
+
+  const handlePhoneChange = (v: string) => {
+    let value = v.replace(/\D/g, "");
+    if (value.length <= 10) {
+      value = value.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2");
+    } else {
+      value = value.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
+    }
+    setForm(prev => ({ ...prev, phone: value.substring(0, 15) }));
+  };
+
+  const handleZipCodeChange = async (v: string) => {
+    let value = v.replace(/\D/g, "");
+    value = value.replace(/(\d{5})(\d)/, "$1-$2");
+    setForm(prev => ({ ...prev, zipCode: value.substring(0, 9) }));
+    
+    const cleanZip = value.replace(/\D/g, "");
+    if (cleanZip.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanZip}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setForm(prev => ({
+            ...prev,
+            zipCode: value.substring(0, 9),
+            street: data.logradouro || prev.street,
+            neighborhood: data.bairro || prev.neighborhood,
+            city: data.localidade || prev.city,
+            state: data.uf || prev.state
+          }));
+        }
+      } catch (e) {
+        console.error("Erro ao buscar CEP:", e);
+      }
+    }
+  };
+
   useEffect(() => {
     if (customerSession?.user) {
       setForm(prev => ({
@@ -170,14 +225,14 @@ export default function CheckoutPage() {
   useEffect(() => {
     const loadFullProfile = async () => {
       if (!isCustomerAuthenticated || profileLoading) return;
-      
+
       setProfileLoading(true);
-      
+
       try {
         const profile = await customerRepository.getProfile();
         if (profile) {
           setSavedAddresses(profile.addresses || []);
-          
+
           setForm(prev => ({
             ...prev,
             name: profile.name || prev.name,
@@ -207,16 +262,52 @@ export default function CheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponError, setCouponError] = useState("");
+  
+  const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  const [isLoadingShipping, setIsLoadingShipping] = useState(false);
+  const [shippingError, setShippingError] = useState("");
 
   if (authLoading || !isCustomerAuthenticated) return null;
 
-  const discount = appliedCoupon 
-    ? (appliedCoupon.discountType === "PERCENTAGE" 
-        ? (totalPrice * (Number(appliedCoupon.discountValue) / 100)) 
-        : Number(appliedCoupon.discountValue))
+  const discount = appliedCoupon
+    ? (appliedCoupon.discountType === "PERCENTAGE"
+      ? (totalPrice * (Number(appliedCoupon.discountValue) / 100))
+      : Number(appliedCoupon.discountValue))
     : 0;
 
-  const finalTotal = Math.max(0, totalPrice - discount);
+  const shippingCost = selectedShipping?.price || 0;
+  const finalTotal = Math.max(0, totalPrice - discount) + shippingCost;
+
+  useEffect(() => {
+    const fetchShipping = async () => {
+      const zip = form.zipCode.replace(/\D/g, "");
+      if (zip.length === 8 && items.length > 0) {
+        setIsLoadingShipping(true);
+        setShippingError("");
+        try {
+          const { data } = await api.post("/checkout/shipping", {
+            destinationZip: zip,
+            items: items.map(i => ({ productId: i.product.id, quantity: i.quantity }))
+          });
+          setShippingOptions(data);
+          if (data && !data.find((o: any) => o.id === selectedShipping?.id)) {
+            setSelectedShipping(null);
+          }
+        } catch (error: any) {
+          console.error("Erro ao calcular frete", error);
+          setShippingError("Não foi possível calcular o frete.");
+          setShippingOptions([]);
+        } finally {
+          setIsLoadingShipping(false);
+        }
+      } else {
+        setShippingOptions([]);
+        setSelectedShipping(null);
+      }
+    };
+    fetchShipping();
+  }, [form.zipCode, items]);
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
@@ -226,15 +317,15 @@ export default function CheckoutPage() {
     setCouponLoading(true);
     setCouponError("");
     try {
-      const { data } = await api.post("/coupons/validate", { 
-        code: couponCode, 
-        amount: totalPrice 
+      const { data } = await api.post("/coupons/validate", {
+        code: couponCode,
+        amount: totalPrice
       });
       setAppliedCoupon(data);
       toast.success("Cupom aplicado com sucesso!");
     } catch (error: any) {
-      const msg = error.response?.status === 404 
-        ? "Cupom não encontrado" 
+      const msg = error.response?.status === 404
+        ? "Cupom não encontrado"
         : (error.response?.data?.message || "Serviço de cupons indisponível");
       setCouponError(msg);
       setAppliedCoupon(null);
@@ -243,23 +334,66 @@ export default function CheckoutPage() {
     }
   };
 
-  const onPaymentSubmit = async (formData: any) => {
+  const onPaymentSubmit = async (param: any) => {
     try {
+      let orderId = currentOrderIdRef.current;
+
+      if (!orderId) {
+        const orderData = {
+          items: items.map(i => ({
+            productId: i.product.id,
+            quantity: i.quantity,
+            unitPrice: Number(i.product.price)
+          })),
+          total: finalTotal,
+          paymentMethod: payment,
+          shippingAddress: {
+            zipCode: form.zipCode,
+            street: form.street,
+            number: form.number,
+            complement: form.complement,
+            neighborhood: form.neighborhood,
+            city: form.city,
+            state: form.state,
+            shippingMethod: selectedShipping?.name,
+            shippingCost: selectedShipping?.price
+          },
+          guestName: form.name,
+          guestEmail: form.email,
+          guestPhone: form.phone,
+          guestDocument: form.document,
+        };
+
+        const order = await orderRepository.create(orderData);
+        setCreatedOrderCode(order.orderCode);
+        setCurrentOrderId(order.id);
+        orderId = order.id;
+      }
+
+      // O Brick do Mercado Pago envia um objeto com a propriedade formData dentro de param
+      const actualFormData = param.formData ? param.formData : param;
+
       const { data } = await api.post("/checkout/process", {
-        formData,
-        orderId: currentOrderId
+        formData: actualFormData,
+        orderId: orderId
       });
 
       if (data.status === 'approved') {
         setIsSuccess(true);
         clearCart();
         toast.success("Pagamento aprovado!");
-      } else if (data.status === 'in_process') {
-        toast.info("Pagamento em processamento. Verifique seu e-mail.");
+      } else if (data.status === 'in_process' || data.status === 'pending') {
+        setPaymentInfo({
+          qr_code: data.qr_code,
+          qr_code_base64: data.qr_code_base64,
+          ticket_url: data.ticket_url,
+          status: data.status
+        });
         setIsSuccess(true);
         clearCart();
+        toast.info(data.status === 'pending' ? "Aguardando pagamento!" : "Pagamento em processamento. Verifique seu e-mail.");
       } else {
-        toast.error(`Pagamento ${data.status}: ${data.detail || 'Tente outro cartão'}`);
+        toast.error(`Pagamento ${data.status}: ${data.detail || 'Tente outro método'}`);
       }
     } catch (error: any) {
       console.error("Erro no processamento:", error);
@@ -270,7 +404,7 @@ export default function CheckoutPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (items.length === 0) return toast.error("Seu carrinho está vazio");
-    
+
     setProcessing(true);
     try {
       const orderData = {
@@ -297,17 +431,13 @@ export default function CheckoutPage() {
       };
 
       const order = await orderRepository.create(orderData);
-      
+
       setCreatedOrderCode(order.orderCode);
       setCurrentOrderId(order.id);
-      
-      if (payment === 'MERCADO_PAGO') {
-        setShowPaymentForm(true);
-      } else {
-        setIsSuccess(true);
-        clearCart();
-        toast.success(`Pedido realizado com sucesso!`);
-      }
+
+      setIsSuccess(true);
+      clearCart();
+      toast.success(`Pedido realizado com sucesso!`);
     } catch (error: any) {
       console.error("Erro ao criar pedido:", error);
       toast.error(error.response?.data?.message || "Erro ao processar seu pedido. Tente novamente.");
@@ -333,7 +463,7 @@ export default function CheckoutPage() {
                   <BadgeCheck className="w-12 h-12" />
                 </div>
               </div>
-              
+
               <h1 className="text-3xl font-black mb-4 tracking-tight">Pedido Confirmado!</h1>
               <p className="text-muted-foreground mb-2">
                 Parabéns por adquirir nossos produtos, em breve você receberá atualizações do pedido.
@@ -341,16 +471,39 @@ export default function CheckoutPage() {
               <div className="inline-block px-4 py-2 bg-secondary rounded-lg font-mono text-sm font-bold text-primary mb-8">
                 PEDIDO: {createdOrderCode}
               </div>
-              
+
+              {paymentInfo?.qr_code_base64 && (
+                <div className="mb-8 flex flex-col items-center gap-4 bg-background p-6 rounded-2xl border border-border">
+                  <h3 className="font-bold text-lg text-foreground">Escaneie o QR Code para pagar via Pix</h3>
+                  <img src={`data:image/png;base64,${paymentInfo.qr_code_base64}`} alt="QR Code Pix" className="w-56 h-56 border border-border rounded-xl p-2 bg-white" />
+                  <div className="w-full flex items-center gap-2 mt-2">
+                    <Input readOnly value={paymentInfo.qr_code} className="font-mono text-[10px] text-muted-foreground bg-secondary/50" />
+                    <Button type="button" onClick={() => { navigator.clipboard.writeText(paymentInfo.qr_code); toast.success("Código Copiado!"); }} variant="outline" className="flex-shrink-0">
+                      Copiar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {paymentInfo?.ticket_url && (
+                <div className="mb-8 flex flex-col items-center gap-4 bg-background p-6 rounded-2xl border border-border">
+                  <h3 className="font-bold text-lg text-foreground">Boleto Gerado</h3>
+                  <p className="text-sm text-muted-foreground">Clique abaixo para visualizar e imprimir seu boleto.</p>
+                  <Button asChild className="w-full h-12 rounded-xl">
+                    <a href={paymentInfo.ticket_url} target="_blank" rel="noreferrer">Visualizar Boleto</a>
+                  </Button>
+                </div>
+              )}
+
               <div className="grid sm:grid-cols-2 gap-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="h-12 rounded-xl font-bold"
                   onClick={() => router.push("/")}
                 >
                   Continuar navegando
                 </Button>
-                <Button 
+                <Button
                   className="h-12 rounded-xl font-bold shimmer-btn"
                   onClick={() => router.push("/minha-conta")}
                 >
@@ -409,13 +562,12 @@ export default function CheckoutPage() {
               {checkoutSteps.map((step, index) => (
                 <div
                   key={step}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-300 ${
-                    index === currentStep
-                      ? "bg-primary text-black border-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
-                      : index < currentStep
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-300 ${index === currentStep
+                    ? "bg-primary text-black border-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
+                    : index < currentStep
                       ? "bg-primary/20 text-primary border-primary/30"
                       : "bg-card text-muted-foreground border-border"
-                  }`}
+                    }`}
                 >
                   {index + 1}. {step}
                 </div>
@@ -445,40 +597,40 @@ export default function CheckoutPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <FloatingInput 
-                        label="Nome completo" 
-                        required 
-                        value={form.name} 
-                        onChange={(v) => setForm({ ...form, name: v })} 
+                      <FloatingInput
+                        label="Nome completo"
+                        required
+                        value={form.name}
+                        onChange={(v) => setForm({ ...form, name: v })}
                       />
-                      <FloatingInput 
-                        label="E-mail" 
-                        type="email" 
-                        required 
-                        value={form.email} 
-                        onChange={(v) => setForm({ ...form, email: v })} 
+                      <FloatingInput
+                        label="E-mail"
+                        type="email"
+                        required
+                        value={form.email}
+                        onChange={(v) => setForm({ ...form, email: v })}
                       />
-                      <FloatingInput 
-                        label="CPF/CNPJ" 
-                        required 
-                        value={form.document} 
-                        onChange={(v) => setForm({ ...form, document: v })} 
+                      <FloatingInput
+                        label="CPF/CNPJ"
+                        required
+                        value={form.document}
+                        onChange={handleDocumentChange}
                       />
-                      <FloatingInput 
-                        label="Telefone" 
-                        type="tel" 
-                        required 
-                        value={form.phone} 
-                        onChange={(v) => setForm({ ...form, phone: v })} 
+                      <FloatingInput
+                        label="Telefone"
+                        type="tel"
+                        required
+                        value={form.phone}
+                        onChange={handlePhoneChange}
                       />
                     </div>
 
                     <div className="pt-6">
-                      <Button 
-                        type="button" 
-                        onClick={nextStep} 
+                      <Button
+                        type="button"
+                        onClick={nextStep}
                         className="w-full h-14 rounded-xl text-base font-bold shimmer-btn"
                       >
                         Continuar para entrega <ChevronRight className="ml-2 w-5 h-5" />
@@ -518,8 +670,8 @@ export default function CheckoutPage() {
                             </DialogHeader>
                             <div className="grid gap-3 pt-4">
                               {savedAddresses.map((addr) => (
-                                <Card 
-                                  key={addr.id} 
+                                <Card
+                                  key={addr.id}
                                   className="cursor-pointer hover:border-primary transition-colors bg-secondary/10 border-border/50 group"
                                   onClick={() => handleSelectAddress(addr)}
                                 >
@@ -547,63 +699,109 @@ export default function CheckoutPage() {
                       )}
                     </div>
                     <div className="grid sm:grid-cols-3 gap-4">
-                      <FloatingInput 
-                        label="CEP" 
-                        required 
-                        value={form.zipCode} 
-                        onChange={(v) => setForm({ ...form, zipCode: v })} 
+                      <FloatingInput
+                        label="CEP"
+                        required
+                        value={form.zipCode}
+                        onChange={handleZipCodeChange}
                       />
                       <div className="sm:col-span-2">
-                        <FloatingInput 
-                          label="Rua" 
-                          required 
-                          value={form.street} 
-                          onChange={(v) => setForm({ ...form, street: v })} 
+                        <FloatingInput
+                          label="Rua"
+                          required
+                          value={form.street}
+                          onChange={(v) => setForm({ ...form, street: v })}
                         />
                       </div>
-                      <FloatingInput 
-                        label="Número" 
-                        required 
-                        value={form.number} 
-                        onChange={(v) => setForm({ ...form, number: v })} 
+                      <FloatingInput
+                        label="Número"
+                        required
+                        value={form.number}
+                        onChange={(v) => setForm({ ...form, number: v })}
                       />
-                      <FloatingInput 
-                        label="Complemento" 
-                        value={form.complement} 
-                        onChange={(v) => setForm({ ...form, complement: v })} 
+                      <FloatingInput
+                        label="Complemento"
+                        value={form.complement}
+                        onChange={(v) => setForm({ ...form, complement: v })}
                       />
-                      <FloatingInput 
-                        label="Bairro" 
-                        required 
-                        value={form.neighborhood} 
-                        onChange={(v) => setForm({ ...form, neighborhood: v })} 
+                      <FloatingInput
+                        label="Bairro"
+                        required
+                        value={form.neighborhood}
+                        onChange={(v) => setForm({ ...form, neighborhood: v })}
                       />
-                      <FloatingInput 
-                        label="Cidade" 
-                        required 
-                        value={form.city} 
-                        onChange={(v) => setForm({ ...form, city: v })} 
+                      <FloatingInput
+                        label="Cidade"
+                        required
+                        value={form.city}
+                        onChange={(v) => setForm({ ...form, city: v })}
                       />
-                      <FloatingInput 
-                        label="Estado" 
-                        required 
-                        value={form.state} 
-                        onChange={(v) => setForm({ ...form, state: v })} 
+                      <FloatingInput
+                        label="Estado"
+                        required
+                        value={form.state}
+                        onChange={(v) => setForm({ ...form, state: v })}
                       />
                     </div>
 
+                    <div className="pt-6">
+                      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border/50">
+                        <Truck className="w-5 h-5 text-primary" />
+                        <h3 className="text-sm font-semibold text-foreground">Opções de Frete</h3>
+                      </div>
+                      
+                      {isLoadingShipping ? (
+                        <div className="flex flex-col items-center justify-center py-6 space-y-3">
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                          <p className="text-xs text-muted-foreground">Calculando frete...</p>
+                        </div>
+                      ) : shippingError ? (
+                        <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 text-sm">
+                          {shippingError}
+                        </div>
+                      ) : shippingOptions.length > 0 ? (
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          {shippingOptions.map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setSelectedShipping(opt)}
+                              className={`flex flex-col p-4 rounded-xl border-2 transition-all duration-300 text-left ${selectedShipping?.id === opt.id
+                                ? "border-primary bg-primary/10"
+                                : "border-border hover:border-primary/30"
+                                }`}
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="font-bold text-sm">{opt.name}</span>
+                                <span className="font-black text-primary">{formatPrice(opt.price)}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">Entrega em até {opt.deliveryTime} dias úteis</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : form.zipCode.replace(/\D/g, "").length === 8 ? (
+                        <div className="p-4 rounded-xl border border-border bg-secondary/30 text-muted-foreground text-sm text-center">
+                          Nenhuma opção de frete encontrada para este CEP.
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl border border-border bg-secondary/30 text-muted-foreground text-sm text-center">
+                          Preencha o CEP para ver as opções de frete.
+                        </div>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4 pt-6">
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         variant="outline"
-                        onClick={prevStep} 
+                        onClick={prevStep}
                         className="h-14 rounded-xl text-base font-bold"
                       >
                         <ChevronLeft className="mr-2 w-5 h-5" /> Voltar
                       </Button>
-                      <Button 
-                        type="button" 
-                        onClick={nextStep} 
+                      <Button
+                        type="button"
+                        onClick={nextStep}
                         className="h-14 rounded-xl text-base font-bold shimmer-btn"
                       >
                         Pagamento <ChevronRight className="ml-2 w-5 h-5" />
@@ -631,104 +829,94 @@ export default function CheckoutPage() {
                         </p>
                       </div>
                     </div>
-                    
-                    {showPaymentForm ? (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="space-y-4"
-                      >
-                         <PaymentBrick 
-                          amount={finalTotal} 
-                          onSubmit={onPaymentSubmit} 
-                        />
-                        <Button 
-                          variant="ghost" 
-                          className="text-xs text-muted-foreground w-full"
-                          onClick={() => setShowPaymentForm(false)}
-                        >
-                          Alterar método de pagamento
-                        </Button>
-                      </motion.div>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {paymentMethods.map((method) => (
-                            <button
-                              key={method.id}
-                              type="button"
-                              onClick={() => setPayment(method.id)}
-                              className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-300 ${
-                                payment === method.id
-                                  ? "border-primary bg-primary/8"
-                                  : "border-border hover:border-muted-foreground/30"
+
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {paymentMethods.map((method) => (
+                          <button
+                            key={method.id}
+                            type="button"
+                            onClick={() => setPayment(method.id)}
+                            className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-300 ${payment === method.id
+                              ? "border-primary bg-primary/8"
+                              : "border-border hover:border-muted-foreground/30"
                               }`}
-                            >
-                              <method.icon
-                                className={`h-5 w-5 ${payment === method.id ? "text-primary" : "text-muted-foreground"}`}
-                              />
-                              <span className="text-xs font-semibold text-foreground">{method.label}</span>
-                              <span className="text-[10px] text-muted-foreground">{method.desc}</span>
-                              {payment === method.id ? (
-                                <motion.div layoutId="payment-check" className="absolute top-2 right-2">
-                                  <Check className="h-3.5 w-3.5 text-primary" />
-                                </motion.div>
-                              ) : null}
-                            </button>
-                          ))}
-                        </div>
-
-                        {payment === "card" ? (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="space-y-4 pt-2"
                           >
-                            <FloatingInput label="Número do cartão" required />
-                            <div className="grid grid-cols-2 gap-4">
-                              <FloatingInput label="Validade (MM/AA)" required />
-                              <FloatingInput label="CVV" required />
-                            </div>
-                            <FloatingInput label="Nome no cartão" required />
-                          </motion.div>
-                        ) : null}
+                            <method.icon
+                              className={`h-5 w-5 ${payment === method.id ? "text-primary" : "text-muted-foreground"}`}
+                            />
+                            <span className="text-xs font-semibold text-foreground">{method.label}</span>
+                            <span className="text-[10px] text-muted-foreground">{method.desc}</span>
+                            {payment === method.id ? (
+                              <motion.div layoutId="payment-check" className="absolute top-2 right-2">
+                                <Check className="h-3.5 w-3.5 text-primary" />
+                              </motion.div>
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
 
-                        {!showPaymentForm && (
-                          <div className="space-y-4 pt-6">
-                            <div className="grid grid-cols-2 gap-4">
-                              <Button 
-                                type="button" 
-                                variant="outline"
-                                onClick={prevStep} 
-                                className="h-14 rounded-xl text-base font-bold"
-                              >
-                                <ChevronLeft className="mr-2 w-5 h-5" /> Voltar
-                              </Button>
-                              <Button
-                                type="button"
-                                onClick={handleSubmit}
-                                size="lg"
-                                className="h-14 shimmer-btn rounded-xl text-base font-bold"
-                                disabled={processing}
-                              >
-                                {processing ? (
-                                  <span className="flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" /> Processando...
-                                  </span>
-                                ) : (
-                                  `Finalizar - ${formatPrice(finalTotal)}`
-                                )}
-                              </Button>
-                            </div>
-
-                            <div className="rounded-xl border border-border/70 bg-card/50 px-4 py-3 flex items-center gap-2 justify-center text-xs text-muted-foreground">
-                              <Lock className="h-4 w-4 text-primary" />
-                              Pagamento criptografado e 100% seguro.
-                            </div>
+                      {payment === "MERCADO_PAGO" ? (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="space-y-4 pt-4 mt-4 border-t border-border/50"
+                        >
+                          <PaymentBrick
+                            amount={finalTotal}
+                            onSubmit={onPaymentSubmit}
+                            payer={{
+                              email: form.email,
+                              firstName: form.name?.split(' ')[0] || undefined,
+                              lastName: form.name?.split(' ').slice(1).join(' ') || undefined,
+                              documents: form.document ? [{ type: form.document.length > 14 ? 'CNPJ' : 'CPF', number: form.document.replace(/\D/g, '') }] : undefined,
+                              address: {
+                                zipCode: form.zipCode?.replace(/\D/g, '') || '',
+                                streetName: form.street || '',
+                                streetNumber: form.number || '',
+                                neighborhood: form.neighborhood || '',
+                                city: form.city || '',
+                                federalUnit: form.state || '',
+                                complement: form.complement || '',
+                              }
+                            }}
+                          />
+                        </motion.div>
+                      ) : (
+                        <div className="space-y-4 pt-6 mt-4 border-t border-border/50">
+                          <div className="grid grid-cols-2 gap-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={prevStep}
+                              className="h-14 rounded-xl text-base font-bold"
+                            >
+                              <ChevronLeft className="mr-2 w-5 h-5" /> Voltar
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={handleSubmit}
+                              size="lg"
+                              className="h-14 shimmer-btn rounded-xl text-base font-bold"
+                              disabled={processing}
+                            >
+                              {processing ? (
+                                <span className="flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" /> Processando...
+                                </span>
+                              ) : (
+                                `Finalizar Compra`
+                              )}
+                            </Button>
                           </div>
-                        )}
-                      </>
-                    )}
+
+                          <div className="rounded-xl border border-border/70 bg-card/50 px-4 py-3 flex items-center gap-2 justify-center text-xs text-muted-foreground">
+                            <Lock className="h-4 w-4 text-primary" />
+                            Pagamento criptografado e 100% seguro.
+                          </div>
+                        </div>
+                      )}
+                    </>
                   </motion.section>
                 )}
               </AnimatePresence>
@@ -748,10 +936,10 @@ export default function CheckoutPage() {
                     <div key={item.product.id} className="flex gap-3">
                       <div className="h-16 w-16 bg-background rounded-xl flex items-center justify-center flex-shrink-0 border border-border/60 overflow-hidden">
                         {resolveProductImage(item.product.image, item.product.images) ? (
-                          <img 
-                            src={resolveProductImage(item.product.image, item.product.images)!} 
-                            alt={item.product.name} 
-                            className="h-full w-full object-contain p-1" 
+                          <img
+                            src={resolveProductImage(item.product.image, item.product.images)!}
+                            alt={item.product.name}
+                            className="h-full w-full object-contain p-1"
                           />
                         ) : (
                           <ShoppingBag className="h-6 w-6 text-muted-foreground/20" />
@@ -783,6 +971,12 @@ export default function CheckoutPage() {
                       <span>-{formatPrice(discount)}</span>
                     </div>
                   )}
+                  {selectedShipping && (
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-muted-foreground">Frete ({selectedShipping.name})</span>
+                      <span className="text-foreground">{formatPrice(selectedShipping.price)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">
                     <span className="text-foreground">Total</span>
                     <span className="text-foreground">{formatPrice(finalTotal)}</span>
@@ -791,15 +985,15 @@ export default function CheckoutPage() {
 
                 <div className="pt-2">
                   <div className="flex gap-2">
-                    <Input 
-                      placeholder="Cupom de desconto" 
-                      className="bg-background h-10 text-xs uppercase" 
+                    <Input
+                      placeholder="Cupom de desconto"
+                      className="bg-background h-10 text-xs uppercase"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
                       disabled={!!appliedCoupon}
                     />
-                    <Button 
-                      type="button" 
+                    <Button
+                      type="button"
                       variant={appliedCoupon ? "outline" : "default"}
                       size="sm"
                       className="h-10 px-4"

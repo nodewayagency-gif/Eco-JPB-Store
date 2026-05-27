@@ -6,14 +6,25 @@ import { Payment } from "mercadopago";
 export async function POST(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const type = searchParams.get("type");
-    const dataId = searchParams.get("data.id");
+    const queryType = searchParams.get("type") || searchParams.get("topic");
+    const queryId = searchParams.get("data.id") || searchParams.get("id");
+
+    const text = await req.text();
+    let body: any = {};
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch (e) {}
+    }
+
+    const type = queryType || body?.type || (body?.action?.startsWith("payment") ? "payment" : null);
+    const dataId = queryId || body?.data?.id;
 
     console.log(`🔔 Webhook Mercado Pago recebido: Type=${type}, ID=${dataId}`);
 
-    if (type === "payment" && dataId) {
+    if ((type === "payment" || type === "payment.created" || type === "payment.updated") && dataId) {
       const paymentClient = new Payment(mpClient);
-      const payment = await paymentClient.get({ id: dataId });
+      const payment = await paymentClient.get({ id: dataId.toString() });
 
       const orderId = payment.external_reference;
       const status = payment.status;

@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import type { Product } from "@/data/products";
+import type { Product } from "@premium/contracts";
 import { productImages } from "@/lib/productImages";
 import { resolveProductImage } from "@/lib/imageResolver";
+import { ShoppingCart } from "lucide-react";
+import { useCart } from "@/providers/CartContext";
+import { Button } from "@/components/ui/button";
 
 interface ProductCardProps {
   product: Product;
@@ -17,8 +20,17 @@ const badgeStyles: Record<string, string> = {
 };
 
 const ProductCard = ({ product, index }: ProductCardProps) => {
+  const { addItem } = useCart();
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.inStock) {
+      addItem(product, product.colors[0]?.name);
+    }
+  };
 
   return (
     <motion.div
@@ -86,7 +98,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
               ))}
             </div>
           </div>
-          
+
           <h3 className="text-lg font-bold text-foreground leading-tight group-hover:text-primary transition-colors duration-300">
             {product.name}
           </h3>
@@ -100,11 +112,22 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
                 {formatPrice(product.originalPrice)}
               </span>
             )}
-            {product.freeShipping && (
+            {product.shipping?.freeShipping && (
               <span className="ml-auto text-[9px] font-black uppercase tracking-tighter text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 Frete Grátis
               </span>
             )}
+          </div>
+
+          <div className="pt-3 relative z-20">
+            <Button
+              className="w-full rounded-xl transition-all duration-300 shadow-none hover:shadow-[0_0_20px_rgba(225,171,45,0.3)] bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={handleAddToCart}
+              disabled={!product.inStock}
+            >
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              Adicionar
+            </Button>
           </div>
         </div>
 

@@ -7,11 +7,13 @@ export interface Product {
   price: number;
   originalPrice?: number;
   image: string;
+  images?: string[];
   category: string;
   inStock: boolean;
   description: string;
   badge?: string;
   colors: { name: string; hex: string }[];
+  specs?: { label: string; value: string }[];
   rating: number;
   reviews: number;
 }
