@@ -39,6 +39,7 @@ import { Separator } from "@/components/ui/separator";
 
 const statusColor: Record<string, string> = {
   "Criado": "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  "Aguardando Pagamento": "bg-amber-500/10 text-amber-500 border-amber-500/20",
   "Pagamento confirmado": "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   "Separação": "bg-amber-500/10 text-amber-500 border-amber-500/20",
   "Pronto para envio": "bg-sky-500/10 text-sky-500 border-sky-500/20",
@@ -427,7 +428,7 @@ function OrdersContent() {
                     
                     {selectedOrder.steps
                       .sort((a, b) => {
-                        const order = ["created", "paid", "in_separation", "ready_for_shipping", "shipped", "out_for_delivery", "delivered"];
+                        const order = ["created", "waiting_payment", "paid", "in_separation", "ready_for_shipping", "shipped", "out_for_delivery", "delivered"];
                         return order.indexOf(a.key) - order.indexOf(b.key);
                       })
                       .map((step, idx, arr) => {
@@ -437,6 +438,7 @@ function OrdersContent() {
                         
                         const icons: Record<string, any> = {
                           created: FileText,
+                          waiting_payment: FileText,
                           paid: CreditCard,
                           in_separation: Box,
                           ready_for_shipping: CheckCircle2,

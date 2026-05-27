@@ -50,7 +50,7 @@ export async function GET() {
       id: order.id,
       orderCode: order.orderCode,
       date: new Date(order.createdAt).toLocaleDateString('pt-BR'),
-      status: order.status === 'PAID' ? 'Confirmado' : order.status === 'SHIPPED' ? 'Em Trânsito' : order.status === 'DELIVERED' ? 'Entregue' : 'Processando',
+      status: order.status === 'CREATED' ? 'Aguardando Pagamento' : order.status === 'PAID' ? 'Confirmado' : order.status === 'SHIPPED' ? 'Em Trânsito' : order.status === 'DELIVERED' ? 'Entregue' : 'Processando',
       total: Number(order.total),
       product: order.items[0]?.product?.name || 'Pedido JPB Store',
       productImage: order.items[0]?.product?.image || order.items[0]?.product?.images?.[0] || '',

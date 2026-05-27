@@ -23,6 +23,7 @@ export interface AdminProductVariant {
 
 export type AdminOrderStepKey =
   | "created"
+  | "waiting_payment"
   | "payment_confirmed"
   | "in_separation"
   | "ready_to_ship"

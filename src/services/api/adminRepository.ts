@@ -20,19 +20,21 @@ import { api } from "../api.ts";
 
 const stepOrder: AdminOrderStepKey[] = [
   "created",
-  "payment_confirmed",
+  "waiting_payment",
+  "paid",
   "in_separation",
-  "ready_to_ship",
+  "ready_for_shipping",
   "shipped",
   "out_for_delivery",
   "delivered"
-];
+] as any;
 
-const statusByStep: Record<AdminOrderStepKey, AdminOrderRow["statusLabel"]> = {
+const statusByStep: Record<string, AdminOrderRow["statusLabel"] | "Aguardando Pagamento"> = {
   created: "Criado",
-  payment_confirmed: "Pagamento confirmado",
+  waiting_payment: "Aguardando Pagamento",
+  paid: "Pagamento confirmado",
   in_separation: "Separação",
-  ready_to_ship: "Pronto para envio",
+  ready_for_shipping: "Pronto para envio",
   shipped: "Enviado",
   out_for_delivery: "Saiu para entrega",
   delivered: "Entregue"

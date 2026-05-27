@@ -50,7 +50,8 @@ export async function POST(req: Request) {
         steps: {
           create: [
             { key: "created", label: "Pedido Realizado", completed: true, active: false },
-            { key: "paid", label: "Pagamento Confirmado", completed: false, active: true },
+            { key: "waiting_payment", label: "Aguardando Pagamento", completed: false, active: true },
+            { key: "paid", label: "Pagamento Confirmado", completed: false, active: false },
             { key: "in_separation", label: "Em Separação", completed: false, active: false },
             { key: "ready_for_shipping", label: "Pronto para Envio", completed: false, active: false },
             { key: "shipped", label: "Em Trânsito", completed: false, active: false },

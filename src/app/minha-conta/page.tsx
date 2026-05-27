@@ -45,6 +45,7 @@ import { api } from "@/services/api";
 
 const statusColor: Record<string, string> = {
   "Criado": "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  "Aguardando Pagamento": "bg-amber-500/10 text-amber-500 border-amber-500/20",
   "Pagamento confirmado": "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]",
   "Separação": "bg-amber-500/10 text-amber-500 border-amber-500/20",
   "Pronto para envio": "bg-sky-500/10 text-sky-500 border-sky-500/20",
@@ -478,7 +479,7 @@ export default function CustomerPage() {
               <User className="w-5 h-5 text-primary" />
               <div>
                 <span className="text-lg font-bold gold-text">Minha Conta</span>
-                <p className="text-xs text-muted-foreground">{profile?.name || customerSession?.user.name}</p>
+                <p className="text-xs text-muted-foreground">{profile?.name || customerSession?.user.displayName}</p>
               </div>
             </div>
           </div>
@@ -604,7 +605,7 @@ export default function CustomerPage() {
                       </div>
 
                       <div className="flex flex-col sm:flex-row items-end sm:items-center justify-between sm:justify-end gap-3 sm:gap-8">
-                        {order.status === "Criado" && (
+                        {order.status === "Aguardando Pagamento" && (
                           <Button 
                             size="sm" 
                             variant="default"
@@ -1074,8 +1075,8 @@ export default function CustomerPage() {
                 onSubmit={handleRepaySubmit}
                 payer={{
                   email: customerSession?.user.email || profile?.email || 'cliente@eco.com',
-                  firstName: (customerSession?.user.name?.split(' ')[0] || profile?.name?.split(' ')[0]) || undefined,
-                  lastName: (customerSession?.user.name?.split(' ').slice(1).join(' ') || profile?.name?.split(' ').slice(1).join(' ')) || undefined,
+                  firstName: (customerSession?.user.displayName?.split(' ')[0] || profile?.name?.split(' ')[0]) || undefined,
+                  lastName: (customerSession?.user.displayName?.split(' ').slice(1).join(' ') || profile?.name?.split(' ').slice(1).join(' ')) || undefined,
                   documents: profile?.document ? [{ type: profile.document.length > 14 ? 'CNPJ' : 'CPF', number: profile.document.replace(/\D/g, '') }] : undefined,
                 }}
               />

@@ -88,8 +88,16 @@ export async function POST(req: Request) {
           where: { orderId: orderId }
         });
         
+        const waitingPaymentStep = orderSteps.find(s => s.key === 'waiting_payment');
         const paidStep = orderSteps.find(s => s.key === 'paid');
         const nextStep = orderSteps.find(s => s.key === 'in_separation');
+        
+        if (waitingPaymentStep) {
+           await prisma.orderStep.update({
+             where: { id: waitingPaymentStep.id },
+             data: { completed: true, active: false }
+           });
+        }
         
         if (paidStep && nextStep) {
            await prisma.orderStep.update({
