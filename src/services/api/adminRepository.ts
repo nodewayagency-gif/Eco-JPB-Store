@@ -58,6 +58,7 @@ const toInput = (product: AdminProductRow): AdminProductInput => ({
   sku: product.sku || "",
   name: product.name || "",
   description: product.description || "",
+  category: product.category || "",
   categoryId: (product as any).categoryId || "",
   price: product.price || 0,
   costPrice: product.costPrice || 0,
@@ -123,6 +124,7 @@ export interface AdminRepository {
   getOrder: (id: string) => Promise<AdminOrderDetail | null>;
   advanceOrderStep: (id: string) => Promise<AdminOrderDetail>;
   setOrderStep: (id: string, step: AdminOrderStepKey) => Promise<AdminOrderDetail>;
+  updateTrackingCode: (id: string, trackingCode: string) => Promise<AdminOrderDetail>;
   listProducts: () => Promise<AdminProductRow[]>;
   getProduct: (id: string) => Promise<AdminProductRow | null>;
   createProduct: (payload: AdminProductInput) => Promise<AdminProductRow>;
@@ -142,10 +144,12 @@ export interface AdminRepository {
   createUser: (payload: AdminUserInput) => Promise<AdminUserRow>;
   updateUser: (id: string, changes: Partial<AdminUserInput>) => Promise<AdminUserRow>;
   deleteUser: (id: string) => Promise<void>;
+  updateUserPassword: (id: string, password: string) => Promise<void>;
   listTickets: () => Promise<import("@premium/contracts").SupportTicketView[]>;
   updateTicketStatus: (id: string, status: import("@premium/contracts").TicketStatus) => Promise<import("@premium/contracts").SupportTicketView>;
   replyTicket: (id: string, input: import("@premium/contracts").SendTicketMessageInput) => Promise<import("@premium/contracts").SupportTicketView>;
   mapStatusToLabel: (status: string, steps: any[]) => string;
+  mapToOrderDetail: (data: any) => AdminOrderDetail;
 }
 
 
@@ -224,6 +228,11 @@ export const adminRepository: AdminRepository = {
     return this.mapToOrderDetail(data);
   },
 
+  async updateTrackingCode(id, trackingCode) {
+    const { data } = await api.put(`/admin/orders/${id}/tracking`, { trackingCode });
+    return this.mapToOrderDetail(data);
+  },
+
   async getOrder(id) {
     const { data } = await api.get<any>(`/admin/orders/${id}`);
     return this.mapToOrderDetail(data);
@@ -241,6 +250,7 @@ export const adminRepository: AdminRepository = {
       channel: data.channel || "Loja Virtual",
       paymentGateway: data.paymentGateway,
       shippingProvider: data.shippingCarrier,
+      trackingCode: data.trackingCode,
       items: (data.items || []).map((item: any) => ({
         productName: item.product?.name || "Produto Removido",
         productImage: item.product?.image || "",

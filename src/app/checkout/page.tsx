@@ -38,7 +38,9 @@ import { Badge } from "@/components/ui/badge";
 import PaymentBrick from "@/components/store/PaymentBrick";
 
 const paymentMethods = [
-  { id: "MERCADO_PAGO", label: "Mercado Pago", icon: CreditCard, desc: "Cartão, Pix ou Boleto" },
+  { id: "CREDIT_CARD", label: "Cartão de Crédito", icon: CreditCard, desc: "Parcele sua compra" },
+  { id: "PIX", label: "Pix", icon: QrCode, desc: "Aprovação imediata" },
+  { id: "TICKET", label: "Boleto", icon: FileText, desc: "Vencimento em 3 dias" },
 ];
 
 const checkoutSteps = ["Identificação", "Entrega", "Pagamento", "Confirmação"];
@@ -92,7 +94,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { isCustomerAuthenticated, isLoading: authLoading, customerSession } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
-  const [payment, setPayment] = useState("MERCADO_PAGO");
+  const [payment, setPayment] = useState("CREDIT_CARD");
   const [profileLoading, setProfileLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdOrderCode, setCreatedOrderCode] = useState("");
@@ -132,6 +134,18 @@ export default function CheckoutPage() {
     if (currentStep === 0) {
       if (!form.name || !form.email || !form.document || !form.phone) {
         return toast.error("Por favor, preencha todos os campos obrigatórios");
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.email.trim())) {
+        return toast.error("Por favor, insira um e-mail válido (ex: seuemail@dominio.com).");
+      }
+      const cleanDoc = form.document.replace(/\D/g, "");
+      if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
+        return toast.error("Por favor, insira um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
+      }
+      const cleanPhone = form.phone.replace(/\D/g, "");
+      if (cleanPhone.length < 10) {
+        return toast.error("Por favor, insira um telefone válido com DDD.");
       }
     }
     if (currentStep === 1) {
@@ -435,12 +449,52 @@ export default function CheckoutPage() {
       setCreatedOrderCode(order.orderCode);
       setCurrentOrderId(order.id);
 
-      setIsSuccess(true);
-      clearCart();
-      toast.success(`Pedido realizado com sucesso!`);
+      if (payment === "PIX" || payment === "TICKET") {
+        const actualPaymentMethod = payment === "PIX" ? "pix" : "bolbradesco";
+        
+        const { data } = await api.post("/checkout/process", {
+          formData: {
+            payment_method_id: actualPaymentMethod,
+            payer: {
+              email: form.email.trim(),
+              first_name: form.name.split(' ')[0],
+              last_name: form.name.split(' ').slice(1).join(' '),
+              identification: {
+                 type: form.document.length > 14 ? 'CNPJ' : 'CPF',
+                 number: form.document.replace(/\D/g, '')
+              }
+            }
+          },
+          orderId: order.id
+        });
+
+        if (data.status === 'approved' || data.status === 'pending' || data.status === 'in_process') {
+          setPaymentInfo({
+            qr_code: data.qr_code,
+            qr_code_base64: data.qr_code_base64,
+            ticket_url: data.ticket_url,
+            status: data.status
+          });
+          setIsSuccess(true);
+          clearCart();
+          toast.success("Pedido gerado com sucesso!");
+        } else {
+           toast.error(`Falha no pagamento: ${data.detail || 'Tente novamente'}`);
+        }
+      } else {
+        setIsSuccess(true);
+        clearCart();
+        toast.success(`Pedido realizado com sucesso!`);
+      }
     } catch (error: any) {
-      console.error("Erro ao criar pedido:", error);
-      toast.error(error.response?.data?.message || "Erro ao processar seu pedido. Tente novamente.");
+      console.error("Erro ao processar:", error);
+      const detail = error.response?.data?.details || error.response?.data?.error || error.response?.data?.message || "Erro ao processar seu pedido.";
+      let userMsg = detail;
+      if (typeof detail === "string") {
+        if (detail.includes("valid email")) userMsg = "O e-mail informado é inválido. Volte ao Passo 1 e corrija.";
+        else if (detail.includes("identification number") || detail.includes("identification")) userMsg = "O CPF/CNPJ informado é inválido. Volte ao Passo 1 e corrija.";
+      }
+      toast.error(userMsg);
     } finally {
       setProcessing(false);
     }
@@ -856,7 +910,7 @@ export default function CheckoutPage() {
                         ))}
                       </div>
 
-                      {payment === "MERCADO_PAGO" ? (
+                      {payment === "CREDIT_CARD" ? (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}

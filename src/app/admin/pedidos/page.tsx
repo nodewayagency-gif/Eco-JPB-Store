@@ -63,6 +63,7 @@ function OrdersContent() {
   const itemsPerPage = 10;
   const [loadingOrderId, setLoadingOrderId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [trackingCodeInput, setTrackingCodeInput] = useState("");
 
   const loadOrders = async () => {
     try {
@@ -90,6 +91,7 @@ function OrdersContent() {
       const order = await adminRepository.getOrder(id);
       if (!order) return;
       setSelectedOrder(order);
+      setTrackingCodeInput(order.trackingCode || "");
       setModalOpen(true);
     } catch (error) {
       console.error("Erro ao abrir pedido:", error);
@@ -123,6 +125,22 @@ function OrdersContent() {
     } catch (error) {
       console.error("Erro ao avançar status:", error);
       toast.error("Erro ao avançar status.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const saveTrackingCode = async () => {
+    if (!selectedOrder || isUpdating) return;
+    try {
+      setIsUpdating(true);
+      const updated = await adminRepository.updateTrackingCode(selectedOrder.id, trackingCodeInput);
+      setSelectedOrder(updated);
+      toast.success("Código de rastreio salvo!");
+      loadOrders();
+    } catch (error) {
+      console.error("Erro ao salvar rastreio:", error);
+      toast.error("Erro ao salvar rastreio.");
     } finally {
       setIsUpdating(false);
     }
@@ -540,25 +558,51 @@ function OrdersContent() {
                     )}
                   </div>
 
-                  <div className="flex flex-col justify-center gap-4 bg-secondary/30 border border-border rounded-3xl p-6">
-                    <div className="text-center space-y-2 mb-4">
-                       <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Status Atual</p>
-                       <h4 className="text-2xl font-black text-primary uppercase">{selectedOrder.statusLabel}</h4>
+                  <div className="flex flex-col gap-6">
+                    <div className="flex flex-col justify-center gap-4 bg-secondary/30 border border-border rounded-3xl p-6">
+                      <div className="text-center space-y-2 mb-4">
+                         <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Status Atual</p>
+                         <h4 className="text-2xl font-black text-primary uppercase">{selectedOrder.statusLabel}</h4>
+                      </div>
+                      
+                      <Button 
+                        className="w-full gap-2 bg-gradient-to-r from-primary to-orange-500 text-black font-black hover:opacity-90 h-16 rounded-2xl shadow-[0_10px_30px_rgba(251,191,36,0.2)] transition-all active:scale-95 text-lg" 
+                        onClick={nextStep}
+                        disabled={isUpdating || selectedOrder.currentStep === "delivered"}
+                      >
+                        {isUpdating ? (
+                          <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            {selectedOrder.currentStep === "delivered" ? "Pedido Concluído" : "Avançar para Próxima Etapa"} <ChevronRight className="w-5 h-5" />
+                          </>
+                        )}
+                      </Button>
                     </div>
-                    
-                    <Button 
-                      className="w-full gap-2 bg-gradient-to-r from-primary to-orange-500 text-black font-black hover:opacity-90 h-16 rounded-2xl shadow-[0_10px_30px_rgba(251,191,36,0.2)] transition-all active:scale-95 text-lg" 
-                      onClick={nextStep}
-                      disabled={isUpdating || selectedOrder.currentStep === "delivered"}
-                    >
-                      {isUpdating ? (
-                        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          {selectedOrder.currentStep === "delivered" ? "Pedido Concluído" : "Avançar para Próxima Etapa"} <ChevronRight className="w-5 h-5" />
-                        </>
-                      )}
-                    </Button>
+
+                    <div className="flex flex-col gap-3 bg-secondary/30 border border-border rounded-3xl p-6">
+                      <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-primary" /> Rastreamento do Pedido
+                      </h3>
+                      <div className="flex flex-col gap-2 mt-2">
+                        <label className="text-xs text-muted-foreground font-bold">Código de Rastreio da Transportadora</label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            placeholder="Ex: BR123456789BR" 
+                            value={trackingCodeInput}
+                            onChange={(e) => setTrackingCodeInput(e.target.value)}
+                            className="bg-background border-border uppercase font-mono"
+                          />
+                          <Button 
+                            onClick={saveTrackingCode}
+                            disabled={isUpdating || trackingCodeInput === (selectedOrder.trackingCode || "")}
+                            className="shimmer-btn"
+                          >
+                            Salvar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </TabsContent>

@@ -111,7 +111,7 @@ const OrderTimeline = ({ steps }: { steps: CustomerOrderTrackingStep[] }) => (
               {step.title}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
-            <p className="text-[11px] text-muted-foreground/60 mt-1">{step.date}</p>
+            {step.date && <p className="text-[11px] text-muted-foreground/60 mt-1">{step.date}</p>}
           </div>
         </motion.div>
       );
@@ -127,7 +127,9 @@ export default function CustomerPage() {
   const [tickets, setTickets] = useState<SupportTicketView[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"orders" | "addresses" | "tickets">("orders");
+  const [activeTab, setActiveTab] = useState<"profile" | "orders" | "addresses" | "tickets">("profile");
+  const [profileForm, setProfileForm] = useState({ name: "", document: "", phone: "", email: "" });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketView | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
@@ -361,6 +363,14 @@ export default function CustomerPage() {
         ]);
 
         setProfile(profileData);
+        if (profileData) {
+          setProfileForm({
+            name: profileData.name || "",
+            document: profileData.document || "",
+            phone: profileData.phone || "",
+            email: profileData.email || ""
+          });
+        }
         setOrders(orderData);
         setTickets(ticketsData);
         setExpandedOrder(orderData[0]?.id ?? null);
@@ -529,7 +539,14 @@ export default function CustomerPage() {
           </Card>
         </div>
 
-        <div className="flex gap-6 border-b border-border">
+        <div className="flex gap-6 border-b border-border overflow-x-auto no-scrollbar pb-1">
+          <button 
+            onClick={() => setActiveTab("profile")}
+            className={`pb-3 text-sm font-semibold transition-colors relative whitespace-nowrap ${activeTab === "profile" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Meus Dados
+            {activeTab === "profile" && <motion.div layoutId="tab-indicator" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-primary" />}
+          </button>
           <button 
             onClick={() => setActiveTab("orders")}
             className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === "orders" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
@@ -553,7 +570,103 @@ export default function CustomerPage() {
           </button>
         </div>
 
-        {activeTab === "orders" ? (
+        {activeTab === "profile" ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" /> Dados Pessoais
+              </h2>
+            </div>
+            <Card className="bg-card border-border">
+              <CardContent className="p-6 space-y-6">
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Nome Completo</Label>
+                    <Input 
+                      value={profileForm.name} 
+                      onChange={e => setProfileForm({...profileForm, name: e.target.value})} 
+                      placeholder="Seu nome completo"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>E-mail (Login)</Label>
+                    <Input 
+                      value={profileForm.email} 
+                      disabled
+                      className="bg-secondary/50 text-muted-foreground cursor-not-allowed border-dashed"
+                    />
+                    <p className="text-[10px] text-muted-foreground">O e-mail não pode ser alterado pois é a sua chave de acesso seguro.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CPF / CNPJ</Label>
+                    <Input 
+                      value={profileForm.document} 
+                      onChange={e => {
+                        let value = e.target.value.replace(/\D/g, "");
+                        if (value.length <= 11) {
+                          value = value.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                        } else {
+                          value = value.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
+                          value = value.substring(0, 18);
+                        }
+                        setProfileForm({...profileForm, document: value});
+                      }} 
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Telefone</Label>
+                    <Input 
+                      value={profileForm.phone} 
+                      onChange={e => {
+                        let value = e.target.value.replace(/\D/g, "");
+                        if (value.length <= 10) {
+                          value = value.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2");
+                        } else {
+                          value = value.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
+                        }
+                        setProfileForm({...profileForm, phone: value.substring(0, 15)});
+                      }} 
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-border/50 flex justify-end">
+                  <Button 
+                    className="shimmer-btn h-11 px-8 rounded-xl font-bold" 
+                    disabled={isSavingProfile}
+                    onClick={async () => {
+                      if (!profileForm.name || !profileForm.document || !profileForm.phone) {
+                        return toast.error("Preencha todos os campos obrigatórios.");
+                      }
+                      setIsSavingProfile(true);
+                      try {
+                        await customerRepository.updateProfile({
+                          name: profileForm.name,
+                          document: profileForm.document,
+                          phone: profileForm.phone
+                        });
+                        toast.success("Perfil atualizado com sucesso!");
+                        const updatedProfile = await customerRepository.getProfile(customerSession?.user.id);
+                        setProfile(updatedProfile);
+                      } catch (error) {
+                        toast.error("Erro ao atualizar o perfil.");
+                      } finally {
+                        setIsSavingProfile(false);
+                      }
+                    }}
+                  >
+                    {isSavingProfile ? "Salvando..." : "Salvar Alterações"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : activeTab === "orders" ? (
           <div className="space-y-4">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" /> Últimos Pedidos
@@ -572,9 +685,12 @@ export default function CustomerPage() {
                   className="mb-4"
                 >
                   <Card className="bg-card border-border overflow-hidden group">
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => toggle(order.id)}
-                      className="w-full p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left group"
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggle(order.id); }}
+                      className="w-full p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left group cursor-pointer"
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center border border-border/50 overflow-hidden">
@@ -628,7 +744,7 @@ export default function CustomerPage() {
                           <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform", open && "rotate-180")} />
                         </div>
                       </div>
-                    </button>
+                    </div>
 
                     <AnimatePresence>
                       {open && (
@@ -647,6 +763,29 @@ export default function CustomerPage() {
                               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Acompanhamento Logístico</h4>
                             </div>
                             <OrderTimeline steps={order.tracking} />
+                            
+                            {order.trackingCode && (
+                              <div className="mt-8 flex flex-col gap-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                  <Truck className="w-3 h-3" /> Código de Rastreio
+                                </span>
+                                <div className="flex items-center justify-between gap-4">
+                                  <span className="font-mono text-sm font-bold select-all tracking-wider">{order.trackingCode}</span>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 text-xs px-3 border-primary/30 hover:bg-primary hover:text-black transition-colors shimmer-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(order.trackingCode!);
+                                      toast.success("Código copiado!");
+                                    }}
+                                  >
+                                    Copiar
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </motion.div>
                       )}

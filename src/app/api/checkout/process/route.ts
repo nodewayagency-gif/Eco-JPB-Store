@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { mpClient } from "@/lib/mercadopago";
+import { getMpClient } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
 
 export async function POST(req: Request) {
@@ -27,7 +27,8 @@ export async function POST(req: Request) {
     }
 
     // 2. Processar o pagamento no Mercado Pago
-    const payment = new Payment(mpClient);
+    const client = await getMpClient();
+    const payment = new Payment(client);
     
     const doc = order.guestDocument || order.customer?.customerProfile?.document || '';
 
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
         payment_method_id: formData.payment_method_id,
         issuer_id: formData.issuer_id,
         payer: {
-          email: formData.payer?.email || order.guestEmail || order.customer?.email || 'cliente@sem-email.com',
+          email: (formData.payer?.email || order.guestEmail || order.customer?.email || '').trim() || 'cliente@dominio.com',
           ...( (formData.payer?.identification?.number || doc.replace(/\D/g, '')) ? {
             identification: {
               type: formData.payer?.identification?.type || (doc.length > 14 ? 'CNPJ' : 'CPF'),

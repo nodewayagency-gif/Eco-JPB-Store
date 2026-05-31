@@ -11,11 +11,12 @@ export interface Product {
   category: string;
   inStock: boolean;
   description: string;
-  badge?: string;
+  badge?: "Premium" | "Limited" | "Novo";
   colors: { name: string; hex: string }[];
-  specs?: { label: string; value: string }[];
+  specs: { label: string; value: string }[];
   rating: number;
   reviews: number;
+  freeShipping?: boolean;
 }
 
 export const useProducts = () => {
@@ -31,6 +32,7 @@ export const useProducts = () => {
         category: p.category?.name || 'Geral',
         price: Number(p.price),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
+        freeShipping: p.freeShipping || false,
         colors: p.variants && p.variants.length > 0 
           ? p.variants.map((v: any) => ({ name: v.name, hex: v.colorHex || "#1D1D1F" }))
           : [{ name: "Padrão", hex: "#1D1D1F" }],
@@ -60,6 +62,7 @@ export const useProduct = (id?: string) => {
         category: data.category?.name || 'Geral',
         price: Number(data.price),
         originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
+        freeShipping: data.freeShipping || false,
         colors: data.variants && data.variants.length > 0 
           ? data.variants.map((v: any) => ({ name: v.name, hex: v.colorHex || "#1D1D1F" }))
           : [{ name: "Padrão", hex: "#1D1D1F" }],

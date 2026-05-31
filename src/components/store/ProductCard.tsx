@@ -112,7 +112,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
                 {formatPrice(product.originalPrice)}
               </span>
             )}
-            {product.shipping?.freeShipping && (
+            {(product.shipping?.freeShipping || (product as any).freeShipping) && (
               <span className="ml-auto text-[9px] font-black uppercase tracking-tighter text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 Frete Grátis
               </span>

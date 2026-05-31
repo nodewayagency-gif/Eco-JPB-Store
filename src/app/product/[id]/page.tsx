@@ -158,6 +158,11 @@ export default function ProductPage() {
                 {product.originalPrice && (
                   <span className="text-lg text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
                 )}
+                {product.freeShipping && (
+                  <span className="text-xs font-black uppercase tracking-tighter text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+                    Frete Grátis
+                  </span>
+                )}
               </div>
 
               <p className="text-muted-foreground leading-relaxed">{product.description}</p>

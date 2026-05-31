@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth-utils";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function GET() {
   try {
-    const configs = await prisma.shippingIntegrationConfig.findMany();
-    
+    const isTestMode = process.env.MELHOR_ENVIO_MODE === 'test';
     const settings = {
-      mercadoLivre: configs.find(c => c.provider === 'MERCADO_LIVRE') || { enabled: false, appId: '', clientSecret: '', accessToken: '' },
-      melhorEnvio: configs.find(c => c.provider === 'MELHOR_ENVIO') || { enabled: false, clientId: '', clientSecret: '', accessToken: '', tokenType: 'Bearer', sandbox: true }
+      mercadoLivre: { enabled: false, appId: '', clientSecret: '', accessToken: '' },
+      melhorEnvio: { 
+        enabled: !!(process.env.MELHOR_ENVIO_TOKEN || process.env.MELHOR_ENVIO_TEST_TOKEN), 
+        clientId: '', 
+        clientSecret: '', 
+        accessToken: isTestMode ? process.env.MELHOR_ENVIO_TEST_TOKEN : process.env.MELHOR_ENVIO_TOKEN, 
+        tokenType: 'Bearer', 
+        sandbox: isTestMode 
+      }
     };
 
     return NextResponse.json(settings);
@@ -26,49 +33,8 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
     }
 
-    const data = await request.json();
-    
-    // Mercado Livre
-    await prisma.shippingIntegrationConfig.upsert({
-      where: { provider: 'MERCADO_LIVRE' },
-      update: {
-        enabled: data.mercadoLivre.enabled,
-        appId: data.mercadoLivre.appId,
-        clientSecret: data.mercadoLivre.clientSecret,
-        accessToken: data.mercadoLivre.accessToken
-      },
-      create: {
-        provider: 'MERCADO_LIVRE',
-        enabled: data.mercadoLivre.enabled,
-        appId: data.mercadoLivre.appId,
-        clientSecret: data.mercadoLivre.clientSecret,
-        accessToken: data.mercadoLivre.accessToken
-      }
-    });
-
-    // Melhor Envio
-    await prisma.shippingIntegrationConfig.upsert({
-      where: { provider: 'MELHOR_ENVIO' },
-      update: {
-        enabled: data.melhorEnvio.enabled,
-        clientId: data.melhorEnvio.clientId,
-        clientSecret: data.melhorEnvio.clientSecret,
-        accessToken: data.melhorEnvio.accessToken,
-        tokenType: data.melhorEnvio.tokenType || 'Bearer',
-        sandbox: data.melhorEnvio.sandbox
-      },
-      create: {
-        provider: 'MELHOR_ENVIO',
-        enabled: data.melhorEnvio.enabled,
-        clientId: data.melhorEnvio.clientId,
-        clientSecret: data.melhorEnvio.clientSecret,
-        accessToken: data.melhorEnvio.accessToken,
-        tokenType: data.melhorEnvio.tokenType || 'Bearer',
-        sandbox: data.melhorEnvio.sandbox
-      }
-    });
-
-    return NextResponse.json({ success: true });
+    // Now handled via .env, we just return success to not break the frontend form
+    return NextResponse.json({ success: true, message: "As configurações agora são gerenciadas via arquivo .env" });
   } catch (error: any) {
     console.error("Save shipping settings error:", error);
     return NextResponse.json({ message: "Erro ao salvar configurações" }, { status: 500 });

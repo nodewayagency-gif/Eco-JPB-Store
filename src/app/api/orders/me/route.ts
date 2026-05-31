@@ -59,10 +59,11 @@ export async function GET() {
         .map(step => ({
           title: step.label,
           description: '',
-          date: new Date(step.updatedAt).toLocaleDateString('pt-BR'),
+          date: step.completed ? new Date(step.updatedAt).toLocaleDateString('pt-BR') : '',
           completed: step.completed,
           active: step.active
-        }))
+        })),
+      trackingCode: order.trackingCode || undefined
     }));
 
     return NextResponse.json(mappedOrders);

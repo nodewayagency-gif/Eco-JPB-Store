@@ -51,6 +51,7 @@ const emptyForm: AdminProductInput = {
   sku: "",
   name: "",
   description: "",
+  category: "",
   categoryId: "",
   price: 0,
   costPrice: 0,

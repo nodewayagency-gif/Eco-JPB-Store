@@ -32,15 +32,6 @@ enum OrderStatus {
   CANCELLED
 }
 
-enum PaymentGatewayProvider {
-  MERCADO_PAGO
-  ASAAS
-}
-
-enum ShippingProvider {
-  MERCADO_LIVRE
-  MELHOR_ENVIO
-}
 
 model User {
   id              String           @id @default(cuid())
@@ -203,6 +194,7 @@ model Order {
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
   customer             User?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  trackingCode         String?
   items                OrderItem[]
   steps                OrderStep[]
 
@@ -254,48 +246,17 @@ model CompanyConfig {
   email         String
   phone         String
   originZipCode String
-  addressLine   String
-  city          String
-  state         String
-  instagramUrl  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  addressLine      String
+  city             String
+  state            String
+  instagramUrl     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@map("jpb_company_config")
 }
 
-model PaymentGatewayConfig {
-  id            String                 @id @default(cuid())
-  provider      PaymentGatewayProvider
-  enabled       Boolean                @default(false)
-  publicKey     String?
-  accessToken   String?
-  apiKey        String?
-  walletId      String?
-  webhookSecret String?
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
 
-  @@unique([provider])
-  @@map("jpb_payment_gateway_config")
-}
-
-model ShippingIntegrationConfig {
-  id           String           @id @default(cuid())
-  provider     ShippingProvider
-  enabled      Boolean          @default(false)
-  appId        String?
-  clientId     String?
-  clientSecret String?
-  accessToken  String?
-  tokenType    String?
-  sandbox      Boolean          @default(true)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-
-  @@unique([provider])
-  @@map("jpb_shipping_integration_config")
-}
 
 model Category {
   id          String    @id @default(cuid())

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { mpClient } from "@/lib/mercadopago";
+import { getMpClient } from "@/lib/mercadopago";
+import { decrypt } from "@/lib/encryption";
 import { Payment } from "mercadopago";
+
+import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
@@ -9,27 +12,59 @@ export async function POST(req: Request) {
     const queryType = searchParams.get("type") || searchParams.get("topic");
     const queryId = searchParams.get("data.id") || searchParams.get("id");
 
+    const config = await prisma.companyConfig.findFirst();
+
+    // Verificação de Assinatura (Segurança Mercado Pago)
+    const xSignature = req.headers.get("x-signature");
+    const xRequestId = req.headers.get("x-request-id");
+    let webhookSecret = process.env.MP_WEBHOOK_SECRET;
+    if (process.env.MP_MODE === 'test') {
+      webhookSecret = process.env.MP_TEST_WEBHOOK_SECRET || webhookSecret;
+    }
+
+    if (xSignature && xRequestId && webhookSecret && queryId) {
+      const parts = xSignature.split(",");
+      const tsPart = parts.find(p => p.trim().startsWith("ts="));
+      const v1Part = parts.find(p => p.trim().startsWith("v1="));
+
+      if (tsPart && v1Part) {
+        const ts = tsPart.split("=")[1];
+        const v1 = v1Part.split("=")[1];
+
+        const manifest = `id:${queryId};request-id:${xRequestId};ts:${ts};`;
+        const hmac = crypto.createHmac("sha256", webhookSecret);
+        hmac.update(manifest);
+        const sha = hmac.digest("hex");
+
+        if (sha !== v1) {
+          console.error("❌ Webhook: Assinatura inválida! Possível tentativa de fraude.");
+          return new NextResponse("Invalid Signature", { status: 403 });
+        }
+      }
+    }
+
     const text = await req.text();
     let body: any = {};
     if (text) {
       try {
         body = JSON.parse(text);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const type = queryType || body?.type || (body?.action?.startsWith("payment") ? "payment" : null);
-    const dataId = queryId || body?.data?.id;
+    const dataIdToUse = queryId || body?.data?.id;
 
-    console.log(`🔔 Webhook Mercado Pago recebido: Type=${type}, ID=${dataId}`);
+    console.log(`🔔 Webhook Mercado Pago recebido: Type=${type}, ID=${dataIdToUse}`);
 
-    if ((type === "payment" || type === "payment.created" || type === "payment.updated") && dataId) {
-      const paymentClient = new Payment(mpClient);
-      const payment = await paymentClient.get({ id: dataId.toString() });
+    if ((type === "payment" || type === "payment.created" || type === "payment.updated") && dataIdToUse) {
+      const client = await getMpClient();
+      const paymentClient = new Payment(client);
+      const payment = await paymentClient.get({ id: dataIdToUse.toString() });
 
       const orderId = payment.external_reference;
       const status = payment.status;
 
-      console.log(`📦 Pagamento ${dataId} do Pedido ${orderId}: Status=${status}`);
+      console.log(`📦 Pagamento ${dataIdToUse} do Pedido ${orderId}: Status=${status}`);
 
       if (orderId && (status === "approved" || status === "authorized")) {
         // 1. Atualizar pedido para pago
@@ -38,7 +73,7 @@ export async function POST(req: Request) {
           data: {
             status: "PAID",
             paymentStatus: status,
-            gatewayTransactionId: dataId.toString(),
+            gatewayTransactionId: dataIdToUse.toString(),
             paymentMethodId: payment.payment_method_id,
             installments: payment.installments,
             gatewayResponse: payment as any,
@@ -82,32 +117,32 @@ export async function POST(req: Request) {
             }
           }
         }
-        
+
         // 3. Atualizar os passos do pedido (Timeline)
         const orderSteps = await prisma.orderStep.findMany({
           where: { orderId: orderId }
         });
-        
+
         const waitingPaymentStep = orderSteps.find(s => s.key === 'waiting_payment');
         const paidStep = orderSteps.find(s => s.key === 'paid');
         const nextStep = orderSteps.find(s => s.key === 'in_separation');
-        
+
         if (waitingPaymentStep) {
-           await prisma.orderStep.update({
-             where: { id: waitingPaymentStep.id },
-             data: { completed: true, active: false }
-           });
+          await prisma.orderStep.update({
+            where: { id: waitingPaymentStep.id },
+            data: { completed: true, active: false }
+          });
         }
-        
+
         if (paidStep && nextStep) {
-           await prisma.orderStep.update({
-             where: { id: paidStep.id },
-             data: { completed: true, active: false }
-           });
-           await prisma.orderStep.update({
-             where: { id: nextStep.id },
-             data: { active: true }
-           });
+          await prisma.orderStep.update({
+            where: { id: paidStep.id },
+            data: { completed: true, active: false }
+          });
+          await prisma.orderStep.update({
+            where: { id: nextStep.id },
+            data: { active: true }
+          });
         }
 
         console.log(`✅ Pedido ${orderId}: Pagamento confirmado e ESTOQUE ATUALIZADO.`);

@@ -8,6 +8,7 @@ export interface CustomerRepository {
   createTicket: (userId: string, input: CreateSupportTicketInput) => Promise<SupportTicketView>;
   replyTicket: (userId: string, ticketId: string, input: SendTicketMessageInput) => Promise<SupportTicketView | null>;
   updateAddress: (data: any) => Promise<any>;
+  updateProfile: (data: any) => Promise<any>;
 }
 
 export const customerRepository: CustomerRepository = {
@@ -39,6 +40,11 @@ export const customerRepository: CustomerRepository = {
 
   async updateAddress(data: any) {
     const { data: response } = await api.put("/customers/address", data);
+    return response;
+  },
+
+  async updateProfile(data: any) {
+    const { data: response } = await api.put("/customers/me", data);
     return response;
   }
 };

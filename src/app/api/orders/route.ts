@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth-utils";
-import { mpPreference } from "@/lib/mercadopago";
+import { getMpPreference } from "@/lib/mercadopago";
 
 export async function POST(req: Request) {
   try {
@@ -65,6 +65,7 @@ export async function POST(req: Request) {
     // 3. Integração com Mercado Pago (se selecionado)
     let paymentUrl = null;
     if (paymentMethod === 'MERCADO_PAGO' || paymentMethod === 'mercadopago') {
+      const mpPreference = await getMpPreference();
       const preference = await mpPreference.create({
         body: {
           items: items.map((item: any) => {

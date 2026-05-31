@@ -61,6 +61,7 @@ export interface AdminOrderDetail extends AdminOrderRow {
     unitPrice: number;
   }>;
   trackingCode?: string;
+  customerEmail?: string;
   shippingQuoteId?: string;
   steps: AdminOrderWorkflowStep[];
   shippingAddress?: {
@@ -109,7 +110,9 @@ export interface AdminProductRow {
 export interface AdminProductInput {
   sku: string;
   name: string;
+  description?: string;
   category: string;
+  categoryId?: string;
   price: number;
   costPrice: number;
   inStock: boolean;

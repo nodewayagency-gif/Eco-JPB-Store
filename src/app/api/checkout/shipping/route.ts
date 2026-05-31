@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { decrypt } from "@/lib/encryption";
 import axios from "axios";
 
 export async function POST(req: Request) {
@@ -29,6 +30,7 @@ export async function POST(req: Request) {
         widthCm: true,
         heightCm: true,
         lengthCm: true,
+        freeShipping: true,
       }
     });
 
@@ -36,27 +38,47 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Produtos não encontrados" }, { status: 404 });
     }
 
-    // 3. Montar payload do Melhor Envio
-    const payloadProducts = items.map((item: any) => {
-      const dbProduct = dbProducts.find((p) => p.id === item.productId);
-      
-      // Conversões defensivas para garantir que temos valores numéricos válidos
-      const width = Number(dbProduct?.widthCm || 20);
-      const height = Number(dbProduct?.heightCm || 20);
-      const length = Number(dbProduct?.lengthCm || 40);
-      const weight = Number(dbProduct?.weightKg || 0.3);
+    // 3. Identificar produtos pagantes vs gratuitos
+    const payloadProducts = items
+      .filter((item: any) => {
+        const dbProduct = dbProducts.find((p) => p.id === item.productId);
+        return !dbProduct?.freeShipping; // Apenas calcula os que NÃO tem frete grátis
+      })
+      .map((item: any) => {
+        const dbProduct = dbProducts.find((p) => p.id === item.productId);
+        const width = Number(dbProduct?.widthCm || 20);
+        const height = Number(dbProduct?.heightCm || 20);
+        const length = Number(dbProduct?.lengthCm || 40);
+        const weight = Number(dbProduct?.weightKg || 0.3);
 
-      return {
-        id: item.productId,
-        width: width > 0 ? width : 20,
-        height: height > 0 ? height : 20,
-        length: length > 0 ? length : 40,
-        weight: weight > 0 ? weight : 0.3,
-        quantity: item.quantity,
-      };
-    });
+        return {
+          id: item.productId,
+          width: width > 0 ? width : 20,
+          height: height > 0 ? height : 20,
+          length: length > 0 ? length : 40,
+          weight: weight > 0 ? weight : 0.3,
+          quantity: item.quantity,
+        };
+      });
 
-    const token = process.env.MELHOR_ENVIO_TOKEN;
+    // Se TODOS os itens do carrinho tem frete grátis, retornar opção de Frete Grátis
+    if (payloadProducts.length === 0) {
+      return NextResponse.json([{
+        id: "free-shipping",
+        name: "Frete Grátis",
+        company: "Logística JPB",
+        price: 0,
+        deliveryTime: 7,
+        currency: "BRL"
+      }]);
+    }
+
+    let token = process.env.MELHOR_ENVIO_TOKEN;
+    let isTestMode = process.env.MELHOR_ENVIO_MODE === 'test';
+
+    if (isTestMode) {
+      token = process.env.MELHOR_ENVIO_TEST_TOKEN || token;
+    }
 
     if (!token) {
       console.error("Token do Melhor Envio não configurado.");
@@ -79,7 +101,8 @@ export async function POST(req: Request) {
     };
 
     // 4. Fazer a requisição
-    const response = await axios.post("https://melhorenvio.com.br/api/v2/me/shipment/calculate", payload, {
+    const baseUrl = isTestMode ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br";
+    const response = await axios.post(`${baseUrl}/api/v2/me/shipment/calculate`, payload, {
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${token}`,

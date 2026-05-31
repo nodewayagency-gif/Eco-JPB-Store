@@ -14,6 +14,7 @@ export interface CustomerOrderView {
   date: string;
   status: string;
   tracking: CustomerOrderTrackingStep[];
+  trackingCode?: string;
 }
 
 export interface CustomerProfile {

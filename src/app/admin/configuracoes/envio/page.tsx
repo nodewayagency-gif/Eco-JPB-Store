@@ -48,116 +48,12 @@ export default function AdminShippingSettingsPage() {
       </div>
 
       <Card className="bg-card border-border overflow-hidden">
-        <CardHeader className="bg-muted/50 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Truck className="w-5 h-5 text-primary" /> Mercado Livre (Mercado Envios)
-              </CardTitle>
-              <CardDescription>Envie seus produtos utilizando a logística do Mercado Livre.</CardDescription>
-            </div>
-            <Switch 
-              checked={form.mercadoLivre.enabled} 
-              onCheckedChange={(checked) => setForm({ ...form, mercadoLivre: { ...form.mercadoLivre, enabled: checked } })} 
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>App ID</Label>
-              <Input 
-                value={form.mercadoLivre.appId} 
-                onChange={(e) => setForm({ ...form, mercadoLivre: { ...form.mercadoLivre, appId: e.target.value } })} 
-                className="bg-background border-border"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Client Secret</Label>
-              <Input 
-                type="password"
-                value={form.mercadoLivre.clientSecret} 
-                onChange={(e) => setForm({ ...form, mercadoLivre: { ...form.mercadoLivre, clientSecret: e.target.value } })} 
-                className="bg-background border-border"
-              />
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label>Access Token</Label>
-              <Input 
-                type="password"
-                value={form.mercadoLivre.accessToken} 
-                onChange={(e) => setForm({ ...form, mercadoLivre: { ...form.mercadoLivre, accessToken: e.target.value } })} 
-                className="bg-background border-border"
-              />
-            </div>
-          </div>
+        <CardContent className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center gap-2 h-32">
+          <Truck className="w-8 h-8 opacity-50" />
+          <p>As configurações de integrações de envio agora são gerenciadas de forma segura e exclusiva através do arquivo <strong>.env</strong> do servidor.</p>
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border overflow-hidden">
-        <CardHeader className="bg-muted/50 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Truck className="w-5 h-5 text-primary" /> Melhor Envio
-              </CardTitle>
-              <CardDescription>Cotação e gestão de fretes com diversas transportadoras.</CardDescription>
-            </div>
-            <Switch 
-              checked={form.melhorEnvio.enabled} 
-              onCheckedChange={(checked) => setForm({ ...form, melhorEnvio: { ...form.melhorEnvio, enabled: checked } })} 
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Client ID</Label>
-              <Input 
-                value={form.melhorEnvio.clientId} 
-                onChange={(e) => setForm({ ...form, melhorEnvio: { ...form.melhorEnvio, clientId: e.target.value } })} 
-                className="bg-background border-border"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Client Secret</Label>
-              <Input 
-                type="password"
-                value={form.melhorEnvio.clientSecret} 
-                onChange={(e) => setForm({ ...form, melhorEnvio: { ...form.melhorEnvio, clientSecret: e.target.value } })} 
-                className="bg-background border-border"
-              />
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label>Access Token</Label>
-              <Input 
-                type="password"
-                value={form.melhorEnvio.accessToken} 
-                onChange={(e) => setForm({ ...form, melhorEnvio: { ...form.melhorEnvio, accessToken: e.target.value } })} 
-                className="bg-background border-border"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Token Type</Label>
-              <Input 
-                value={form.melhorEnvio.tokenType ?? "Bearer"} 
-                onChange={(e) => setForm({ ...form, melhorEnvio: { ...form.melhorEnvio, tokenType: e.target.value } })} 
-                className="bg-background border-border"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Ambiente Sandbox</Label>
-                <p className="text-[10px] text-muted-foreground">Ative para realizar testes sem gerar etiquetas reais.</p>
-              </div>
-              <Switch 
-                checked={form.melhorEnvio.sandbox} 
-                onCheckedChange={(checked) => setForm({ ...form, melhorEnvio: { ...form.melhorEnvio, sandbox: checked } })} 
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="flex justify-end">
         <Button 

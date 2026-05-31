@@ -6,7 +6,7 @@ import { useCart } from "@/providers/CartContext";
 import { useAuth } from "@/providers/auth/AuthProvider";
 import { useConfig } from "@/providers/ConfigContext";
 import { CartSheet } from "./CartSheet";
-const logo = "/brand/logo-32.png";
+const logo = "/brand/logo.png";
 
 const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -26,9 +26,9 @@ const Navbar = () => {
             <Link href="/" className="flex items-center gap-2 group">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <img src={logo} alt="JPB Store" className="relative h-10 w-10 object-contain transition-transform duration-500 group-hover:scale-110" />
+                <img src={logo} alt="JPB Store" className="relative h-14 w-14 object-contain transition-transform duration-500 group-hover:scale-110" />
               </div>
-              <span className="hidden sm:inline text-xl font-black tracking-tight gold-text">JPB STORE</span>
+              <span className="hidden sm:inline text-xl font-black tracking-tight gold-text">JPB Store X</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-10">
