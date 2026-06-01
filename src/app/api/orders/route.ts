@@ -6,7 +6,7 @@ import { getMpPreference } from "@/lib/mercadopago";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { items, total, shippingAddress, paymentMethod, guestName, guestEmail, guestPhone, guestDocument } = body;
+    const { items, total, shippingAddress, paymentMethod, guestName, guestEmail, guestPhone, guestDocument, couponCode } = body;
 
     const authUser = await getAuthUser();
 
@@ -19,6 +19,21 @@ export async function POST(req: Request) {
     // Validar se todos os produtos existem
     if (dbProducts.length !== items.length) {
       return NextResponse.json({ message: "Um ou mais produtos não foram encontrados" }, { status: 400 });
+    }
+
+    // Processar cupom se fornecido
+    if (couponCode) {
+      const coupon = await prisma.coupon.findUnique({ where: { code: couponCode.toUpperCase() } });
+      if (coupon && coupon.active) {
+        if (!coupon.endDate || new Date() <= new Date(coupon.endDate)) {
+           if (!coupon.maxUses || coupon.usedCount < coupon.maxUses) {
+             await prisma.coupon.update({
+               where: { id: coupon.id },
+               data: { usedCount: { increment: 1 } }
+             });
+           }
+        }
+      }
     }
 
     // Gerar código do pedido único

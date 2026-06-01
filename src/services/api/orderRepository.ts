@@ -10,6 +10,11 @@ export interface CreateOrderInput {
   total: number;
   paymentMethod: string;
   shippingAddress: any;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  guestDocument?: string;
+  couponCode?: string;
 }
 
 export const orderRepository = {

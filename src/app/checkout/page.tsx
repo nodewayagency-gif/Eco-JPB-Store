@@ -415,6 +415,7 @@ export default function CheckoutPage() {
           guestEmail: form.email,
           guestPhone: form.phone,
           guestDocument: form.document,
+          couponCode: appliedCoupon?.code
         };
 
         const order = await orderRepository.create(orderData);
@@ -481,6 +482,7 @@ export default function CheckoutPage() {
         guestEmail: form.email,
         guestPhone: form.phone,
         guestDocument: form.document,
+        couponCode: appliedCoupon?.code
       };
 
       const order = await orderRepository.create(orderData);

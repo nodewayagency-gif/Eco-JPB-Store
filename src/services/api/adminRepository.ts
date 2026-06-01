@@ -389,17 +389,24 @@ export const adminRepository: AdminRepository = {
 
   async listCoupons() {
     const { data } = await api.get<any[]>("/coupons");
-    return data.map(c => ({
-      id: c.id,
-      code: c.code,
-      type: c.discountType.toLowerCase(),
-      value: Number(c.discountValue),
-      minPurchase: Number(c.minOrderValue) || 0,
-      usageCount: c.usedCount || 0,
-      usageLimit: c.maxUses || 0,
-      active: c.active,
-      expiryDate: c.endDate ? new Date(c.endDate).toISOString().split('T')[0] : undefined
-    }));
+    return data.map(c => {
+      let expiryDateStr = undefined;
+      if (c.endDate) {
+        const d = new Date(c.endDate);
+        expiryDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      return {
+        id: c.id,
+        code: c.code,
+        type: c.discountType.toLowerCase(),
+        value: Number(c.discountValue),
+        minPurchase: Number(c.minOrderValue) || 0,
+        usageCount: c.usedCount || 0,
+        usageLimit: c.maxUses || 0,
+        active: c.active,
+        expiryDate: expiryDateStr
+      };
+    });
   },
 
   async createCoupon(payload) {
@@ -409,7 +416,7 @@ export const adminRepository: AdminRepository = {
       discountValue: Number(payload.value),
       minOrderValue: payload.minPurchase ? Number(payload.minPurchase) : null,
       maxUses: payload.usageLimit ? Number(payload.usageLimit) : null,
-      endDate: payload.expiryDate ? new Date(payload.expiryDate).toISOString() : null,
+      endDate: payload.expiryDate ? new Date(`${payload.expiryDate}T23:59:59.999-03:00`).toISOString() : null,
       active: payload.active
     });
     return data;
@@ -422,7 +429,7 @@ export const adminRepository: AdminRepository = {
       discountValue: changes.value !== undefined ? Number(changes.value) : undefined,
       minOrderValue: changes.minPurchase !== undefined ? (changes.minPurchase ? Number(changes.minPurchase) : null) : undefined,
       maxUses: changes.usageLimit !== undefined ? (changes.usageLimit ? Number(changes.usageLimit) : null) : undefined,
-      endDate: changes.expiryDate !== undefined ? (changes.expiryDate ? new Date(changes.expiryDate).toISOString() : null) : undefined,
+      endDate: changes.expiryDate !== undefined ? (changes.expiryDate ? new Date(`${changes.expiryDate}T23:59:59.999-03:00`).toISOString() : null) : undefined,
       active: changes.active
     });
     return data;
