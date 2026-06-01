@@ -32,26 +32,45 @@ export async function POST(req: Request) {
     
     const doc = order.guestDocument || order.customer?.customerProfile?.document || '';
 
-    const paymentResponse = await payment.create({
-      body: {
-        transaction_amount: Number(order.total),
-        token: formData.token,
-        description: `Pedido ${order.orderCode} - JPB Store`,
-        installments: Number(formData.installments) || 1,
-        payment_method_id: formData.payment_method_id,
-        issuer_id: formData.issuer_id,
-        payer: {
-          email: (formData.payer?.email || order.guestEmail || order.customer?.email || '').trim() || 'cliente@dominio.com',
-          ...( (formData.payer?.identification?.number || doc.replace(/\D/g, '')) ? {
-            identification: {
-              type: formData.payer?.identification?.type || (doc.length > 14 ? 'CNPJ' : 'CPF'),
-              number: formData.payer?.identification?.number || doc.replace(/\D/g, ''),
-            }
-          } : {})
-        },
-        external_reference: order.id,
-        notification_url: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago` : undefined,
+    const paymentBody: any = {
+      transaction_amount: Number(Number(order.total).toFixed(2)),
+      description: `Pedido ${order.orderCode} - JPB Store`,
+      installments: Number(formData.installments) || 1,
+      payment_method_id: formData.payment_method_id,
+      payer: {
+        email: (formData.payer?.email || order.guestEmail || order.customer?.email || '').trim() || 'cliente@dominio.com',
+        first_name: formData.payer?.first_name || (order.guestName || order.customer?.customerProfile?.name || '').split(' ')[0] || 'Cliente',
+        last_name: formData.payer?.last_name || (order.guestName || order.customer?.customerProfile?.name || '').split(' ').slice(1).join(' ') || undefined,
       },
+      external_reference: order.id,
+    };
+
+    const docNumber = formData.payer?.identification?.number || doc.replace(/\D/g, '');
+    if (docNumber) {
+      paymentBody.payer.identification = {
+        type: formData.payer?.identification?.type || (docNumber.length > 14 ? 'CNPJ' : 'CPF'),
+        number: docNumber,
+      };
+    }
+
+    if (formData.token) paymentBody.token = formData.token;
+    if (formData.issuer_id) paymentBody.issuer_id = formData.issuer_id;
+    if (formData.payer?.entity_type) paymentBody.payer.entity_type = formData.payer.entity_type;
+    
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+      paymentBody.notification_url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago`;
+    }
+
+    // Remover propriedades vazias, undefined ou null do payer para evitar communication_error: 400
+    Object.keys(paymentBody.payer).forEach(key => {
+      const val = paymentBody.payer[key];
+      if (val === undefined || val === null || val === '') {
+        delete paymentBody.payer[key];
+      }
+    });
+
+    const paymentResponse = await payment.create({
+      body: paymentBody,
     });
 
     // 3. Atualizar o pedido com o status do pagamento e detalhes

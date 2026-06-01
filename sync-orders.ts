@@ -2,8 +2,16 @@ import { PrismaClient } from '@prisma/client';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 
 const prisma = new PrismaClient();
+const getAccessToken = () => {
+  let token = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN || '';
+  if (process.env.MP_MODE === 'test') {
+    token = process.env.MP_TEST_ACCESS_TOKEN || token;
+  }
+  return token;
+};
+
 const mpClient = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN || '',
+  accessToken: getAccessToken(),
 });
 
 async function main() {

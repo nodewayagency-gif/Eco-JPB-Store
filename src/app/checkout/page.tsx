@@ -109,6 +109,7 @@ export default function CheckoutPage() {
 
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     email: "",
@@ -282,7 +283,6 @@ export default function CheckoutPage() {
   const [isLoadingShipping, setIsLoadingShipping] = useState(false);
   const [shippingError, setShippingError] = useState("");
 
-  if (authLoading || !isCustomerAuthenticated) return null;
 
   const discount = appliedCoupon
     ? (appliedCoupon.discountType === "PERCENTAGE"
@@ -322,6 +322,45 @@ export default function CheckoutPage() {
     };
     fetchShipping();
   }, [form.zipCode, items]);
+
+  useEffect(() => {
+    if (!isSuccess || !currentOrderId || !paymentInfo || paymentInfo.status !== "pending") {
+      return;
+    }
+
+    let intervalId: any;
+    let isMounted = true;
+
+    const checkStatus = async () => {
+      try {
+        const { data } = await api.get(`/orders/${currentOrderId}/status`);
+        if (data.status === "PAID" || data.status === "approved") {
+          if (isMounted) {
+            setOrderStatus("PAID");
+            toast.success("Pagamento Pix confirmado!");
+            setPaymentInfo((prev: any) => prev ? { ...prev, status: "approved" } : null);
+            clearInterval(intervalId);
+            
+            setTimeout(() => {
+              if (isMounted) {
+                router.push("/minha-conta");
+              }
+            }, 3000);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao verificar status do pagamento:", error);
+      }
+    };
+
+    checkStatus();
+    intervalId = setInterval(checkStatus, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [isSuccess, currentOrderId, paymentInfo, router]);
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
@@ -500,6 +539,8 @@ export default function CheckoutPage() {
     }
   };
 
+  if (authLoading || !isCustomerAuthenticated) return null;
+
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -527,16 +568,38 @@ export default function CheckoutPage() {
               </div>
 
               {paymentInfo?.qr_code_base64 && (
-                <div className="mb-8 flex flex-col items-center gap-4 bg-background p-6 rounded-2xl border border-border">
-                  <h3 className="font-bold text-lg text-foreground">Escaneie o QR Code para pagar via Pix</h3>
-                  <img src={`data:image/png;base64,${paymentInfo.qr_code_base64}`} alt="QR Code Pix" className="w-56 h-56 border border-border rounded-xl p-2 bg-white" />
-                  <div className="w-full flex items-center gap-2 mt-2">
-                    <Input readOnly value={paymentInfo.qr_code} className="font-mono text-[10px] text-muted-foreground bg-secondary/50" />
-                    <Button type="button" onClick={() => { navigator.clipboard.writeText(paymentInfo.qr_code); toast.success("Código Copiado!"); }} variant="outline" className="flex-shrink-0">
-                      Copiar
-                    </Button>
+                paymentInfo.status === "approved" || orderStatus === "PAID" ? (
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="mb-8 flex flex-col items-center gap-4 bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/20 text-emerald-500"
+                  >
+                    <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                      <Check className="w-8 h-8 text-emerald-500" />
+                    </div>
+                    <h3 className="font-bold text-lg">Pagamento Aprovado!</h3>
+                    <p className="text-sm text-center text-muted-foreground">
+                      Confirmamos o seu pagamento via Pix. Você será redirecionado para a tela de seus pedidos em instantes...
+                    </p>
+                  </motion.div>
+                ) : (
+                  <div className="mb-8 flex flex-col items-center gap-4 bg-background p-6 rounded-2xl border border-border">
+                    <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                      Escaneie o QR Code para pagar via Pix
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    </h3>
+                    <img src={`data:image/png;base64,${paymentInfo.qr_code_base64}`} alt="QR Code Pix" className="w-56 h-56 border border-border rounded-xl p-2 bg-white" />
+                    <div className="w-full flex items-center gap-2 mt-2">
+                      <Input readOnly value={paymentInfo.qr_code} className="font-mono text-[10px] text-muted-foreground bg-secondary/50" />
+                      <Button type="button" onClick={() => { navigator.clipboard.writeText(paymentInfo.qr_code); toast.success("Código Copiado!"); }} variant="outline" className="flex-shrink-0">
+                        Copiar
+                      </Button>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground animate-pulse">
+                      Aguardando confirmação do pagamento...
+                    </span>
                   </div>
-                </div>
+                )
               )}
 
               {paymentInfo?.ticket_url && (
@@ -1015,20 +1078,27 @@ export default function CheckoutPage() {
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="text-foreground">{formatPrice(totalPrice)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Frete</span>
-                    <span className="text-primary font-medium">Grátis</span>
-                  </div>
+                  {!selectedShipping ? (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Frete</span>
+                      <span className="text-primary font-medium">A calcular</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-muted-foreground">Frete ({selectedShipping.name})</span>
+                      <span className="text-foreground">
+                        {selectedShipping.price === 0 ? (
+                          <span className="text-primary font-medium">Grátis</span>
+                        ) : (
+                          formatPrice(selectedShipping.price)
+                        )}
+                      </span>
+                    </div>
+                  )}
                   {appliedCoupon && (
                     <div className="flex justify-between text-sm text-emerald-500 font-medium">
                       <span>Desconto ({appliedCoupon.code})</span>
                       <span>-{formatPrice(discount)}</span>
-                    </div>
-                  )}
-                  {selectedShipping && (
-                    <div className="flex justify-between text-sm font-medium">
-                      <span className="text-muted-foreground">Frete ({selectedShipping.name})</span>
-                      <span className="text-foreground">{formatPrice(selectedShipping.price)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">

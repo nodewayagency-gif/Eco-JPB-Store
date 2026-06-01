@@ -81,6 +81,8 @@ const PaymentBrick = ({ amount, onSubmit, payer }: PaymentBrickProps) => {
     paymentMethods: {
       creditCard: "all",
       debitCard: "all",
+      ticket: "all",
+      bankTransfer: "all",
     },
   }), []);
 

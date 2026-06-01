@@ -765,23 +765,23 @@ export default function CustomerPage() {
                             <OrderTimeline steps={order.tracking} />
                             
                             {order.trackingCode && (
-                              <div className="mt-8 flex flex-col gap-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                  <Truck className="w-3 h-3" /> Código de Rastreio
+                              <div className="mt-8 flex flex-col gap-3 p-5 rounded-2xl border-2 border-primary bg-primary/10 shadow-lg">
+                                <span className="text-xs font-black uppercase tracking-wider text-primary flex items-center gap-2">
+                                  <Truck className="w-4 h-4" /> Código de Rastreio
                                 </span>
-                                <div className="flex items-center justify-between gap-4">
-                                  <span className="font-mono text-sm font-bold select-all tracking-wider">{order.trackingCode}</span>
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-background p-3 rounded-xl border border-border">
+                                  <span className="font-mono text-lg font-bold select-all tracking-wider text-foreground">{order.trackingCode}</span>
                                   <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="h-8 text-xs px-3 border-primary/30 hover:bg-primary hover:text-black transition-colors shimmer-btn"
+                                    variant="default" 
+                                    size="default" 
+                                    className="font-bold shimmer-btn w-full sm:w-auto"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       navigator.clipboard.writeText(order.trackingCode!);
                                       toast.success("Código copiado!");
                                     }}
                                   >
-                                    Copiar
+                                    Copiar Código
                                   </Button>
                                 </div>
                               </div>

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMpClient } from "@/lib/mercadopago";
-import { decrypt } from "@/lib/encryption";
 import { Payment } from "mercadopago";
 
 import crypto from "crypto";
@@ -11,8 +10,6 @@ export async function POST(req: Request) {
     const { searchParams } = new URL(req.url);
     const queryType = searchParams.get("type") || searchParams.get("topic");
     const queryId = searchParams.get("data.id") || searchParams.get("id");
-
-    const config = await prisma.companyConfig.findFirst();
 
     // Verificação de Assinatura (Segurança Mercado Pago)
     const xSignature = req.headers.get("x-signature");
@@ -38,7 +35,7 @@ export async function POST(req: Request) {
 
         if (sha !== v1) {
           console.error("❌ Webhook: Assinatura inválida! Possível tentativa de fraude.");
-          return new NextResponse("Invalid Signature", { status: 403 });
+          return NextResponse.json({ error: "Invalid Signature" }, { status: 403 });
         }
       }
     }
@@ -67,91 +64,98 @@ export async function POST(req: Request) {
       console.log(`📦 Pagamento ${dataIdToUse} do Pedido ${orderId}: Status=${status}`);
 
       if (orderId && (status === "approved" || status === "authorized")) {
-        // 1. Atualizar pedido para pago
-        await prisma.order.update({
+        // Verificar o status atual do pedido para evitar reprocessamento e múltiplos decrementos de estoque
+        const currentOrder = await prisma.order.findUnique({
           where: { id: orderId },
-          data: {
-            status: "PAID",
-            paymentStatus: status,
-            gatewayTransactionId: dataIdToUse.toString(),
-            paymentMethodId: payment.payment_method_id,
-            installments: payment.installments,
-            gatewayResponse: payment as any,
-          }
+          select: { status: true }
         });
 
-        // 2. Baixar estoque dos itens do pedido
-        const orderWithItems = await prisma.order.findUnique({
-          where: { id: orderId },
-          include: { items: true }
-        });
+        if (currentOrder && currentOrder.status !== "PAID") {
+          // 1. Atualizar pedido para pago e incluir items na mesma query
+          const orderWithItems = await prisma.order.update({
+            where: { id: orderId },
+            data: {
+              status: "PAID",
+              paymentStatus: status,
+              gatewayTransactionId: dataIdToUse.toString(),
+              paymentMethodId: payment.payment_method_id,
+              installments: payment.installments,
+              gatewayResponse: payment as any,
+            },
+            include: { items: true }
+          });
 
-        if (orderWithItems) {
-          for (const item of orderWithItems.items) {
-            // Decrementar estoque do produto principal
-            const product = await prisma.product.findUnique({ where: { id: item.productId } });
-            if (product) {
-              const newQuantity = Math.max(0, product.stockQuantity - item.quantity);
-              await prisma.product.update({
+          // 2. Baixar estoque dos itens do pedido (decremento direto, evitando race conditions e leituras extras)
+          if (orderWithItems) {
+            for (const item of orderWithItems.items) {
+              // Decrementar estoque do produto principal
+              const product = await prisma.product.update({
                 where: { id: item.productId },
                 data: {
-                  stockQuantity: newQuantity,
-                  inStock: newQuantity > 0
+                  stockQuantity: {
+                    decrement: item.quantity
+                  }
                 }
               });
-            }
+              if (product && product.stockQuantity <= 0) {
+                await prisma.product.update({
+                  where: { id: item.productId },
+                  data: { inStock: false }
+                });
+              }
 
-            // Se o item tiver variante, decrementar estoque da variante também
-            if (item.variantId) {
-              const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
-              if (variant) {
-                const newVarQuantity = Math.max(0, variant.stockQuantity - item.quantity);
-                await prisma.productVariant.update({
+              // Se o item tiver variante, decrementar estoque da variante também
+              if (item.variantId) {
+                const variant = await prisma.productVariant.update({
                   where: { id: item.variantId },
                   data: {
-                    stockQuantity: newVarQuantity,
-                    active: newVarQuantity > 0
+                    stockQuantity: {
+                      decrement: item.quantity
+                    }
                   }
                 });
+                if (variant && variant.stockQuantity <= 0) {
+                  await prisma.productVariant.update({
+                    where: { id: item.variantId },
+                    data: { active: false }
+                  });
+                }
               }
             }
           }
-        }
 
-        // 3. Atualizar os passos do pedido (Timeline)
-        const orderSteps = await prisma.orderStep.findMany({
-          where: { orderId: orderId }
-        });
-
-        const waitingPaymentStep = orderSteps.find(s => s.key === 'waiting_payment');
-        const paidStep = orderSteps.find(s => s.key === 'paid');
-        const nextStep = orderSteps.find(s => s.key === 'in_separation');
-
-        if (waitingPaymentStep) {
-          await prisma.orderStep.update({
-            where: { id: waitingPaymentStep.id },
-            data: { completed: true, active: false }
+          // 3. Atualizar os passos do pedido (Timeline) em lote com updateMany
+          await prisma.orderStep.updateMany({
+            where: {
+              orderId: orderId,
+              key: { in: ['waiting_payment', 'paid'] }
+            },
+            data: {
+              completed: true,
+              active: false
+            }
           });
-        }
 
-        if (paidStep && nextStep) {
-          await prisma.orderStep.update({
-            where: { id: paidStep.id },
-            data: { completed: true, active: false }
+          await prisma.orderStep.updateMany({
+            where: {
+              orderId: orderId,
+              key: 'in_separation'
+            },
+            data: {
+              active: true
+            }
           });
-          await prisma.orderStep.update({
-            where: { id: nextStep.id },
-            data: { active: true }
-          });
-        }
 
-        console.log(`✅ Pedido ${orderId}: Pagamento confirmado e ESTOQUE ATUALIZADO.`);
+          console.log(`✅ Pedido ${orderId}: Pagamento confirmado e ESTOQUE ATUALIZADO.`);
+        } else {
+          console.log(`ℹ️ Pedido ${orderId} já está marcado como pago (PAID). Ignorando atualização de estoque.`);
+        }
       }
     }
 
-    return new NextResponse("OK", { status: 200 });
+    return NextResponse.json({ message: "OK" }, { status: 200 });
   } catch (error: any) {
     console.error("❌ Erro no Webhook Mercado Pago:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
