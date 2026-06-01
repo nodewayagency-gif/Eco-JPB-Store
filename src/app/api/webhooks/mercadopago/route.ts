@@ -85,17 +85,13 @@ export async function POST(req: Request) {
             include: { items: true }
           });
 
-          // 2. Baixar estoque dos itens do pedido (decremento direto, evitando race conditions e leituras extras)
-          if (orderWithItems) {
-            for (const item of orderWithItems.items) {
+          // 2. Baixar estoque dos itens do pedido (concorrente)
+          if (orderWithItems && orderWithItems.items.length > 0) {
+            const updatePromises = orderWithItems.items.map(async (item) => {
               // Decrementar estoque do produto principal
               const product = await prisma.product.update({
                 where: { id: item.productId },
-                data: {
-                  stockQuantity: {
-                    decrement: item.quantity
-                  }
-                }
+                data: { stockQuantity: { decrement: item.quantity } }
               });
               if (product && product.stockQuantity <= 0) {
                 await prisma.product.update({
@@ -104,15 +100,11 @@ export async function POST(req: Request) {
                 });
               }
 
-              // Se o item tiver variante, decrementar estoque da variante também
+              // Se o item tiver variante, decrementar estoque da variante
               if (item.variantId) {
                 const variant = await prisma.productVariant.update({
                   where: { id: item.variantId },
-                  data: {
-                    stockQuantity: {
-                      decrement: item.quantity
-                    }
-                  }
+                  data: { stockQuantity: { decrement: item.quantity } }
                 });
                 if (variant && variant.stockQuantity <= 0) {
                   await prisma.productVariant.update({
@@ -121,30 +113,32 @@ export async function POST(req: Request) {
                   });
                 }
               }
-            }
+            });
+            await Promise.all(updatePromises);
           }
 
-          // 3. Atualizar os passos do pedido (Timeline) em lote com updateMany
-          await prisma.orderStep.updateMany({
-            where: {
-              orderId: orderId,
-              key: { in: ['waiting_payment', 'paid'] }
-            },
-            data: {
-              completed: true,
-              active: false
-            }
-          });
-
-          await prisma.orderStep.updateMany({
-            where: {
-              orderId: orderId,
-              key: 'in_separation'
-            },
-            data: {
-              active: true
-            }
-          });
+          // 3. Atualizar os passos do pedido (Timeline) concorrentemente
+          await Promise.all([
+            prisma.orderStep.updateMany({
+              where: {
+                orderId: orderId,
+                key: { in: ['waiting_payment', 'paid'] }
+              },
+              data: {
+                completed: true,
+                active: false
+              }
+            }),
+            prisma.orderStep.updateMany({
+              where: {
+                orderId: orderId,
+                key: 'in_separation'
+              },
+              data: {
+                active: true
+              }
+            })
+          ]);
 
           console.log(`✅ Pedido ${orderId}: Pagamento confirmado e ESTOQUE ATUALIZADO.`);
         } else {
