@@ -56,7 +56,15 @@ export async function POST(req: Request) {
     if ((type === "payment" || type === "payment.created" || type === "payment.updated") && dataIdToUse) {
       const client = await getMpClient();
       const paymentClient = new Payment(client);
-      const payment = await paymentClient.get({ id: dataIdToUse.toString() });
+      
+      let payment: any;
+      try {
+        payment = await paymentClient.get({ id: dataIdToUse.toString() });
+      } catch (err: any) {
+        console.warn(`⚠️ Pagamento ID=${dataIdToUse} não encontrado no Mercado Pago. Possível simulação de teste.`, err.message);
+        // Retornar 200 para o painel do MP entender que recebemos, senão o "Simular Notificação" dá 502/500
+        return NextResponse.json({ message: "OK (Ignorado - Pagamento Inexistente)" }, { status: 200 });
+      }
 
       const orderId = payment.external_reference;
       const status = payment.status;
