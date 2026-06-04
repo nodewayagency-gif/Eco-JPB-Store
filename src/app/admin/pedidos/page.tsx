@@ -62,16 +62,20 @@ function OrdersContent() {
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
   const [loadingOrderId, setLoadingOrderId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [trackingCodeInput, setTrackingCodeInput] = useState("");
 
-  const loadOrders = async () => {
+  const loadOrders = async (silent = false) => {
     try {
+      if (!silent) setLoading(true);
       const data = await adminRepository.listOrders();
       setOrders(data);
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error);
       toast.error("Erro ao carregar pedidos.");
+    } finally {
+      if (!silent) setLoading(false);
     }
   };
 
@@ -234,7 +238,16 @@ function OrdersContent() {
             </TableHeader>
             <TableBody>
               <AnimatePresence mode="popLayout">
-                {paginatedOrders.length === 0 ? (
+                {loading ? (
+                   <TableRow>
+                     <TableCell colSpan={7} className="h-40 text-center py-10">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <p className="text-muted-foreground text-sm">Carregando pedidos...</p>
+                        </div>
+                     </TableCell>
+                   </TableRow>
+                ) : paginatedOrders.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-40 text-center text-muted-foreground italic opacity-40">
                       Nenhum pedido encontrado.
@@ -314,8 +327,18 @@ function OrdersContent() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:hidden">
-        {paginatedOrders.map((order) => (
-          <Card key={order.id} className="bg-card border-border active:scale-[0.98] transition-transform" onClick={() => openOrder(order.id)}>
+        {loading ? (
+           <div className="flex flex-col items-center py-10 gap-2">
+             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+             <p className="text-muted-foreground text-sm">Carregando pedidos...</p>
+           </div>
+        ) : paginatedOrders.length === 0 ? (
+           <div className="h-40 flex items-center justify-center text-muted-foreground italic opacity-40">
+             Nenhum pedido encontrado.
+           </div>
+        ) : (
+          paginatedOrders.map((order) => (
+            <Card key={order.id} className="bg-card border-border active:scale-[0.98] transition-transform" onClick={() => openOrder(order.id)}>
             <CardContent className="p-4">
               <div className="flex justify-between items-start mb-3">
                 <div className="space-y-1">
@@ -346,7 +369,7 @@ function OrdersContent() {
               </Button>
             </CardContent>
           </Card>
-        ))}
+        )))}
       </div>
 
       {totalPages > 1 && (
@@ -407,7 +430,7 @@ function OrdersContent() {
       )}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] md:h-auto overflow-y-auto bg-card border-border text-foreground">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-[90vw] h-[95vh] md:h-auto max-h-[95vh] overflow-y-auto overflow-x-hidden bg-card border-border text-foreground p-4 md:p-6">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -424,8 +447,8 @@ function OrdersContent() {
           </DialogHeader>
 
           {selectedOrder ? (
-            <Tabs defaultValue="logistics" className="w-full">
-              <div className="flex overflow-x-auto pb-1 mb-4 no-scrollbar">
+            <Tabs defaultValue="logistics" className="w-full min-w-0 max-w-full">
+              <div className="flex overflow-x-auto pb-1 mb-4 no-scrollbar w-full">
                 <TabsList className="bg-secondary border border-border w-full justify-start md:justify-center h-12 p-1 gap-1">
                   <TabsTrigger value="logistics" className="flex-1 md:flex-none gap-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-black font-bold transition-all">
                     <Truck className="w-4 h-4" /> Logística
@@ -439,9 +462,9 @@ function OrdersContent() {
                 </TabsList>
               </div>
 
-              <TabsContent value="logistics" className="space-y-6 focus-visible:outline-none">
-                <div className="bg-secondary/50 border border-border rounded-3xl p-6 md:p-8 overflow-x-auto no-scrollbar">
-                  <div className="min-w-[700px] relative flex justify-between items-center px-4">
+              <TabsContent value="logistics" className="space-y-6 focus-visible:outline-none w-full min-w-0 max-w-full">
+                <div className="w-full min-w-0 max-w-full bg-secondary/50 border border-border rounded-3xl p-4 md:p-8 overflow-x-auto pb-6">
+                  <div className="min-w-[700px] relative flex justify-between items-center px-2 md:px-4 pb-4">
                     <div className="absolute top-[24px] left-0 w-full h-[2px] bg-border -translate-y-1/2 z-0 px-10" />
                     
                     {selectedOrder.steps
@@ -530,24 +553,24 @@ function OrdersContent() {
                     </h3>
                     {selectedOrder.shippingAddress ? (
                       <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Rua e Número</p>
-                            <p className="text-sm font-medium">{(selectedOrder.shippingAddress as any).street}, {(selectedOrder.shippingAddress as any).number}</p>
+                            <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).street}, {(selectedOrder.shippingAddress as any).number}</p>
                           </div>
                           <div>
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Bairro</p>
-                            <p className="text-sm font-medium">{(selectedOrder.shippingAddress as any).neighborhood}</p>
+                            <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).neighborhood}</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Cidade/Estado</p>
-                            <p className="text-sm font-medium">{(selectedOrder.shippingAddress as any).city} - {(selectedOrder.shippingAddress as any).state}</p>
+                            <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).city} - {(selectedOrder.shippingAddress as any).state}</p>
                           </div>
                           <div>
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">CEP</p>
-                            <p className="text-sm font-medium">{(selectedOrder.shippingAddress as any).zipCode}</p>
+                            <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).zipCode}</p>
                           </div>
                         </div>
                       </div>
@@ -566,7 +589,7 @@ function OrdersContent() {
                       </div>
                       
                       <Button 
-                        className="w-full gap-2 bg-gradient-to-r from-primary to-orange-500 text-black font-black hover:opacity-90 h-16 rounded-2xl shadow-[0_10px_30px_rgba(251,191,36,0.2)] transition-all active:scale-95 text-lg" 
+                        className="w-full gap-2 bg-gradient-to-r from-primary to-orange-500 text-black font-black hover:opacity-90 min-h-[4rem] h-auto py-3 rounded-2xl shadow-[0_10px_30px_rgba(251,191,36,0.2)] transition-all active:scale-95 text-sm sm:text-lg flex-wrap leading-tight" 
                         onClick={nextStep}
                         disabled={isUpdating || selectedOrder.currentStep === "delivered"}
                       >
@@ -574,7 +597,7 @@ function OrdersContent() {
                           <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <>
-                            {selectedOrder.currentStep === "delivered" ? "Pedido Concluído" : "Avançar para Próxima Etapa"} <ChevronRight className="w-5 h-5" />
+                            <span className="text-center">{selectedOrder.currentStep === "delivered" ? "Pedido Concluído" : "Avançar para Próxima Etapa"}</span> <ChevronRight className="w-5 h-5 shrink-0" />
                           </>
                         )}
                       </Button>
@@ -586,17 +609,17 @@ function OrdersContent() {
                       </h3>
                       <div className="flex flex-col gap-2 mt-2">
                         <label className="text-xs text-muted-foreground font-bold">Código de Rastreio da Transportadora</label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                           <Input 
                             placeholder="Ex: BR123456789BR" 
                             value={trackingCodeInput}
                             onChange={(e) => setTrackingCodeInput(e.target.value)}
-                            className="bg-background border-border uppercase font-mono"
+                            className="bg-background border-border uppercase font-mono w-full"
                           />
                           <Button 
                             onClick={saveTrackingCode}
                             disabled={isUpdating || trackingCodeInput === (selectedOrder.trackingCode || "")}
-                            className="shimmer-btn"
+                            className="shimmer-btn w-full sm:w-auto shrink-0"
                           >
                             Salvar
                           </Button>
@@ -636,9 +659,9 @@ function OrdersContent() {
                   </div>
                   <div className="space-y-3">
                     {selectedOrder.items.map((item, index) => (
-                      <div key={`${item.productName}-${index}`} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50 hover:border-border transition-colors">
+                      <div key={`${item.productName}-${index}`} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50 hover:border-border transition-colors gap-4">
                         <div className="flex gap-4 items-center">
-                          <div className="w-16 h-16 rounded-lg bg-background flex items-center justify-center overflow-hidden border border-border">
+                          <div className="w-16 h-16 shrink-0 rounded-lg bg-background flex items-center justify-center overflow-hidden border border-border">
                             {item.productImage ? (
                               <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover" />
                             ) : (
@@ -646,15 +669,15 @@ function OrdersContent() {
                             )}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-foreground">{item.productName}</span>
-                            <span className="text-[11px] text-muted-foreground">Qtd: <span className="text-foreground font-bold">{item.quantity}</span></span>
+                            <span className="text-sm font-bold text-foreground line-clamp-2">{item.productName}</span>
+                            <span className="text-[11px] text-muted-foreground mt-1">Qtd: <span className="text-foreground font-bold">{item.quantity}</span></span>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left sm:text-right w-full sm:w-auto mt-2 sm:mt-0 bg-background/50 sm:bg-transparent p-2 sm:p-0 rounded-lg">
                           <span className="text-sm font-bold text-primary">
                             {item.unitPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                           </span>
-                          <p className="text-[10px] text-muted-foreground">unitário</p>
+                          <p className="text-[10px] text-muted-foreground hidden sm:block">unitário</p>
                         </div>
                       </div>
                     ))}

@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef } from "react";
-import { 
-  Search, 
-  MessageSquare, 
-  User, 
-  Image as ImageIcon, 
-  X, 
-  Package, 
+import {
+  Search,
+  MessageSquare,
+  User,
+  Image as ImageIcon,
+  X,
+  Package,
   ChevronRight,
   Filter,
   Send,
@@ -19,19 +19,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationNext, 
-  PaginationPrevious 
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
 } from "@/components/ui/pagination";
 import { adminRepository } from "@/services/api/adminRepository";
 import { toast } from "sonner";
@@ -45,10 +46,11 @@ export default function AdminSupportPage() {
   const [tickets, setTickets] = useState<SupportTicketView[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketView | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [replyImages, setReplyImages] = useState<{file: File, preview: string}[]>([]);
+  const [replyImages, setReplyImages] = useState<{ file: File, preview: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"ALL" | TicketStatus>("ALL");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const itemsPerPage = 8;
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -78,14 +80,15 @@ export default function AdminSupportPage() {
     loadTickets();
 
     const interval = setInterval(() => {
-      loadTickets();
+      loadTickets(true);
     }, 10000);
 
     return () => clearInterval(interval);
   }, [selectedTicket?.id]);
 
-  const loadTickets = async () => {
+  const loadTickets = async (silent = false) => {
     try {
+      if (!silent) setLoading(true);
       const data = await adminRepository.listTickets();
       if (Array.isArray(data)) {
         setTickets(data);
@@ -94,8 +97,8 @@ export default function AdminSupportPage() {
           if (updated) {
             setSelectedTicket(prev => {
               if (!prev) return updated;
-              const messages = (updated.messages && updated.messages.length > 0) 
-                ? updated.messages 
+              const messages = (updated.messages && updated.messages.length > 0)
+                ? updated.messages
                 : prev.messages;
               return { ...prev, ...updated, messages };
             });
@@ -104,6 +107,8 @@ export default function AdminSupportPage() {
       }
     } catch (error) {
       console.error("Erro ao carregar chamados:", error);
+    } finally {
+      if (!silent) setLoading(false);
     }
   };
 
@@ -111,9 +116,9 @@ export default function AdminSupportPage() {
     try {
       const updated = await adminRepository.updateTicketStatus(id, status);
       toast.success("Status atualizado!");
-      
+
       setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
-      
+
       if (selectedTicket?.id === id) {
         setSelectedTicket(prev => prev ? { ...prev, ...updated } : updated);
       }
@@ -166,11 +171,11 @@ export default function AdminSupportPage() {
         }
       }
 
-      await adminRepository.replyTicket(selectedTicket.id, { 
+      await adminRepository.replyTicket(selectedTicket.id, {
         content: replyContent,
         images: imageUrls
       });
-      
+
       setReplyContent("");
       setReplyImages([]);
       await loadTickets();
@@ -184,9 +189,9 @@ export default function AdminSupportPage() {
 
   const filteredTickets = tickets.filter(t => {
     const matchesStatus = statusFilter === "ALL" || t.status === statusFilter;
-    const matchesSearch = (t.customerName || "").toLowerCase().includes(search.toLowerCase()) || 
-                         (t.subject || "").toLowerCase().includes(search.toLowerCase()) ||
-                         (t.id || "").toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (t.customerName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.subject || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.id || "").toLowerCase().includes(search.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -202,12 +207,12 @@ export default function AdminSupportPage() {
           </h1>
           <p className="text-xs text-muted-foreground">Gerencie chamados e suporte aos clientes.</p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Buscar chamado..." 
+            <Input
+              placeholder="Buscar chamado..."
               className="pl-9 h-10 bg-background/50 border-border/50"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -235,11 +240,21 @@ export default function AdminSupportPage() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fila de Chamados</span>
               <Badge variant="outline" className="text-[10px] bg-primary/5">{filteredTickets.length}</Badge>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
               <AnimatePresence mode="popLayout">
-                {paginatedTickets.length === 0 ? (
-                  <motion.div 
+                {loading ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center justify-center py-20"
+                  >
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+                    <p className="text-muted-foreground text-sm">Carregando chamados...</p>
+                  </motion.div>
+                ) : paginatedTickets.length === 0 ? (
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-30"
@@ -249,7 +264,7 @@ export default function AdminSupportPage() {
                   </motion.div>
                 ) : (
                   paginatedTickets.map((ticket, idx) => (
-                    <motion.button 
+                    <motion.button
                       key={ticket.id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -257,8 +272,8 @@ export default function AdminSupportPage() {
                       onClick={() => setSelectedTicket(ticket)}
                       className={cn(
                         "w-full text-left p-4 rounded-2xl border transition-all relative overflow-hidden group",
-                        selectedTicket?.id === ticket.id 
-                          ? "bg-primary/10 border-primary shadow-[0_8px_30px_rgb(251,191,36,0.1)] scale-[1.02] z-10" 
+                        selectedTicket?.id === ticket.id
+                          ? "bg-primary/10 border-primary shadow-[0_8px_30px_rgb(251,191,36,0.1)] scale-[1.02] z-10"
                           : "bg-[#111111] border-border/40 hover:border-primary/30 hover:bg-[#151515]"
                       )}
                     >
@@ -272,21 +287,21 @@ export default function AdminSupportPage() {
                         <div className={cn(
                           "w-2 h-2 rounded-full",
                           ticket.status === "OPEN" ? "bg-destructive animate-pulse" :
-                          ticket.status === "IN_PROGRESS" ? "bg-amber-500" : "bg-emerald-500"
+                            ticket.status === "IN_PROGRESS" ? "bg-amber-500" : "bg-emerald-500"
                         )} />
                       </div>
-                      
+
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60 mb-3">
                         <User className="w-3 h-3" />
                         <span className="truncate font-medium">{ticket.customerName || "Desconhecido"}</span>
                       </div>
-                      
+
                       <div className="flex justify-between items-center pt-3 border-t border-border/10">
                         <Badge variant="outline" className={cn(
                           "text-[8px] h-4 font-black uppercase tracking-widest px-2 border-none",
                           ticket.status === "OPEN" ? "bg-destructive/10 text-destructive" :
-                          ticket.status === "IN_PROGRESS" ? "bg-amber-500/10 text-amber-500" :
-                          "bg-emerald-500/10 text-emerald-500"
+                            ticket.status === "IN_PROGRESS" ? "bg-amber-500/10 text-amber-500" :
+                              "bg-emerald-500/10 text-emerald-500"
                         )}>
                           {ticket.status === "OPEN" ? "Aberto" : ticket.status === "IN_PROGRESS" ? "Em Atend." : "Resolvido"}
                         </Badge>
@@ -303,12 +318,12 @@ export default function AdminSupportPage() {
                 <Pagination>
                   <PaginationContent className="bg-card border border-border rounded-full px-1.5 py-0.5 scale-90">
                     <PaginationItem>
-                      <PaginationPrevious 
+                      <PaginationPrevious
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         className={cn("rounded-full h-7 w-7 p-0 cursor-pointer", page === 1 && "pointer-events-none opacity-20")}
                       />
                     </PaginationItem>
-                    
+
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
                       if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
                         return (
@@ -330,7 +345,7 @@ export default function AdminSupportPage() {
                     })}
 
                     <PaginationItem>
-                      <PaginationNext 
+                      <PaginationNext
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                         className={cn("rounded-full h-7 w-7 p-0 cursor-pointer", page === totalPages && "pointer-events-none opacity-20")}
                       />
@@ -364,15 +379,15 @@ export default function AdminSupportPage() {
                         <span className="font-mono text-[10px]">{selectedTicket.orderId}</span>
                       </Badge>
                     )}
-                    <Select 
-                      value={selectedTicket.status || "OPEN"} 
+                    <Select
+                      value={selectedTicket.status || "OPEN"}
                       onValueChange={(v: TicketStatus) => handleStatusUpdate(selectedTicket.id, v)}
                     >
                       <SelectTrigger className={cn(
                         "h-9 w-[160px] font-bold text-xs",
                         selectedTicket.status === "OPEN" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                        selectedTicket.status === "IN_PROGRESS" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                        "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          selectedTicket.status === "IN_PROGRESS" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                            "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                       )}>
                         <SelectValue />
                       </SelectTrigger>
@@ -403,8 +418,8 @@ export default function AdminSupportPage() {
 
                   <AnimatePresence initial={false}>
                     {selectedTicket?.messages?.map((msg, mIdx) => (
-                      <motion.div 
-                        key={msg.id} 
+                      <motion.div
+                        key={msg.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: mIdx * 0.05 }}
@@ -412,8 +427,8 @@ export default function AdminSupportPage() {
                       >
                         <div className={cn(
                           "max-w-[85%] p-4 rounded-2xl",
-                          msg.senderRole === "CUSTOMER" 
-                            ? "bg-secondary/50 border border-border/50 rounded-tl-none" 
+                          msg.senderRole === "CUSTOMER"
+                            ? "bg-secondary/50 border border-border/50 rounded-tl-none"
                             : "bg-primary text-black font-medium rounded-tr-none"
                         )}>
                           {msg.images && msg.images.length > 0 && (
@@ -441,7 +456,7 @@ export default function AdminSupportPage() {
                         {replyImages.map((img, i) => (
                           <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border group">
                             <img src={img.preview} alt="Preview" className="w-full h-full object-cover" />
-                            <button 
+                            <button
                               onClick={() => removeImage(i)}
                               className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
@@ -451,10 +466,10 @@ export default function AdminSupportPage() {
                         ))}
                       </div>
                     )}
-                    
+
                     <div className="flex gap-3 items-end">
                       <div className="flex-1 relative">
-                        <Input 
+                        <Input
                           value={replyContent}
                           onChange={e => setReplyContent(e.target.value)}
                           placeholder="Digite sua resposta..."
@@ -466,7 +481,7 @@ export default function AdminSupportPage() {
                           <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} disabled={isUploading} />
                         </label>
                       </div>
-                      <Button 
+                      <Button
                         onClick={handleReply}
                         disabled={(!replyContent && replyImages.length === 0) || isUploading}
                         className="h-12 px-6 font-bold"

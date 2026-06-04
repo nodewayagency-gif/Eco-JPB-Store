@@ -19,13 +19,13 @@ const HeroSection = () => {
               className="space-y-6"
             >
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-                Seu Ecossistema de
-                <br />
-                <span className="gold-text">Alta Performance.</span>
+                {/* Seu Ecossistema de
+                <br /> */}
+                <span className="gold-text">Simplesmente Melhor.</span>
               </h1>
 
               <p className="max-w-xl text-base sm:text-lg text-zinc-400 leading-relaxed font-medium">
-                Não aceite menos que a performance máxima. Garanta o seu iPhone, MacBook ou iPad com as melhores condições do Brasil e o selo de confiança JPB.
+                Encontre os produtos mais desejados do momento, com a qualidade que você espera. Segurança, confiança e uma experiência feita para surpreender do início ao fim.
               </p>
             </motion.div>
 

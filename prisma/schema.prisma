@@ -50,7 +50,6 @@ model User {
   sessions        Session[]
   orders          Order[]
   reviews         Review[]
-  cart            Cart?
   tickets         SupportTicket[]
 
   @@map("jpb_users")
@@ -136,6 +135,7 @@ model Product {
   image               String
   images              String[]  @default([])
   badge               String?
+  topics              String[]  @default([])
   inStock             Boolean   @default(true)
   stockQuantity       Int       @default(0)
   minStockAlert       Int       @default(5)
@@ -161,7 +161,6 @@ model Product {
   orderItems OrderItem[]
   variants   ProductVariant[]
   reviews    Review[]
-  cartItems  CartItem[]
 
   @@index([categoryId])
   @@index([active])
@@ -284,7 +283,6 @@ model ProductVariant {
   active        Boolean     @default(true)
   product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems    OrderItem[]
-  cartItems     CartItem[]
 
   @@map("jpb_product_variants")
 }
@@ -321,30 +319,7 @@ model Review {
   @@map("jpb_reviews")
 }
 
-model Cart {
-  id        String     @id @default(cuid())
-  userId    String?    @unique
-  sessionId String?    @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     CartItem[]
 
-  @@map("jpb_carts")
-}
-
-model CartItem {
-  id        String          @id @default(cuid())
-  cartId    String
-  productId String
-  variantId String?
-  quantity  Int             @default(1)
-  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-
-  @@map("jpb_cart_items")
-}
 
 model Coupon {
   id            String    @id @default(cuid())

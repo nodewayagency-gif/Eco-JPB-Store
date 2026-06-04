@@ -10,7 +10,6 @@ const logo = "/brand/logo.png";
 
 const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { totalItems, setIsOpen } = useCart();
   const { customerSession, isCustomerAuthenticated } = useAuth();
   const { config } = useConfig();
@@ -28,23 +27,41 @@ const Navbar = () => {
                 <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <img src={logo} alt="JPB Store" className="relative h-14 w-14 object-contain transition-transform duration-500 group-hover:scale-110" />
               </div>
-              <span className="hidden sm:inline text-xl font-black tracking-tight gold-text">JPB Store X</span>
+              <span className="hidden sm:inline text-xl font-black tracking-tight gold-text">JPBStoreX</span>
             </Link>
 
-            <div className="hidden md:flex items-center gap-10">
-              <Link href="/" className="relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
+            <div className="flex items-center gap-3 sm:gap-6 md:gap-10">
+              {/* Somente Desktop */}
+              <Link href="/" className="hidden md:block relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
                 Início
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
               </Link>
-              <Link href="/produtos" className="relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
+
+              {/* Ambas as telas */}
+              <Link href="/produtos" className="relative text-[11px] sm:text-xs md:text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
                 Produtos
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
               </Link>
-              <Link href="/sobre" className="relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
+
+              {/* Somente Desktop */}
+              <Link href="/sobre" className="hidden md:block relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
                 Sobre
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
               </Link>
-              <Link href="/login" className="relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
+
+              {/* Somente Mobile */}
+              <Link href="/sobre" className="md:hidden relative text-[11px] sm:text-xs font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
+                Quem somos
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
+              </Link>
+
+              <a href={instagramUrl} target="_blank" rel="noreferrer" className="md:hidden relative text-[11px] sm:text-xs font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
+                Instagram
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
+              </a>
+
+              {/* Somente Desktop */}
+              <Link href="/login" className="hidden md:block relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
                 Minha conta
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
               </Link>
@@ -123,46 +140,10 @@ const Navbar = () => {
                 ) : null}
               </button>
 
-              <button
-                onClick={() => setMobileMenuOpen((value) => !value)}
-                className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Abrir menu"
-              >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
             </div>
           </div>
         </div>
 
-        <AnimatePresence>
-          {mobileMenuOpen ? (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="md:hidden overflow-hidden border-t border-border"
-            >
-              <div className="px-4 py-4 space-y-3">
-                <Link href="/" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileMenuOpen(false)}>
-                  Início
-                </Link>
-                <Link href="/produtos" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileMenuOpen(false)}>
-                  Produtos
-                </Link>
-                <Link href="/sobre" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileMenuOpen(false)}>
-                  Sobre
-                </Link>
-                <Link href="/login" className="block text-sm font-medium text-foreground py-2" onClick={() => setMobileMenuOpen(false)}>
-                  {isCustomerAuthenticated && userName ? `Minha conta (${userName})` : "Minha conta"}
-                </Link>
-                <a href={instagramUrl} target="_blank" rel="noreferrer" className="block text-sm font-medium text-foreground py-2">
-                  Instagram
-                </a>
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
       </nav>
       <CartSheet />
     </>

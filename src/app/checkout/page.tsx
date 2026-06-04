@@ -305,13 +305,22 @@ export default function CheckoutPage() {
             items: items.map(i => ({ productId: i.product.id, quantity: i.quantity }))
           });
           setShippingOptions(data);
-          if (data && !data.find((o: any) => o.id === selectedShipping?.id)) {
+          
+          if (data && data.length > 0) {
+            // Auto-selecionar se for a única opção (ex: Frete Grátis)
+            if (data.length === 1 && data[0].id === "free-shipping") {
+              setSelectedShipping(data[0]);
+            } else if (!data.find((o: any) => o.id === selectedShipping?.id)) {
+              setSelectedShipping(null);
+            }
+          } else {
             setSelectedShipping(null);
           }
         } catch (error: any) {
           console.error("Erro ao calcular frete", error);
           setShippingError("Não foi possível calcular o frete.");
           setShippingOptions([]);
+          setSelectedShipping(null);
         } finally {
           setIsLoadingShipping(false);
         }

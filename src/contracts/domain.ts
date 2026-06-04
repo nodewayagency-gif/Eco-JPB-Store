@@ -39,6 +39,7 @@ export interface Product {
   stockQuantity?: number;
   minStockAlert?: number;
   active?: boolean;
+  topics?: string[];
   colors: { name: string; hex: string }[];
   specs: { label: string; value: string }[];
   description: string;

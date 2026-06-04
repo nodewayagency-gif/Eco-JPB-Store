@@ -75,6 +75,7 @@ export async function PUT(
           heightCm: data.heightCm !== undefined ? Number(data.heightCm) : undefined,
           taxPercent: data.taxPercent !== undefined ? Number(data.taxPercent) : undefined,
           images: data.images || undefined,
+          topics: data.topics !== undefined ? data.topics : undefined,
           gatewayProductId: data.gatewayProductId || undefined,
         };
 

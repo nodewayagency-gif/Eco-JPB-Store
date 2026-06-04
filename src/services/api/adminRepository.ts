@@ -81,6 +81,7 @@ const toInput = (product: AdminProductRow): AdminProductInput => ({
   melhorEnvioCategory: product.melhorEnvioCategory || "",
   image: product.image || "",
   images: product.images || [],
+  topics: product.topics || [],
   variants: product.variants || []
 });
 
@@ -323,6 +324,7 @@ export const adminRepository: AdminRepository = {
       gatewayProductId: p.id,
       image: p.image,
       images: p.images || [],
+      topics: p.topics || [],
       variants: p.variants || []
     }));
   },

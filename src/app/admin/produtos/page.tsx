@@ -74,6 +74,7 @@ const emptyForm: AdminProductInput = {
   melhorEnvioCategory: "",
   image: "",
   images: [],
+  topics: [],
   variants: []
 };
 
@@ -227,7 +228,8 @@ export default function AdminProductsPage() {
         gatewayProductId: editingProductId ?? undefined,
         melhorEnvioCategory: form.melhorEnvioCategory || undefined,
         image: form.image || undefined,
-        images: form.images || undefined
+        images: form.images || undefined,
+        topics: form.topics || []
       };
 
       if (editingProductId) {
@@ -594,6 +596,56 @@ export default function AdminProductsPage() {
                 </div>
                 <Switch checked={form.freeShipping} onCheckedChange={(v) => setForm((c) => ({ ...c, freeShipping: v }))} />
               </div>
+            </div>
+
+            <Separator className="my-6 bg-border" />
+            
+            <div className="space-y-4">
+               <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">Tópicos de Destaque</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => {
+                        setForm(c => ({ ...c, topics: [...(c.topics || []), ""] }));
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Adicionar Tópico
+                  </Button>
+               </div>
+
+               {form.topics && form.topics.length > 0 ? (
+                  <div className="space-y-3">
+                     {form.topics.map((topic, index) => (
+                        <div key={`topic-${index}`} className="flex items-center gap-3">
+                           <Input 
+                             value={topic}
+                             placeholder="Ex: Fabricado em couro legítimo de alta resistência"
+                             onChange={(e) => {
+                                 const newTopics = [...(form.topics || [])];
+                                 newTopics[index] = e.target.value;
+                                 setForm(c => ({ ...c, topics: newTopics }));
+                             }}
+                           />
+                           <Button 
+                             variant="ghost" 
+                             size="icon" 
+                             className="h-10 w-10 shrink-0 text-destructive hover:bg-destructive/10"
+                             onClick={() => {
+                                 setForm(c => ({ ...c, topics: c.topics?.filter((_, i) => i !== index) }));
+                             }}
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </Button>
+                        </div>
+                     ))}
+                  </div>
+               ) : (
+                  <div className="text-center py-6 border border-dashed border-border rounded-lg bg-muted/10 text-muted-foreground text-sm">
+                     Nenhum tópico adicionado.
+                  </div>
+               )}
             </div>
 
             <Separator className="my-6 bg-border" />

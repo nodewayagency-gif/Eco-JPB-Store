@@ -104,6 +104,7 @@ export interface AdminProductRow {
   melhorEnvioCategory?: string;
   image?: string;
   images?: string[];
+  topics?: string[];
   variants?: AdminProductVariant[];
 }
 
@@ -134,6 +135,7 @@ export interface AdminProductInput {
   melhorEnvioCategory?: string;
   image?: string;
   images?: string[];
+  topics?: string[];
   variants?: AdminProductVariant[];
 }
 

@@ -46,8 +46,8 @@ export default function ProductPage() {
     );
   }
 
-  const productImagesArray = product.images && product.images.length > 0 
-    ? product.images 
+  const productImagesArray = product.images && product.images.length > 0
+    ? product.images
     : [product.image];
 
   const formatPrice = (price: number) =>
@@ -100,10 +100,10 @@ export default function ProductPage() {
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               <div className="group relative sticky top-24">
-                <div className="absolute -inset-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                <div className="absolute -inset-2 md:-inset-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
                   <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
                 </div>
-                
+
                 <div className="relative bg-secondary rounded-2xl aspect-square flex items-center justify-center p-12 lg:p-20 transition-all duration-500 group-hover:border-primary/35 group-hover:shadow-[0_20px_80px_rgba(225,171,45,0.15)] border border-border/40 mb-4">
                   <motion.img
                     key={selectedColor + selectedImage}
@@ -118,12 +118,11 @@ export default function ProductPage() {
 
                 <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
                   {productImagesArray.map((img, idx) => (
-                    <button 
-                      key={idx} 
+                    <button
+                      key={idx}
                       onClick={() => setSelectedImage(idx)}
-                      className={`relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 snap-start bg-secondary rounded-xl border-2 flex items-center justify-center p-3 transition-all ${
-                        selectedImage === idx ? 'border-primary' : 'border-transparent hover:border-white/20'
-                      }`}
+                      className={`relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 snap-start bg-secondary rounded-xl border-2 flex items-center justify-center p-3 transition-all ${selectedImage === idx ? 'border-primary' : 'border-transparent hover:border-white/20'
+                        }`}
                     >
                       <img src={resolveProductImage(img) || ""} alt={`Thumb ${idx}`} className="w-full h-full object-contain opacity-80 hover:opacity-100" />
                     </button>
@@ -140,7 +139,7 @@ export default function ProductPage() {
             >
               <div>
                 <p className="text-xs font-semibold tracking-widest uppercase text-primary mb-2">{product.category}</p>
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-foreground">{product.name}</h1>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-foreground break-words">{product.name}</h1>
 
                 <div className="flex items-center gap-2 mt-4">
                   <div className="flex">
@@ -167,6 +166,26 @@ export default function ProductPage() {
 
               <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
+              {product.topics && product.topics.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.25 }}
+                  className="py-2"
+                >
+                  <ul className="grid grid-cols-1 gap-3">
+                    {product.topics.map((topic, index) => (
+                      <li key={index} className="flex items-start gap-3 bg-secondary/30 p-3 rounded-xl border border-border/30">
+                        <div className="h-6 w-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                          <Check className="h-3.5 w-3.5 text-primary" strokeWidth={3} />
+                        </div>
+                        <span className="text-sm text-foreground/90 leading-relaxed font-medium">{topic}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )}
+
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -180,11 +199,10 @@ export default function ProductPage() {
                     <button
                       key={c.name}
                       onClick={() => setSelectedColor(i)}
-                      className={`group relative flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all duration-300 ${
-                        selectedColor === i 
-                        ? "bg-white/[0.03] border-primary shadow-[0_0_20px_rgba(225,171,45,0.1)]" 
-                        : "bg-transparent border-white/10 hover:border-white/20"
-                      }`}
+                      className={`group relative flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all duration-300 ${selectedColor === i
+                          ? "bg-white/[0.03] border-primary shadow-[0_0_20px_rgba(225,171,45,0.1)]"
+                          : "bg-transparent border-white/10 hover:border-white/20"
+                        }`}
                     >
                       <span
                         className="block h-5 w-5 rounded-full border border-black/20"
@@ -211,13 +229,14 @@ export default function ProductPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                    <Button
+                  <Button
                     size="lg"
-                    className="w-full h-16 shimmer-btn rounded-2xl text-lg font-black gap-3 shadow-[0_10px_40px_-10px_rgba(225,171,45,0.3)] hover:shadow-[0_15px_50px_-5px_rgba(225,171,45,0.4)] transition-all duration-500"
+                    className="w-full h-auto min-h-[4rem] py-3 shimmer-btn rounded-2xl text-base sm:text-lg font-black gap-2 sm:gap-3 shadow-[0_10px_40px_-10px_rgba(225,171,45,0.3)] hover:shadow-[0_15px_50px_-5px_rgba(225,171,45,0.4)] transition-all duration-500 flex-wrap justify-center"
                     onClick={() => addItem(product, product.colors[selectedColor].name)}
-                    >
-                    <ShoppingCart className="h-5 w-5" /> Adicionar ao Carrinho — {formatPrice(product.price)}
-                    </Button>
+                  >
+                    <ShoppingCart className="h-5 w-5 shrink-0" /> 
+                    <span className="text-center">Comprar — {formatPrice(product.price)}</span>
+                  </Button>
                 </motion.div>
               ) : (
                 <div className="bg-secondary rounded-2xl p-6 space-y-4">
@@ -241,7 +260,7 @@ export default function ProductPage() {
                         <p className="text-sm font-semibold text-foreground">Produto esgotado</p>
                         <p className="text-xs text-muted-foreground">Cadastre-se para ser avisado quando voltar ao estoque.</p>
                       </div>
-                      <form onSubmit={handleWaitlist} className="flex gap-2">
+                      <form onSubmit={handleWaitlist} className="flex flex-col sm:flex-row gap-2">
                         <div className="relative flex-1">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <input
@@ -253,7 +272,7 @@ export default function ProductPage() {
                             className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                           />
                         </div>
-                        <Button type="submit" className="rounded-xl px-6">
+                        <Button type="submit" className="rounded-xl px-6 h-12 sm:h-auto">
                           Avisar-me
                         </Button>
                       </form>
@@ -284,7 +303,7 @@ export default function ProductPage() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <p className="text-sm text-muted-foreground">
-                      Frete grátis para todo o Brasil em compras acima de R$ 500,00. 
+                      Frete grátis para todo o Brasil em compras acima de R$ 500,00.
                       Entrega em até 7 dias úteis.
                     </p>
                   </AccordionContent>
@@ -295,7 +314,7 @@ export default function ProductPage() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <p className="text-sm text-muted-foreground">
-                      Garantia de 2 anos contra defeitos de fabricação. 
+                      Garantia de 6 meses contra defeitos de fabricação.
                       30 dias para devolução sem custo.
                     </p>
                   </AccordionContent>
@@ -303,7 +322,7 @@ export default function ProductPage() {
               </Accordion>
             </motion.div>
           </div>
-          
+
           {/* Related Products Section */}
           <RelatedProducts currentProductId={product.id} category={product.category} />
         </div>
@@ -316,14 +335,14 @@ export default function ProductPage() {
 
 function RelatedProducts({ currentProductId, category }: { currentProductId: string, category: string }) {
   const { data: products, isLoading } = useProducts();
-  
+
   if (isLoading) return null;
 
   const allProducts = products || [];
-  
+
   // Tenta filtrar pela mesma categoria (case-insensitive)
-  let related = allProducts.filter(p => 
-    p.category.toLowerCase() === category.toLowerCase() && 
+  let related = allProducts.filter(p =>
+    p.category.toLowerCase() === category.toLowerCase() &&
     p.id !== currentProductId
   );
 
@@ -344,7 +363,7 @@ function RelatedProducts({ currentProductId, category }: { currentProductId: str
         <span className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-3">Você também pode gostar</span>
         <h2 className="text-3xl md:text-4xl font-black text-foreground">Produtos <span className="gold-text">{related.length > 0 && finalRelated[0].category.toLowerCase() === category.toLowerCase() ? "Relacionados" : "em Destaque"}</span></h2>
       </div>
-      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {finalRelated.map((p, idx) => (
           <ProductCard key={p.id} product={p} index={idx} />

@@ -16,12 +16,14 @@ export async function GET(request: NextRequest) {
         image: true,
         active: true,
         stockQuantity: true,
+        categoryId: true,
         category: true,
         badge: true,
         inStock: true,
         originalPrice: true,
         freeShipping: true,
         createdAt: true,
+        topics: true,
         variants: {
           select: {
             name: true,
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest) {
           taxPercent: data.taxPercent ? Number(data.taxPercent) : 0,
           slug: data.name.toLowerCase().replace(/ /g, '-'),
           images: data.images || [],
+          topics: data.topics || [],
         },
       });
 

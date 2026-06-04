@@ -7,24 +7,24 @@ import Footer from "@/components/store/Footer";
 
 const values = [
   { icon: Headphones, title: "Qualidade Sonora", desc: "Engenharia acústica de precisão em cada produto que desenvolvemos." },
-  { icon: Shield, title: "Garantia Premium", desc: "2 anos de garantia completa em todos os nossos dispositivos." },
-  { icon: Heart, title: "Paixão por Áudio", desc: "Cada detalhe é pensado para entregar a melhor experiência sonora." },
+  { icon: Shield, title: "Garantia Premium", desc: "6 meses de garantia completa em todos os nossos dispositivos." },
+  { icon: Heart, title: "Paixão por Tecnologia", desc: "A melhor experiência" },
   { icon: Target, title: "Inovação Constante", desc: "Investimos em tecnologia de ponta para superar expectativas." },
 ];
 
 const milestones = [
-  { year: "2018", title: "Fundação", desc: "JPB Store nasce com a missão de democratizar o áudio premium no Brasil." },
-  { year: "2019", title: "Primeiro Produto", desc: "Lançamento do JPB Studio Original, nosso primeiro headphone over-ear." },
-  { year: "2021", title: "Expansão", desc: "Linha completa com earbuds, speakers e smartwatches de alta performance." },
-  { year: "2023", title: "10.000+ Clientes", desc: "Marco de 10 mil clientes satisfeitos em todo o território nacional." },
-  { year: "2024", title: "JPB Studio Pro", desc: "Lançamento do nosso flagship com ANC adaptativo e 38h de bateria." },
+  { year: "2022", title: "Fundação JPB", desc: "A JPBStore nasceu com o propósito de oferecer A Melhor experiência com produtos que todo mundo um dia já quis ter." },
+  { year: "2022", title: "Primeiro Produto", desc: "Lançamento do AirPods RP Premium, um dos produtos que se tornou referência entre nossos clientes pela sua qualidade, acabamento e experiência de uso." },
+  { year: "2023", title: "Expansão", desc: "Ampliação do catálogo com uma linha completa de acessórios e produtos compatíveis com o ecossistema Apple, atendendo às principais necessidades dos nossos clientes." },
+  { year: "2024", title: "12.000+ Clientes", desc: "Mais de 12 mil clientes atendidos em todo o território nacional, com envios para todas as regiões do Brasil e milhares de avaliações positivas." },
+  { year: "2025", title: "Lançamento da Nova Plataforma", desc: "Inauguração do novo site da JPB Store, criado para reunir os produtos mais desejados do mercado com foco em Acessórios, presamos sempre pela qualidade, confiança e excelente experiência de compra." },
+  { year: "2026", title: "Consolidação", desc: "O AirPods Pro RP Premium se consolida como um dos produtos mais vendidos da JPBStore. 🏆" },
 ];
 
 const stats = [
   { value: "10K+", label: "Clientes Satisfeitos" },
   { value: "4.8★", label: "Avaliação Média" },
-  { value: "15+", label: "Produtos Premium" },
-  { value: "2 Anos", label: "Garantia Completa" },
+  { value: "6 Meses", label: "Garantia JPB" },
 ];
 
 export default function AboutPage() {
@@ -40,22 +40,21 @@ export default function AboutPage() {
               A Arte do <span className="gold-text">Som Perfeito</span>
             </h1>
             <p className="text-muted-foreground mt-6 max-w-2xl mx-auto leading-relaxed">
-              Na JPB Store, acreditamos que a música é uma experiênia transformadora. 
-              Nossa missão é criar dispositivos que conectem você ao som em sua forma mais pura e envolvente.
+              Na JPBStore, Acreditamos que sua experiência é prioridade. Nossa missão é criar dispositivos que conectem você a melhor experiência possível.
             </p>
           </motion.div>
         </section>
 
         {/* Stats */}
         <section className="container mx-auto px-4 md:px-8 mb-20">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             {stats.map((stat, i) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="bg-card border border-border/50 rounded-2xl p-6 text-center"
+                className="bg-card border border-border/50 rounded-2xl p-6 text-center w-[calc(50%-0.5rem)] sm:w-48 md:w-56"
               >
                 <p className="text-2xl md:text-3xl font-black gold-text">{stat.value}</p>
                 <p className="text-xs text-muted-foreground mt-1 font-medium">{stat.label}</p>
@@ -107,7 +106,7 @@ export default function AboutPage() {
           <div className="max-w-2xl mx-auto space-y-0">
             {milestones.map((m, i) => (
               <motion.div
-                key={m.year}
+                key={`${m.year}-${m.title}`}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -137,9 +136,9 @@ export default function AboutPage() {
               Compromisso com a <span className="gold-text">Excelência</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              Cada produto JPB passa por rigorosos testes de qualidade antes de chegar até você. 
-              Utilizamos materiais premium, drivers de alta fidelidade e tecnologia de ponta 
-              para garantir que sua experiência sonora seja sempre excepcional. 
+              Cada produto JPB passa por rigorosos testes de qualidade antes de chegar até você.
+              Utilizamos materiais premium, drivers de alta fidelidade e tecnologia de ponta
+              para garantir que sua experiência sonora seja sempre excepcional.
               Seu som, nossa obsessão.
             </p>
           </motion.div>

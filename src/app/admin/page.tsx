@@ -26,9 +26,11 @@ const statusColor: Record<string, string> = {
 export default function AdminDashboardPage() {
   const [metrics, setMetrics] = useState<AdminMetric[]>([]);
   const [orders, setOrders] = useState<AdminOrderSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true);
       try {
         const [metricRows, recentOrders] = await Promise.all([
           adminRepository.getMetrics(),
@@ -39,11 +41,24 @@ export default function AdminDashboardPage() {
         setOrders(recentOrders);
       } catch (error) {
         console.error("Erro ao carregar métricas do dashboard:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     load();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-background">
+        <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-muted-foreground mt-4 text-xs font-black uppercase tracking-widest">
+          Sincronizando dashboard...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -32,15 +32,15 @@ const ProductGrid = () => {
           className="max-w-3xl mx-auto text-center mb-14"
         >
           <span className="inline-flex items-center gap-2 text-xs font-black tracking-[0.2em] uppercase text-primary mb-6">
-            <Sparkles className="h-3.5 w-3.5" /> Curadoria exclusiva
+            <Sparkles className="h-3.5 w-3.5" /> OS QUERIDINHOS DA JPB
           </span>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground leading-[1.1]">
-            Seleção de
+            Produtos que todo mundo
             <br />
-            Performance
+            Quer
           </h2>
           <p className="text-muted-foreground mt-6 text-base md:text-lg leading-relaxed font-medium">
-            Produtos testados e aprovados para entregar desempenho real e confiança na sua compra.
+            Os queridinhos dos nossos clientes, selecionados por sua qualidade, popularidade e desempenho.
           </p>
         </motion.div>
 
