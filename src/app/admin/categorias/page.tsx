@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { Plus, Search, Tag, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Tag, MoreHorizontal, Edit, Trash2, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,7 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
   
@@ -111,6 +112,8 @@ export default function AdminCategoriesPage() {
       return;
     }
 
+    setIsSaving(true);
+
     try {
       if (editingId) {
         await adminRepository.updateCategory(editingId, form);
@@ -123,6 +126,8 @@ export default function AdminCategoriesPage() {
       loadCategories();
     } catch (error) {
       toast.error("Erro ao salvar categoria");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -351,11 +356,12 @@ export default function AdminCategoriesPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
+            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold">
-              Salvar Categoria
+            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold gap-2" disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isSaving ? "Salvando..." : "Salvar Categoria"}
             </Button>
           </DialogFooter>
         </DialogContent>

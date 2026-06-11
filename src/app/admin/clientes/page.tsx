@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, User, MoreHorizontal, Edit, Trash2, KeyRound, Package, ChevronRight, X } from "lucide-react";
+import { Search, User, MoreHorizontal, Edit, Trash2, KeyRound, Package, ChevronRight, X, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,8 @@ export default function AdminCustomersPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [page, setPage] = useState(1);
   const [allUsersCount, setAllUsersCount] = useState(0);
   const itemsPerPage = 10;
@@ -99,12 +101,15 @@ export default function AdminCustomersPage() {
       return;
     }
 
+    setIsSavingPassword(true);
     try {
       await adminRepository.updateUserPassword(selectedUser.id, newPassword);
       toast.success("Senha atualizada com sucesso!");
       setPasswordModalOpen(false);
     } catch (error) {
       toast.error("Erro ao atualizar senha");
+    } finally {
+      setIsSavingPassword(false);
     }
   };
 
@@ -156,6 +161,7 @@ export default function AdminCustomersPage() {
       return;
     }
 
+    setIsSaving(true);
     try {
       if (editingId) {
         await adminRepository.updateUser(editingId, form);
@@ -168,6 +174,8 @@ export default function AdminCustomersPage() {
       loadData();
     } catch (error) {
       toast.error("Erro ao salvar cliente");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -415,11 +423,12 @@ export default function AdminCustomersPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
+            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold">
-              Salvar Alterações
+            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold gap-2" disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isSaving ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -448,11 +457,12 @@ export default function AdminCustomersPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPasswordModalOpen(false)}>
+            <Button variant="outline" onClick={() => setPasswordModalOpen(false)} disabled={isSavingPassword}>
               Cancelar
             </Button>
-            <Button onClick={handleUpdatePassword} className="bg-primary text-primary-foreground font-bold">
-              Confirmar Nova Senha
+            <Button onClick={handleUpdatePassword} className="bg-primary text-primary-foreground font-bold gap-2" disabled={isSavingPassword}>
+              {isSavingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isSavingPassword ? "Salvando..." : "Confirmar Nova Senha"}
             </Button>
           </DialogFooter>
         </DialogContent>

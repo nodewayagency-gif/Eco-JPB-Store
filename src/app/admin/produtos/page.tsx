@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { History, Package, PlusCircle, Save, Search, Filter, Trash2, Plus } from "lucide-react";
+import { History, Package, PlusCircle, Save, Search, Filter, Trash2, Plus, Loader2, Check, Star, Shield, Zap, Award, Leaf, MoveUp, MoveDown } from "lucide-react";
 import Swal from "sweetalert2";
 import type {
   AdminProductInput,
@@ -46,6 +46,29 @@ import { adminSettingsRepository } from "@/services/api/adminSettingsRepository"
 import { ImageUploader } from "@/components/ui/ImageUploader";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+
+export const TOPIC_ICONS: Record<string, any> = {
+  Check,
+  Star,
+  Shield,
+  Zap,
+  Award,
+  Leaf
+};
+
+export const parseTopic = (t: string) => {
+  try {
+    const parsed = JSON.parse(t);
+    if (parsed && typeof parsed === 'object' && parsed.text !== undefined) {
+       return { text: parsed.text, icon: parsed.icon || "Check" };
+    }
+  } catch (e) {}
+  return { text: t, icon: "Check" };
+};
+
+export const stringifyTopic = (text: string, icon: string) => {
+  return JSON.stringify({ text, icon });
+};
 
 const emptyForm: AdminProductInput = {
   sku: "",
@@ -100,6 +123,7 @@ export default function AdminProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -196,10 +220,18 @@ export default function AdminProductsPage() {
     setProductModalOpen(true);
   };
 
-  const startEdit = (product: AdminProductRow) => {
-    setEditingProductId(product.id);
-    setForm(adminProductMapper.toInput(product));
-    setProductModalOpen(true);
+  const startEdit = async (product: AdminProductRow) => {
+    try {
+      const fullProduct = await adminRepository.getProduct(product.id);
+      if (fullProduct) {
+        setEditingProductId(fullProduct.id);
+        setForm(adminProductMapper.toInput(fullProduct));
+        setProductModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar produto:", error);
+      toast.error("Erro ao carregar detalhes do produto");
+    }
   };
 
   const openHistory = async (product: AdminProductRow) => {
@@ -210,6 +242,7 @@ export default function AdminProductsPage() {
 
   const handleSave = async () => {
     try {
+      setIsSaving(true);
       const payload: AdminProductInput = {
         ...form,
         inStock: form.stockQuantity > 0,
@@ -245,6 +278,8 @@ export default function AdminProductsPage() {
       await loadProducts();
     } catch (error) {
       toast.error("Erro ao salvar produto");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -617,29 +652,97 @@ export default function AdminProductsPage() {
 
                {form.topics && form.topics.length > 0 ? (
                   <div className="space-y-3">
-                     {form.topics.map((topic, index) => (
-                        <div key={`topic-${index}`} className="flex items-center gap-3">
-                           <Input 
-                             value={topic}
-                             placeholder="Ex: Fabricado em couro legítimo de alta resistência"
-                             onChange={(e) => {
+                     {form.topics.map((topic, index) => {
+                        const parsed = parseTopic(topic);
+                        const CurrentIcon = TOPIC_ICONS[parsed.icon] || Check;
+                        return (
+                          <div key={`topic-${index}`} className="flex flex-col sm:flex-row items-center gap-2 bg-secondary/20 p-2 rounded-lg border border-border">
+                             <div className="flex gap-1">
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 className="h-8 w-8 disabled:opacity-30" 
+                                 disabled={index === 0}
+                                 onClick={() => {
+                                   const newTopics = [...(form.topics || [])];
+                                   const temp = newTopics[index - 1];
+                                   newTopics[index - 1] = newTopics[index];
+                                   newTopics[index] = temp;
+                                   setForm(c => ({ ...c, topics: newTopics }));
+                                 }}
+                               >
+                                 <MoveUp className="w-4 h-4" />
+                               </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 className="h-8 w-8 disabled:opacity-30"
+                                 disabled={index === (form.topics?.length || 0) - 1}
+                                 onClick={() => {
+                                   const newTopics = [...(form.topics || [])];
+                                   const temp = newTopics[index + 1];
+                                   newTopics[index + 1] = newTopics[index];
+                                   newTopics[index] = temp;
+                                   setForm(c => ({ ...c, topics: newTopics }));
+                                 }}
+                               >
+                                 <MoveDown className="w-4 h-4" />
+                               </Button>
+                             </div>
+
+                             <Select
+                               value={parsed.icon}
+                               onValueChange={(val) => {
                                  const newTopics = [...(form.topics || [])];
-                                 newTopics[index] = e.target.value;
+                                 newTopics[index] = stringifyTopic(parsed.text, val);
                                  setForm(c => ({ ...c, topics: newTopics }));
-                             }}
-                           />
-                           <Button 
-                             variant="ghost" 
-                             size="icon" 
-                             className="h-10 w-10 shrink-0 text-destructive hover:bg-destructive/10"
-                             onClick={() => {
-                                 setForm(c => ({ ...c, topics: c.topics?.filter((_, i) => i !== index) }));
-                             }}
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </Button>
-                        </div>
-                     ))}
+                               }}
+                             >
+                               <SelectTrigger className="w-[80px] shrink-0">
+                                 <SelectValue>
+                                   <div className="flex items-center justify-center">
+                                     <CurrentIcon className="w-4 h-4 text-primary" />
+                                   </div>
+                                 </SelectValue>
+                               </SelectTrigger>
+                               <SelectContent>
+                                 {Object.keys(TOPIC_ICONS).map(iconName => {
+                                   const IconComp = TOPIC_ICONS[iconName];
+                                   return (
+                                     <SelectItem key={iconName} value={iconName}>
+                                       <div className="flex items-center justify-center gap-2">
+                                         <IconComp className="w-4 h-4 text-primary" />
+                                       </div>
+                                     </SelectItem>
+                                   );
+                                 })}
+                               </SelectContent>
+                             </Select>
+
+                             <Input 
+                               value={parsed.text}
+                               placeholder="Ex: Fabricado em couro legítimo de alta resistência"
+                               onChange={(e) => {
+                                   const newTopics = [...(form.topics || [])];
+                                   newTopics[index] = stringifyTopic(e.target.value, parsed.icon);
+                                   setForm(c => ({ ...c, topics: newTopics }));
+                               }}
+                               className="flex-1"
+                             />
+
+                             <Button 
+                               variant="ghost" 
+                               size="icon" 
+                               className="h-10 w-10 shrink-0 text-destructive hover:bg-destructive/10"
+                               onClick={() => {
+                                   setForm(c => ({ ...c, topics: c.topics?.filter((_, i) => i !== index) }));
+                               }}
+                             >
+                               <Trash2 className="w-4 h-4" />
+                             </Button>
+                          </div>
+                        );
+                     })}
                   </div>
                ) : (
                   <div className="text-center py-6 border border-dashed border-border rounded-lg bg-muted/10 text-muted-foreground text-sm">
@@ -738,8 +841,11 @@ export default function AdminProductsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setProductModalOpen(false)}>Cancelar</Button>
-            <Button className="gap-2" onClick={handleSave}><Save className="w-4 h-4" />Salvar</Button>
+            <Button variant="outline" onClick={() => setProductModalOpen(false)} disabled={isSaving}>Cancelar</Button>
+            <Button className="gap-2" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isSaving ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

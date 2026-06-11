@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, ChevronDown, Mail, Check, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Star, ChevronDown, Mail, Check, ShoppingCart, Shield, Zap, Award, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { productImages } from "@/lib/productImages";
@@ -14,6 +14,25 @@ import Navbar from "@/components/store/Navbar";
 import Footer from "@/components/store/Footer";
 import ProductCard from "@/components/store/ProductCard";
 import { useProduct, useProducts } from "@/hooks/useProducts";
+
+export const TOPIC_ICONS: Record<string, any> = {
+  Check,
+  Star,
+  Shield,
+  Zap,
+  Award,
+  Leaf
+};
+
+export const parseTopic = (t: string) => {
+  try {
+    const parsed = JSON.parse(t);
+    if (parsed && typeof parsed === 'object' && parsed.text !== undefined) {
+       return { text: parsed.text, icon: parsed.icon || "Check" };
+    }
+  } catch (e) {}
+  return { text: t, icon: "Check" };
+};
 
 export default function ProductPage() {
   const params = useParams();
@@ -164,7 +183,6 @@ export default function ProductPage() {
                 )}
               </div>
 
-              <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
               {product.topics && product.topics.length > 0 && (
                 <motion.div
@@ -174,17 +192,22 @@ export default function ProductPage() {
                   className="py-2"
                 >
                   <ul className="grid grid-cols-1 gap-3">
-                    {product.topics.map((topic, index) => (
-                      <li key={index} className="flex items-start gap-3 bg-secondary/30 p-3 rounded-xl border border-border/30">
-                        <div className="h-6 w-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                          <Check className="h-3.5 w-3.5 text-primary" strokeWidth={3} />
-                        </div>
-                        <span className="text-sm text-foreground/90 leading-relaxed font-medium">{topic}</span>
-                      </li>
-                    ))}
+                    {product.topics.map((topic, index) => {
+                      const parsed = parseTopic(topic);
+                      const CurrentIcon = TOPIC_ICONS[parsed.icon] || Check;
+                      return (
+                        <li key={index} className="flex items-start gap-3 bg-secondary/30 p-3 rounded-xl border border-border/30">
+                          <div className="h-6 w-6 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                            <CurrentIcon className="h-3.5 w-3.5 text-primary" strokeWidth={3} />
+                          </div>
+                          <span className="text-sm text-foreground/90 leading-relaxed font-medium">{parsed.text}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </motion.div>
               )}
+              <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -200,8 +223,8 @@ export default function ProductPage() {
                       key={c.name}
                       onClick={() => setSelectedColor(i)}
                       className={`group relative flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all duration-300 ${selectedColor === i
-                          ? "bg-white/[0.03] border-primary shadow-[0_0_20px_rgba(225,171,45,0.1)]"
-                          : "bg-transparent border-white/10 hover:border-white/20"
+                        ? "bg-white/[0.03] border-primary shadow-[0_0_20px_rgba(225,171,45,0.1)]"
+                        : "bg-transparent border-white/10 hover:border-white/20"
                         }`}
                     >
                       <span
@@ -234,7 +257,7 @@ export default function ProductPage() {
                     className="w-full h-auto min-h-[4rem] py-3 shimmer-btn rounded-2xl text-base sm:text-lg font-black gap-2 sm:gap-3 shadow-[0_10px_40px_-10px_rgba(225,171,45,0.3)] hover:shadow-[0_15px_50px_-5px_rgba(225,171,45,0.4)] transition-all duration-500 flex-wrap justify-center"
                     onClick={() => addItem(product, product.colors[selectedColor].name)}
                   >
-                    <ShoppingCart className="h-5 w-5 shrink-0" /> 
+                    <ShoppingCart className="h-5 w-5 shrink-0" />
                     <span className="text-center">Comprar — {formatPrice(product.price)}</span>
                   </Button>
                 </motion.div>

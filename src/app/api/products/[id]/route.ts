@@ -10,7 +10,7 @@ export async function GET(
   props: { params: Promise<Params> }
 ) {
   const { id } = await props.params;
-  
+
   console.log(`🔍 Buscando produto: ${id}`);
   const startTime = Date.now();
 
@@ -33,9 +33,9 @@ export async function GET(
     return NextResponse.json(product);
   } catch (error: any) {
     console.error(`❌ Erro ao buscar produto ${id}:`, error);
-    return NextResponse.json({ 
-      message: 'Erro ao buscar produto', 
-      error: error.message 
+    return NextResponse.json({
+      message: 'Erro ao buscar produto',
+      error: error.message
     }, { status: 500 });
   }
 }
@@ -47,49 +47,49 @@ export async function PUT(
   try {
     const { id } = await props.params;
     const data = await request.json();
-    const { 
-      id: _, 
-      category, 
-      variants, 
-      createdAt, 
-      updatedAt, 
-      reviews, 
-      orderItems, 
-      cartItems, 
-      ...updateData 
+    const {
+      id: _,
+      category,
+      variants,
+      createdAt,
+      updatedAt,
+      reviews,
+      orderItems,
+      cartItems,
+      ...updateData
     } = data as any;
-    
+
     const product = await prisma.$transaction(async (tx) => {
       // 1. Atualizar o produto base
-        const finalUpdateData = {
-          ...updateData,
-          categoryId: updateData.categoryId === "" ? null : updateData.categoryId,
-          slug: data.name ? data.name.toLowerCase().replace(/ /g, '-') : undefined,
-          price: data.price !== undefined ? Number(data.price) : undefined,
-          costPrice: data.costPrice !== undefined ? Number(data.costPrice) : undefined,
-          stockQuantity: data.stockQuantity !== undefined ? Number(data.stockQuantity) : undefined,
-          minStockAlert: data.minStockAlert !== undefined ? Number(data.minStockAlert) : undefined,
-          weightKg: data.weightKg !== undefined ? Number(data.weightKg) : undefined,
-          lengthCm: data.lengthCm !== undefined ? Number(data.lengthCm) : undefined,
-          widthCm: data.widthCm !== undefined ? Number(data.widthCm) : undefined,
-          heightCm: data.heightCm !== undefined ? Number(data.heightCm) : undefined,
-          taxPercent: data.taxPercent !== undefined ? Number(data.taxPercent) : undefined,
-          images: data.images || undefined,
-          topics: data.topics !== undefined ? data.topics : undefined,
-          gatewayProductId: data.gatewayProductId || undefined,
-        };
+      const finalUpdateData = {
+        ...updateData,
+        categoryId: updateData.categoryId === "" ? null : updateData.categoryId,
+        slug: data.name ? data.name.toLowerCase().replace(/ /g, '-') : undefined,
+        price: data.price !== undefined ? Number(data.price) : undefined,
+        costPrice: data.costPrice !== undefined ? Number(data.costPrice) : undefined,
+        stockQuantity: data.stockQuantity !== undefined ? Number(data.stockQuantity) : undefined,
+        minStockAlert: data.minStockAlert !== undefined ? Number(data.minStockAlert) : undefined,
+        weightKg: data.weightKg !== undefined ? Number(data.weightKg) : undefined,
+        lengthCm: data.lengthCm !== undefined ? Number(data.lengthCm) : undefined,
+        widthCm: data.widthCm !== undefined ? Number(data.widthCm) : undefined,
+        heightCm: data.heightCm !== undefined ? Number(data.heightCm) : undefined,
+        taxPercent: data.taxPercent !== undefined ? Number(data.taxPercent) : undefined,
+        images: data.images || undefined,
+        topics: data.topics !== undefined ? data.topics : undefined,
+        gatewayProductId: data.gatewayProductId || undefined,
+      };
 
-        console.log('Final Update Data for Prisma:', JSON.stringify(finalUpdateData, null, 2));
+      // console.log('Final Update Data for Prisma:', JSON.stringify(finalUpdateData, null, 2));
 
-        const updatedProduct = await tx.product.update({
-          where: { id },
-          data: finalUpdateData,
-        });
+      const updatedProduct = await tx.product.update({
+        where: { id },
+        data: finalUpdateData,
+      });
 
       // 2. Sincronizar variantes se fornecidas
       if (data.variants) {
         const variantIds = data.variants.map((v: any) => v.id).filter(Boolean) as string[];
-        
+
         await tx.productVariant.deleteMany({
           where: {
             productId: id,
@@ -99,7 +99,7 @@ export async function PUT(
 
         for (const v of data.variants) {
           const variantSku = v.sku || `${finalUpdateData.sku || id}-${v.name.replace(/ /g, '-').toUpperCase()}`;
-          
+
           if (v.id) {
             await tx.productVariant.update({
               where: { id: v.id },
@@ -132,13 +132,13 @@ export async function PUT(
 
       return updatedProduct;
     });
-    
+
     return NextResponse.json(product);
   } catch (error: any) {
     console.error('CRITICAL ERROR updating product:', error);
     // Retornando o erro completo para debug (remover em produção)
-    return NextResponse.json({ 
-      message: 'Erro ao atualizar produto', 
+    return NextResponse.json({
+      message: 'Erro ao atualizar produto',
       error: error.message,
       stack: error.stack,
       details: error
@@ -155,7 +155,7 @@ export async function DELETE(
     await prisma.product.delete({
       where: { id }
     });
-    
+
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting product:', error);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { Search, User, MoreHorizontal, Edit, Trash2, KeyRound } from "lucide-react";
+import { Search, User, MoreHorizontal, Edit, Trash2, KeyRound, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,8 @@ export default function AdminTeamPage() {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -76,12 +78,15 @@ export default function AdminTeamPage() {
       return;
     }
 
+    setIsSavingPassword(true);
     try {
       await adminRepository.updateUserPassword(selectedUserId, newPassword);
       toast.success("Senha atualizada com sucesso!");
       setPasswordModalOpen(false);
     } catch (error) {
       toast.error("Erro ao atualizar senha");
+    } finally {
+      setIsSavingPassword(false);
     }
   };
 
@@ -136,6 +141,7 @@ export default function AdminTeamPage() {
       return;
     }
 
+    setIsSaving(true);
     try {
       if (editingId) {
         await adminRepository.updateUser(editingId, form);
@@ -148,6 +154,8 @@ export default function AdminTeamPage() {
       loadUsers();
     } catch (error) {
       toast.error("Erro ao salvar usuário");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -422,11 +430,12 @@ export default function AdminTeamPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
+            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold">
-              Salvar Usuário
+            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold gap-2" disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isSaving ? "Salvando..." : "Salvar Usuário"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -455,11 +464,12 @@ export default function AdminTeamPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPasswordModalOpen(false)}>
+            <Button variant="outline" onClick={() => setPasswordModalOpen(false)} disabled={isSavingPassword}>
               Cancelar
             </Button>
-            <Button onClick={handleUpdatePassword} className="bg-primary text-primary-foreground font-bold">
-              Confirmar Nova Senha
+            <Button onClick={handleUpdatePassword} className="bg-primary text-primary-foreground font-bold gap-2" disabled={isSavingPassword}>
+              {isSavingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isSavingPassword ? "Salvando..." : "Confirmar Nova Senha"}
             </Button>
           </DialogFooter>
         </DialogContent>

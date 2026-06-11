@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { Plus, Search, Ticket, MoreHorizontal, Edit, Trash2, Calendar, Users as UsersIcon } from "lucide-react";
+import { Plus, Search, Ticket, MoreHorizontal, Edit, Trash2, Calendar, Users as UsersIcon, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,7 @@ export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
   
@@ -120,6 +121,8 @@ export default function AdminCouponsPage() {
       return;
     }
 
+    setIsSaving(true);
+
     try {
       const payload = {
           ...form,
@@ -140,6 +143,8 @@ export default function AdminCouponsPage() {
       loadCoupons();
     } catch (error) {
       toast.error("Erro ao salvar cupom");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -415,8 +420,11 @@ export default function AdminCouponsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold">Salvar Cupom</Button>
+            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isSaving}>Cancelar</Button>
+            <Button onClick={handleSave} className="bg-primary text-primary-foreground font-bold gap-2" disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isSaving ? "Salvando..." : "Salvar Cupom"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
