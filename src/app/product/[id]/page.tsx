@@ -131,7 +131,7 @@ export default function ProductPage() {
                     transition={{ duration: 0.5 }}
                     src={resolveProductImage(productImagesArray[selectedImage]) || ""}
                     alt={product.name}
-                    className="w-full h-full object-cover drop-shadow-lg"
+                    className="w-full h-full object-cover drop-shadow-md transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-110 group-hover:-rotate-2 group-hover:drop-shadow-[0_20px_30px_rgba(225,171,45,0.15)]"
                   />
                 </div>
 
