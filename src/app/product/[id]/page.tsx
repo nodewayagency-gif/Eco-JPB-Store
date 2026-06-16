@@ -6,7 +6,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Star, ChevronDown, Mail, Check, ShoppingCart, Shield, Zap, Award, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { productImages } from "@/lib/productImages";
 import { resolveProductImage } from "@/lib/imageResolver";
@@ -33,12 +32,6 @@ export const parseTopic = (t: string) => {
     }
   } catch (e) { }
   return { text: t, icon: "Check" };
-};
-
-const badgeStyles: Record<string, string> = {
-  Premium: "bg-primary text-primary-foreground",
-  Limited: "bg-accent text-accent-foreground",
-  Novo: "bg-primary/15 text-primary border border-primary/30",
 };
 
 export default function ProductPage() {
@@ -103,7 +96,7 @@ export default function ProductPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       <Navbar />
 
       <main className="flex-1 pt-24 pb-20">
@@ -124,32 +117,14 @@ export default function ProductPage() {
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="flex justify-center lg:justify-start"
+              className="flex justify-center lg:justify-start w-full min-w-0"
             >
-              <div className="group relative sticky top-24 w-full max-w-md xl:max-w-lg mx-auto lg:mx-0">
+              <div className="group relative sticky top-24 w-full max-w-[100vw] sm:max-w-md xl:max-w-lg mx-auto lg:mx-0 overflow-hidden sm:overflow-visible">
                 <div className="absolute -inset-2 md:-inset-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
                   <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
                 </div>
-                <div className="relative z-10 premium-card rounded-2xl overflow-hidden mb-4 border border-primary/20 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(225,171,45,0.15)] transition-all duration-300">
-                  {/* Badge */}
-                  {product.badge && (
-                    <div className="absolute top-4 left-4 z-10">
-                      <Badge className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${badgeStyles[product.badge] || ""}`}>
-                        {product.badge}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {/* Stock badge */}
-                  {!product.inStock && (
-                    <div className="absolute top-4 right-4 z-10">
-                      <Badge variant="secondary" className="text-[10px] font-medium px-2 py-1 rounded-full bg-secondary/80 text-muted-foreground backdrop-blur-sm">
-                        Esgotado
-                      </Badge>
-                    </div>
-                  )}
-
-                  <div className="aspect-square flex items-center justify-center overflow-hidden relative">
+                <div className="relative z-10 premium-card rounded-2xl overflow-hidden mb-4 border border-primary/20 hover:border-primary/50 transition-all duration-300">
+                  <div className="aspect-square bg-black flex items-center justify-center overflow-hidden relative">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.05)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                     <motion.img
                       key={selectedColor + selectedImage}
@@ -158,12 +133,12 @@ export default function ProductPage() {
                       transition={{ duration: 0.5 }}
                       src={resolveProductImage(productImagesArray[selectedImage]) || ""}
                       alt={product.name}
-                      className="w-full h-full object-cover transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-110 group-hover:-rotate-2 drop-shadow-md group-hover:drop-shadow-[0_20px_30px_rgba(225,171,45,0.15)]"
+                      className="w-full h-full object-contain p-4 transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-110 group-hover:-rotate-2 drop-shadow-md group-hover:drop-shadow-[0_20px_30px_rgba(225,171,45,0.15)]"
                     />
                   </div>
                 </div>
 
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
+                <div className="flex gap-4 overflow-x-auto pb-4 snap-x w-full max-w-full [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary/50 hover:[&::-webkit-scrollbar-thumb]:bg-primary/80 [&::-webkit-scrollbar-thumb]:rounded-full">
                   {productImagesArray.map((img, idx) => (
                     <button
                       key={idx}
@@ -199,7 +174,7 @@ export default function ProductPage() {
                 </div>
               </div>
 
-              <div className="flex items-baseline gap-3">
+              <div className="flex flex-wrap items-baseline gap-3">
                 <span className="text-4xl font-black text-foreground">{formatPrice(product.price)}</span>
                 {product.originalPrice && (
                   <span className="text-lg text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
