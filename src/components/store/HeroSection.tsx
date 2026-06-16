@@ -6,7 +6,7 @@ const logo = "/brand/logo.png";
 
 const HeroSection = () => {
   return (
-    <section className="relative bg-[#0a0a0a] pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden">
+    <section className="relative bg-[#0a0a0a] pt-28 pb-8 md:pt-36 md:pb-12 overflow-hidden">
       <div className="absolute inset-0 bg-background/50 pointer-events-none" />
       <div className="container mx-auto px-4 md:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

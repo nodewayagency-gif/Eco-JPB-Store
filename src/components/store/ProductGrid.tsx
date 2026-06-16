@@ -12,7 +12,7 @@ const ProductGrid = () => {
     return (
       <div className="py-24 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
-        <p className="text-muted-foreground mt-4 font-medium">Carregando curadoria...</p>
+        <p className="text-muted-foreground mt-4 font-medium">Carregando produtos...</p>
       </div>
     );
   }
@@ -20,7 +20,7 @@ const ProductGrid = () => {
   const displayProducts = products || [];
   const featuredProducts = displayProducts.slice(0, 6);
   return (
-    <section className="py-24 md:py-32 bg-[#0a0a0a] relative overflow-hidden">
+    <section className="pt-8 pb-24 md:pt-16 md:pb-32 bg-[#0a0a0a] relative overflow-hidden">
       <div className="absolute inset-0 bg-background/50 pointer-events-none" />
 
       <div className="container mx-auto px-4 md:px-8 relative z-10">

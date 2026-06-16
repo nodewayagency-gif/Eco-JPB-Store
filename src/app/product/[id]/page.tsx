@@ -123,7 +123,7 @@ export default function ProductPage() {
                   <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
                 </div>
 
-                <div className="relative bg-secondary rounded-2xl aspect-square flex items-center justify-center p-12 lg:p-20 transition-all duration-500 group-hover:border-primary/35 group-hover:shadow-[0_20px_80px_rgba(225,171,45,0.15)] border border-border/40 mb-4">
+                <div className="relative bg-secondary rounded-2xl aspect-square flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:border-primary/35 group-hover:shadow-[0_20px_80px_rgba(225,171,45,0.15)] border border-border/40 mb-4">
                   <motion.img
                     key={selectedColor + selectedImage}
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -131,7 +131,7 @@ export default function ProductPage() {
                     transition={{ duration: 0.5 }}
                     src={resolveProductImage(productImagesArray[selectedImage]) || ""}
                     alt={product.name}
-                    className="w-full h-full object-contain drop-shadow-lg"
+                    className="w-full h-full object-cover drop-shadow-lg"
                   />
                 </div>
 
