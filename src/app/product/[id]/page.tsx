@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Star, ChevronDown, Mail, Check, ShoppingCart, Shield, Zap, Award, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { productImages } from "@/lib/productImages";
 import { resolveProductImage } from "@/lib/imageResolver";
@@ -32,6 +33,12 @@ export const parseTopic = (t: string) => {
     }
   } catch (e) { }
   return { text: t, icon: "Check" };
+};
+
+const badgeStyles: Record<string, string> = {
+  Premium: "bg-primary text-primary-foreground",
+  Limited: "bg-accent text-accent-foreground",
+  Novo: "bg-primary/15 text-primary border border-primary/30",
 };
 
 export default function ProductPage() {
@@ -123,7 +130,25 @@ export default function ProductPage() {
                 <div className="absolute -inset-2 md:-inset-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
                   <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
                 </div>
-                <div className="relative z-10 premium-card rounded-2xl overflow-hidden mb-4">
+                <div className="relative z-10 premium-card rounded-2xl overflow-hidden mb-4 border border-primary/20 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(225,171,45,0.15)] transition-all duration-300">
+                  {/* Badge */}
+                  {product.badge && (
+                    <div className="absolute top-4 left-4 z-10">
+                      <Badge className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${badgeStyles[product.badge] || ""}`}>
+                        {product.badge}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Stock badge */}
+                  {!product.inStock && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <Badge variant="secondary" className="text-[10px] font-medium px-2 py-1 rounded-full bg-secondary/80 text-muted-foreground backdrop-blur-sm">
+                        Esgotado
+                      </Badge>
+                    </div>
+                  )}
+
                   <div className="aspect-square flex items-center justify-center overflow-hidden relative">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.05)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                     <motion.img
@@ -143,7 +168,7 @@ export default function ProductPage() {
                     <button
                       key={idx}
                       onClick={() => setSelectedImage(idx)}
-                      className={`relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 snap-start premium-card rounded-xl border-2 flex items-center justify-center overflow-hidden transition-all ${selectedImage === idx ? 'border-primary' : 'border-transparent hover:border-white/20'
+                      className={`relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 snap-start premium-card rounded-xl border flex items-center justify-center overflow-hidden transition-all duration-300 ${selectedImage === idx ? 'border-primary ring-1 ring-primary/50 ring-offset-2 ring-offset-background shadow-[0_0_15px_rgba(225,171,45,0.3)]' : 'border-primary/20 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(225,171,45,0.15)]'
                         }`}
                     >
                       <img src={resolveProductImage(img) || ""} alt={`Thumb ${idx}`} className="w-full h-full object-cover opacity-80 hover:opacity-100" />

@@ -43,9 +43,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
         <div className="absolute -inset-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
           <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.30)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
         </div>
-
-        <div className="relative z-10 premium-card rounded-2xl overflow-hidden">
-
+        <div className="relative z-10 premium-card rounded-2xl overflow-hidden border border-primary/20 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(225,171,45,0.15)] transition-all duration-300">
           {/* Badge */}
           {product.badge && (
             <div className="absolute top-4 left-4 z-10">
