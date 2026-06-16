@@ -28,9 +28,9 @@ export const parseTopic = (t: string) => {
   try {
     const parsed = JSON.parse(t);
     if (parsed && typeof parsed === 'object' && parsed.text !== undefined) {
-       return { text: parsed.text, icon: parsed.icon || "Check" };
+      return { text: parsed.text, icon: parsed.icon || "Check" };
     }
-  } catch (e) {}
+  } catch (e) { }
   return { text: t, icon: "Check" };
 };
 
@@ -117,22 +117,25 @@ export default function ProductPage() {
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
+              className="flex justify-center lg:justify-start"
             >
-              <div className="group relative sticky top-24">
+              <div className="group relative sticky top-24 w-full max-w-md xl:max-w-lg mx-auto lg:mx-0">
                 <div className="absolute -inset-2 md:-inset-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
                   <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
                 </div>
-
-                <div className="relative bg-secondary rounded-2xl aspect-square flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:border-primary/35 group-hover:shadow-[0_20px_80px_rgba(225,171,45,0.15)] border border-border/40 mb-4">
-                  <motion.img
-                    key={selectedColor + selectedImage}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                    src={resolveProductImage(productImagesArray[selectedImage]) || ""}
-                    alt={product.name}
-                    className="w-full h-full object-contain drop-shadow-md transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-110 group-hover:-rotate-2 group-hover:drop-shadow-[0_20px_30px_rgba(225,171,45,0.15)]"
-                  />
+                <div className="relative z-10 premium-card rounded-2xl overflow-hidden mb-4">
+                  <div className="aspect-square flex items-center justify-center overflow-hidden relative">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.05)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    <motion.img
+                      key={selectedColor + selectedImage}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5 }}
+                      src={resolveProductImage(productImagesArray[selectedImage]) || ""}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-110 group-hover:-rotate-2 drop-shadow-md group-hover:drop-shadow-[0_20px_30px_rgba(225,171,45,0.15)]"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
@@ -140,10 +143,10 @@ export default function ProductPage() {
                     <button
                       key={idx}
                       onClick={() => setSelectedImage(idx)}
-                      className={`relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 snap-start bg-secondary rounded-xl border-2 flex items-center justify-center p-3 transition-all ${selectedImage === idx ? 'border-primary' : 'border-transparent hover:border-white/20'
+                      className={`relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 snap-start premium-card rounded-xl border-2 flex items-center justify-center overflow-hidden transition-all ${selectedImage === idx ? 'border-primary' : 'border-transparent hover:border-white/20'
                         }`}
                     >
-                      <img src={resolveProductImage(img) || ""} alt={`Thumb ${idx}`} className="w-full h-full object-contain opacity-80 hover:opacity-100" />
+                      <img src={resolveProductImage(img) || ""} alt={`Thumb ${idx}`} className="w-full h-full object-cover opacity-80 hover:opacity-100" />
                     </button>
                   ))}
                 </div>
