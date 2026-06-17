@@ -123,7 +123,7 @@ export default function ProductPage() {
                 <div className="absolute -inset-2 md:-inset-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
                   <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
                 </div>
-                <div className="relative z-10 premium-card rounded-2xl overflow-hidden mb-4 border border-primary/20 hover:border-primary/50 transition-all duration-300">
+                <div className="relative z-10 premium-card rounded-2xl overflow-hidden mb-4 border border-primary/50 hover:border-primary/50 transition-all duration-300">
                   <div className="aspect-square bg-black flex items-center justify-center overflow-hidden relative">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.05)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                     <motion.img
@@ -143,7 +143,7 @@ export default function ProductPage() {
                     <button
                       key={idx}
                       onClick={() => setSelectedImage(idx)}
-                      className={`relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 snap-start premium-card rounded-xl border flex items-center justify-center overflow-hidden transition-all duration-300 ${selectedImage === idx ? 'border-primary ring-1 ring-primary/50 ring-offset-2 ring-offset-background shadow-[0_0_15px_rgba(225,171,45,0.3)]' : 'border-primary/20 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(225,171,45,0.15)]'
+                      className={`relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 snap-start premium-card rounded-xl border flex items-center justify-center overflow-hidden transition-all duration-300 ${selectedImage === idx ? 'border-primary ring-1 ring-primary/50 ring-offset-2 ring-offset-background shadow-[0_0_15px_rgba(225,171,45,0.3)]' : 'border-primary/50 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(225,171,45,0.15)]'
                         }`}
                     >
                       <img src={resolveProductImage(img) || ""} alt={`Thumb ${idx}`} className="w-full h-full object-cover opacity-80 hover:opacity-100" />
