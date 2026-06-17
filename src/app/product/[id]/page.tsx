@@ -124,7 +124,7 @@ export default function ProductPage() {
                   <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
                 </div>
                 <div className="relative z-10 premium-card rounded-2xl overflow-hidden mb-4 border border-primary/50 hover:border-primary/50 transition-all duration-300">
-                  <div className="aspect-square bg-black flex items-center justify-center overflow-hidden relative">
+                  <div className="aspect-square bg-black flex items-center justify-center overflow-hidden relative rounded-2xl">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.05)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                     <motion.img
                       key={selectedColor + selectedImage}

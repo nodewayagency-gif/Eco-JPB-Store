@@ -63,12 +63,12 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
           )}
 
           {/* Image */}
-          <div className="aspect-square flex items-center justify-center overflow-hidden relative">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.05)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          <div className="aspect-square flex items-center justify-center overflow-hidden relative rounded-2xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.05)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-2xl" />
             <img
               src={resolveProductImage(product.image, product.images) || ""}
               alt={product.name}
-              className="w-full h-full object-cover transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-110 group-hover:-rotate-2 drop-shadow-md group-hover:drop-shadow-[0_20px_30px_rgba(225,171,45,0.15)]"
+              className="w-full h-full object-cover transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-110 group-hover:-rotate-2 drop-shadow-md group-hover:drop-shadow-[0_20px_30px_rgba(225,171,45,0.15)] rounded-2xl"
             />
           </div>
 
