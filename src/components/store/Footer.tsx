@@ -31,6 +31,12 @@ const Footer = () => {
             >
               Instagram
             </a>
+            <Link 
+              href="/minha-conta" 
+              className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-primary-foreground px-4 py-2 rounded-md transition-colors font-medium"
+            >
+              Minha Conta
+            </Link>
           </div>
         </div>
 
