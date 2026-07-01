@@ -9,11 +9,11 @@ const FeaturedShowcase = () => {
     <section className="py-24 bg-[#0a0a0a] overflow-hidden">
       <div className="container mx-auto px-4 md:px-8">
         <div className="relative rounded-[2rem] overflow-hidden bg-[linear-gradient(135deg,#111111_0%,#050505_100%)] border border-white/5 p-8 md:p-16 lg:p-24 flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-          
+
           {/* Back Glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.1)_0%,transparent_70%)] blur-3xl pointer-events-none" />
 
-          {/* Info */}
+          {/* Infor */}
           <div className="flex-1 space-y-8 z-10">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -90,9 +90,9 @@ const FeaturedShowcase = () => {
             className="flex-1 relative"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.2)_0%,transparent_70%)] blur-3xl" />
-            <img 
-              src={logo} 
-              alt="JPB Studio Pro Max" 
+            <img
+              src={logo}
+              alt="JPB Studio Pro Max"
               className="relative w-full max-w-[500px] object-contain drop-shadow-[0_20px_50px_rgba(225,171,45,0.3)]"
             />
           </motion.div>
@@ -103,9 +103,9 @@ const FeaturedShowcase = () => {
 };
 
 const Badge = ({ children, variant, className }: any) => (
-    <span className={`inline-flex items-center ${className}`}>
-        {children}
-    </span>
+  <span className={`inline-flex items-center ${className}`}>
+    {children}
+  </span>
 );
 
 export default FeaturedShowcase;
