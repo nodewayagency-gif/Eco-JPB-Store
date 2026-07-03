@@ -246,15 +246,15 @@ export default function AdminProductsPage() {
       const payload: AdminProductInput = {
         ...form,
         inStock: form.stockQuantity > 0,
-        price: Number(form.price),
-        costPrice: Number(form.costPrice),
+        price: Number(String(form.price).replace(',', '.')),
+        costPrice: Number(String(form.costPrice).replace(',', '.')),
         stockQuantity: Number(form.stockQuantity),
         minStockAlert: Number(form.minStockAlert),
-        weightKg: Number(form.weightKg),
-        lengthCm: Number(form.lengthCm),
-        widthCm: Number(form.widthCm),
-        heightCm: Number(form.heightCm),
-        taxPercent: Number(form.taxPercent) || 0,
+        weightKg: Number(String(form.weightKg).replace(',', '.')),
+        lengthCm: Number(String(form.lengthCm).replace(',', '.')),
+        widthCm: Number(String(form.widthCm).replace(',', '.')),
+        heightCm: Number(String(form.heightCm).replace(',', '.')),
+        taxPercent: Number(String(form.taxPercent).replace(',', '.')) || 0,
         badge: form.badge || undefined,
         ncm: form.ncm || undefined,
         ean: form.ean || undefined,
@@ -330,7 +330,9 @@ export default function AdminProductsPage() {
   };
 
   const handleNumber = (field: keyof AdminProductInput) => (value: string) => {
-    setForm((current) => ({ ...current, [field]: Number(value) }));
+    // Permite apenas números, ponto e vírgula para não bugar a digitação
+    const sanitized = value.replace(/[^0-9.,]/g, '');
+    setForm((current) => ({ ...current, [field]: sanitized } as any));
   };
 
   return (
@@ -587,16 +589,16 @@ export default function AdminProductsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Preço venda (R$)</Label><Input type="number" value={form.price} onChange={(e) => handleNumber("price")(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Custo (R$)</Label><Input type="number" value={form.costPrice} onChange={(e) => handleNumber("costPrice")(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Preço venda (R$)</Label><Input type="text" inputMode="decimal" value={form.price} onChange={(e) => handleNumber("price")(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Custo (R$)</Label><Input type="text" inputMode="decimal" value={form.costPrice} onChange={(e) => handleNumber("costPrice")(e.target.value)} /></div>
               <div className="space-y-2"><Label>Estoque</Label><Input type="number" value={form.stockQuantity} onChange={(e) => handleNumber("stockQuantity")(e.target.value)} /></div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2"><Label>Peso (kg)</Label><Input type="number" step="0.01" value={form.weightKg} onChange={(e) => handleNumber("weightKg")(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Comprimento (cm)</Label><Input type="number" step="0.1" value={form.lengthCm} onChange={(e) => handleNumber("lengthCm")(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Largura (cm)</Label><Input type="number" step="0.1" value={form.widthCm} onChange={(e) => handleNumber("widthCm")(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Altura (cm)</Label><Input type="number" step="0.1" value={form.heightCm} onChange={(e) => handleNumber("heightCm")(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Peso (kg)</Label><Input type="text" inputMode="decimal" value={form.weightKg} onChange={(e) => handleNumber("weightKg")(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Comprimento (cm)</Label><Input type="text" inputMode="decimal" value={form.lengthCm} onChange={(e) => handleNumber("lengthCm")(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Largura (cm)</Label><Input type="text" inputMode="decimal" value={form.widthCm} onChange={(e) => handleNumber("widthCm")(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Altura (cm)</Label><Input type="text" inputMode="decimal" value={form.heightCm} onChange={(e) => handleNumber("heightCm")(e.target.value)} /></div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

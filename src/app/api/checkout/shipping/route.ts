@@ -53,9 +53,9 @@ export async function POST(req: Request) {
 
         return {
           id: item.productId,
-          width: width > 0 ? width : 20,
-          height: height > 0 ? height : 20,
-          length: length > 0 ? length : 40,
+          width: width > 0 ? Math.ceil(width) : 20,
+          height: height > 0 ? Math.ceil(height) : 20,
+          length: length > 0 ? Math.ceil(length) : 40,
           weight: weight > 0 ? weight : 0.3,
           quantity: item.quantity,
         };
