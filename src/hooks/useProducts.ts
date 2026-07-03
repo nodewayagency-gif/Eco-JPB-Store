@@ -17,6 +17,7 @@ export interface Product {
   rating: number;
   reviews: number;
   freeShipping?: boolean;
+  topics?: string[];
 }
 
 export const useProducts = () => {
