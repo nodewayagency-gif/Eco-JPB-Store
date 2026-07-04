@@ -9,6 +9,7 @@ import {
   X,
   Package,
   ChevronRight,
+  ChevronLeft,
   Filter,
   Send,
   CheckCircle2,
@@ -176,6 +177,10 @@ export default function AdminSupportPage() {
         images: imageUrls
       });
 
+      if (selectedTicket.status === "OPEN") {
+        await adminRepository.updateTicketStatus(selectedTicket.id, "IN_PROGRESS");
+      }
+
       setReplyContent("");
       setReplyImages([]);
       await loadTickets();
@@ -225,16 +230,16 @@ export default function AdminSupportPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">Todos os status</SelectItem>
-              <SelectItem value="OPEN">Abertos</SelectItem>
+              <SelectItem value="OPEN">Novo</SelectItem>
               <SelectItem value="IN_PROGRESS">Em Atendimento</SelectItem>
-              <SelectItem value="CLOSED">Fechados</SelectItem>
+              <SelectItem value="CLOSED">Finalizado</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
-        <div className="col-span-12 lg:col-span-4 flex flex-col space-y-4 overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+        <div className={cn("lg:col-span-4 flex-col space-y-4 overflow-hidden", selectedTicket ? "hidden lg:flex" : "flex")}>
           <Card className="flex-1 flex flex-col bg-card border-border overflow-hidden">
             <div className="p-3 border-b border-border bg-secondary/10 flex justify-between items-center">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fila de Chamados</span>
@@ -303,7 +308,7 @@ export default function AdminSupportPage() {
                             ticket.status === "IN_PROGRESS" ? "bg-amber-500/10 text-amber-500" :
                               "bg-emerald-500/10 text-emerald-500"
                         )}>
-                          {ticket.status === "OPEN" ? "Aberto" : ticket.status === "IN_PROGRESS" ? "Em Atend." : "Resolvido"}
+                          {ticket.status === "OPEN" ? "Novo" : ticket.status === "IN_PROGRESS" ? "Em Atend." : "Finalizado"}
                         </Badge>
                         <span className="text-[10px] opacity-30 font-mono">#{ticket.id.slice(-6).toUpperCase()}</span>
                       </div>
@@ -357,16 +362,24 @@ export default function AdminSupportPage() {
           </Card>
         </div>
 
-        <div className="col-span-12 lg:col-span-8 overflow-hidden h-full">
+        <div className={cn("lg:col-span-8 overflow-hidden h-full", selectedTicket ? "block" : "hidden lg:block")}>
           <Card className="h-full flex flex-col bg-card border-border overflow-hidden">
             {selectedTicket ? (
               <>
                 <div className="p-4 border-b border-border bg-secondary/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="lg:hidden shrink-0 -ml-2" 
+                      onClick={() => setSelectedTicket(null)}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </Button>
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
                       <User className="w-5 h-5" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="font-bold text-sm leading-none mb-1">{selectedTicket.customerName || "Cliente"}</h3>
                       <p className="text-xs text-muted-foreground">{selectedTicket.customerEmail || ""}</p>
                     </div>
@@ -392,9 +405,9 @@ export default function AdminSupportPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="OPEN">Aberto</SelectItem>
+                        <SelectItem value="OPEN">Novo</SelectItem>
                         <SelectItem value="IN_PROGRESS">Em Atendimento</SelectItem>
-                        <SelectItem value="CLOSED">Resolvido</SelectItem>
+                        <SelectItem value="CLOSED">Finalizado</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

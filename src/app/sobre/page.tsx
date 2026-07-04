@@ -22,7 +22,7 @@ const milestones = [
 ];
 
 const stats = [
-  { value: "10K+", label: "Clientes Satisfeitos" },
+  { value: "3K+", label: "Clientes Satisfeitos" },
   { value: "4.8★", label: "Avaliação Média" },
   { value: "6 Meses", label: "Garantia JPB" },
 ];

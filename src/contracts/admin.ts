@@ -200,7 +200,9 @@ export interface ShippingIntegrationSettings {
 }
 
 export interface AdminLead {
-  email: string;
+  id: string;
+  name: string;
+  phone: string;
   product: string;
   date: string;
   notified: boolean;
@@ -262,4 +264,19 @@ export interface AdminUserInput {
   password?: string;
   role: "ADMIN" | "OPERATOR" | "CUSTOMER";
   status: "ACTIVE" | "INACTIVE";
+}
+
+export interface AdminReviewView {
+  id: string;
+  productId: string;
+  authorName: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface AdminReviewInput {
+  authorName: string;
+  rating: number;
+  comment?: string;
 }

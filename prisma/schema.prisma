@@ -305,16 +305,17 @@ model CustomerAddress {
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  productId String
-  userId    String?
-  rating    Int
-  comment   String?  @db.Text
-  images    String[] @default([])
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id         String   @id @default(cuid())
+  productId  String
+  userId     String?
+  authorName String?
+  rating     Int
+  comment    String?  @db.Text
+  images     String[] @default([])
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("jpb_reviews")
 }
@@ -376,14 +377,15 @@ model SupportMessage {
 
 model Lead {
   id          String   @id @default(cuid())
-  email       String
+  name        String
+  phone       String
   productId   String?
   productName String?
   status      String   @default("PENDING") // PENDING, NOTIFIED
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([email])
+  @@index([phone])
   @@index([status])
   @@map("jpb_leads")
 }

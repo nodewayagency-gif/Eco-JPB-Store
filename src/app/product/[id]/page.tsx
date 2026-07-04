@@ -13,6 +13,7 @@ import { useCart } from "@/providers/CartContext";
 import Navbar from "@/components/store/Navbar";
 import Footer from "@/components/store/Footer";
 import ProductCard from "@/components/store/ProductCard";
+import ProductReviews from "@/components/store/ProductReviews";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 
 export const TOPIC_ICONS: Record<string, any> = {
@@ -41,7 +42,8 @@ export default function ProductPage() {
   const { addItem } = useCart();
   const [selectedColor, setSelectedColor] = useState(0);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistName, setWaitlistName] = useState("");
+  const [waitlistPhone, setWaitlistPhone] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
 
   if (isLoading) {
@@ -72,16 +74,29 @@ export default function ProductPage() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length > 11) value = value.slice(0, 11);
+    if (value.length > 2) {
+      value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+    }
+    if (value.length > 9) {
+      value = `${value.slice(0, 9)}-${value.slice(9)}`;
+    }
+    setWaitlistPhone(value);
+  };
+
   const handleWaitlist = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!waitlistEmail) return;
+    if (!waitlistName || !waitlistPhone) return;
 
     try {
       const response = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: waitlistEmail,
+          name: waitlistName,
+          phone: waitlistPhone,
           productId: product.id,
           productName: product.name
         })
@@ -286,20 +301,25 @@ export default function ProductPage() {
                         <p className="text-sm font-semibold text-foreground">Produto esgotado</p>
                         <p className="text-xs text-muted-foreground">Cadastre-se para ser avisado quando voltar ao estoque.</p>
                       </div>
-                      <form onSubmit={handleWaitlist} className="flex flex-col sm:flex-row gap-2">
-                        <div className="relative flex-1">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <input
-                            type="email"
-                            required
-                            placeholder="seu@email.com"
-                            value={waitlistEmail}
-                            onChange={(e) => setWaitlistEmail(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                          />
-                        </div>
-                        <Button type="submit" className="rounded-xl px-6 h-12 sm:h-auto">
-                          Avisar-me
+                      <form onSubmit={handleWaitlist} className="flex flex-col gap-3">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Seu nome completo"
+                          value={waitlistName}
+                          onChange={(e) => setWaitlistName(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                        <input
+                          type="tel"
+                          required
+                          placeholder="(00) 00000-0000"
+                          value={waitlistPhone}
+                          onChange={handlePhoneChange}
+                          className="w-full px-4 py-3 rounded-xl bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                        <Button type="submit" className="rounded-xl px-6 h-12 w-full mt-2">
+                          Avise-me quando chegar
                         </Button>
                       </form>
                     </>
@@ -348,6 +368,8 @@ export default function ProductPage() {
               </Accordion>
             </motion.div>
           </div>
+
+          <ProductReviews productId={product.id} />
 
           {/* Related Products Section */}
           <RelatedProducts currentProductId={product.id} category={product.category} />

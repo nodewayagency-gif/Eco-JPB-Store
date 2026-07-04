@@ -133,6 +133,7 @@ export interface AdminRepository {
   deleteProduct: (id: string) => Promise<void>;
   listProductPurchaseHistory: (productId: string) => Promise<AdminProductPurchaseHistory[]>;
   listLeads: () => Promise<import("@premium/contracts").AdminLead[]>;
+  updateLeadStatus: (id: string, status: string) => Promise<any>;
   listCategories: () => Promise<AdminCategory[]>;
   createCategory: (payload: AdminCategoryInput) => Promise<AdminCategory>;
   updateCategory: (id: string, changes: Partial<AdminCategoryInput>) => Promise<AdminCategory>;
@@ -151,6 +152,9 @@ export interface AdminRepository {
   replyTicket: (id: string, input: import("@premium/contracts").SendTicketMessageInput) => Promise<import("@premium/contracts").SupportTicketView>;
   mapStatusToLabel: (status: string, steps: any[]) => string;
   mapToOrderDetail: (data: any) => AdminOrderDetail;
+  listProductReviews: (productId: string) => Promise<import("@premium/contracts").AdminReviewView[]>;
+  createProductReview: (productId: string, data: import("@premium/contracts").AdminReviewInput) => Promise<import("@premium/contracts").AdminReviewView>;
+  deleteProductReview: (productId: string, reviewId: string) => Promise<void>;
 }
 
 
@@ -360,11 +364,18 @@ export const adminRepository: AdminRepository = {
   async listLeads() {
     const { data } = await api.get<any[]>("/leads");
     return data.map(lead => ({
-      email: lead.email,
+      id: lead.id,
+      name: lead.name,
+      phone: lead.phone,
       product: lead.productName || "Geral",
       date: new Date(lead.createdAt).toLocaleDateString("pt-BR"),
       notified: lead.status === "NOTIFIED"
     }));
+  },
+
+  async updateLeadStatus(id: string, status: string) {
+    const { data } = await api.patch(`/leads/${id}`, { status });
+    return data;
   },
 
   async listCategories() {
@@ -483,6 +494,20 @@ export const adminRepository: AdminRepository = {
   async replyTicket(id, input) {
     const { data } = await api.post(`/support/tickets/${id}/messages`, input);
     return data;
+  },
+
+  async listProductReviews(productId: string) {
+    const { data } = await api.get(`/products/${productId}/reviews`);
+    return data;
+  },
+
+  async createProductReview(productId: string, payload) {
+    const { data } = await api.post(`/products/${productId}/reviews`, payload);
+    return data;
+  },
+
+  async deleteProductReview(productId: string, reviewId: string) {
+    await api.delete(`/products/${productId}/reviews/${reviewId}`);
   }
 };
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, User, MoreHorizontal, Edit, Trash2, KeyRound, Package, ChevronRight, X, Loader2 } from "lucide-react";
+import { Search, User, MoreHorizontal, Edit, Trash2, KeyRound, Package, ChevronRight, X, Loader2, MessageCircle } from "lucide-react";
 import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,10 +129,42 @@ export default function AdminCustomersPage() {
     }
   };
 
+  const handleWhatsApp = async (user: AdminUserRow) => {
+    const phone = user.customerProfile?.phone;
+    if (!phone) {
+      toast.error("Cliente não possui telefone cadastrado.");
+      return;
+    }
+
+    try {
+      const allOrders = await adminRepository.listOrders();
+      const userOrders = allOrders.filter(o => o.customerId === user.id);
+
+      let message = "";
+
+      if (userOrders.length === 0) {
+        message = "Olá! Vimos que você se cadastrou em jpbstorex.com.br, mas ainda não realizou nenhuma compra. Tem algo em que possamos ajudar?";
+      } else {
+        const latestOrder = userOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        const days = Math.floor((new Date().getTime() - new Date(latestOrder.createdAt).getTime()) / (1000 * 3600 * 24));
+        message = `Olá! Notamos que faz ${days} dias desde a sua última compra na jpbstorex.com.br. Que tal conferir nossas novidades?`;
+      }
+
+      let phoneOnlyNumbers = phone.replace(/\D/g, '');
+      if (phoneOnlyNumbers.length <= 11) {
+        phoneOnlyNumbers = `55${phoneOnlyNumbers}`; // Assume Brazilian number if code missing
+      }
+      const url = `https://wa.me/${phoneOnlyNumbers}?text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+    } catch (error) {
+      toast.error("Erro ao gerar mensagem");
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     const displayName = user.customerProfile?.name || user.name || "";
     return displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (user.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+      (user.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
   });
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -284,64 +316,72 @@ export default function AdminCustomersPage() {
                             {displayName}
                           </div>
                         </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {user.email}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className={
-                            user.status === "ACTIVE"
-                              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                              : "bg-muted text-muted-foreground border-border"
-                          }
-                        >
-                          {user.status === "ACTIVE" ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex items-center justify-end gap-2">
-                           <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 gap-1.5 text-xs"
-                            onClick={() => handleOpenOrdersModal(user)}
+                        <TableCell className="text-muted-foreground text-sm">
+                          {user.email}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className={
+                              user.status === "ACTIVE"
+                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                : "bg-muted text-muted-foreground border-border"
+                            }
                           >
-                            <Package className="w-3.5 h-3.5" /> Pedidos
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-card border-border">
-                              <DropdownMenuItem
-                                className="gap-2 cursor-pointer"
-                                onClick={() => handleOpenEdit(user)}
-                              >
-                                <Edit className="w-4 h-4" /> Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2 cursor-pointer"
-                                onClick={() => handleOpenPasswordModal(user)}
-                              >
-                                <KeyRound className="w-4 h-4" /> Alterar Senha
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive cursor-pointer hover:bg-destructive/10"
-                                onClick={() => handleDelete(user.id)}
-                              >
-                                <Trash2 className="w-4 h-4" /> Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
+                            {user.status === "ACTIVE" ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                              onClick={() => handleWhatsApp(user)}
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs"
+                              onClick={() => handleOpenOrdersModal(user)}
+                            >
+                              <Package className="w-3.5 h-3.5" /> Pedidos
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-card border-border">
+                                <DropdownMenuItem
+                                  className="gap-2 cursor-pointer"
+                                  onClick={() => handleOpenEdit(user)}
+                                >
+                                  <Edit className="w-4 h-4" /> Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="gap-2 cursor-pointer"
+                                  onClick={() => handleOpenPasswordModal(user)}
+                                >
+                                  <KeyRound className="w-4 h-4" /> Alterar Senha
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="gap-2 text-destructive cursor-pointer hover:bg-destructive/10"
+                                  onClick={() => handleDelete(user.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" /> Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </div>
@@ -351,7 +391,7 @@ export default function AdminCustomersPage() {
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious 
+                    <PaginationPrevious
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
@@ -360,7 +400,7 @@ export default function AdminCustomersPage() {
                     Página {page} de {totalPages}
                   </span>
                   <PaginationItem>
-                    <PaginationNext 
+                    <PaginationNext
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                       className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
@@ -433,7 +473,7 @@ export default function AdminCustomersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
         <DialogContent className="max-w-md bg-card border-border">
           <DialogHeader>
@@ -492,8 +532,8 @@ export default function AdminCustomersPage() {
             ) : (
               <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-2">
                 {customerOrders.map((order) => (
-                  <div 
-                    key={order.id} 
+                  <div
+                    key={order.id}
                     className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-primary/30 transition-colors cursor-pointer group"
                     onClick={() => {
                       setOrdersModalOpen(false);

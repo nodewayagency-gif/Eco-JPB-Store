@@ -15,19 +15,27 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const data = await request.json();
+    const { name, phone, productId, productName } = data;
+
+    if (!name || !phone) {
+      return NextResponse.json({ message: 'Nome e telefone são obrigatórios' }, { status: 400 });
+    }
+
     const lead = await prisma.lead.create({
       data: {
-        email: data.email,
-        productId: data.productId,
-        productName: data.productName,
-      },
+        name,
+        phone,
+        productId,
+        productName
+      }
     });
+
     return NextResponse.json(lead, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating lead:', error);
-    return NextResponse.json({ message: 'Erro ao capturar lead' }, { status: 500 });
+    return NextResponse.json({ message: 'Erro ao criar lead' }, { status: 500 });
   }
 }

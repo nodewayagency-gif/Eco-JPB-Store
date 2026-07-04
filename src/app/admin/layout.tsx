@@ -56,29 +56,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isAdminLogin = pathname === "/admin/login";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openTicketsCount, setOpenTicketsCount] = useState(0);
+  const [paidOrdersCount, setPaidOrdersCount] = useState(0);
 
   const settingsOpen = pathname.startsWith("/admin/configuracoes");
 
   useEffect(() => {
     if (isAdminLogin || !adminSession) {
       setOpenTicketsCount(0);
+      setPaidOrdersCount(0);
       return;
     }
     
-    const fetchCount = async () => {
+    const fetchCounts = async () => {
       try {
-        const tickets = await adminRepository.listTickets();
-        const count = Array.isArray(tickets) ? tickets.filter(t => t?.status === "OPEN").length : 0;
-        setOpenTicketsCount(count);
+        const [tickets, orders] = await Promise.all([
+          adminRepository.listTickets(),
+          adminRepository.listOrders()
+        ]);
+
+        const tCount = Array.isArray(tickets) ? tickets.filter(t => t?.status === "OPEN" || t?.status === "IN_PROGRESS").length : 0;
+        setOpenTicketsCount(tCount);
+
+        const pCount = Array.isArray(orders) ? orders.filter(o => o?.currentStep === "payment_confirmed" || o?.statusLabel === "Pagamento confirmado").length : 0;
+        setPaidOrdersCount(pCount);
       } catch (error) {
         // Silently fail if 403 (likely logged out)
         if ((error as any)?.response?.status === 403) return;
-        console.error("Erro ao buscar contagem de tickets:", error);
+        console.error("Erro ao buscar contagens:", error);
       }
     };
 
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000); // Polling cada 30s (aumentado para economizar recursos)
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000); // Polling cada 30s
     return () => clearInterval(interval);
   }, [isAdminLogin, adminSession]);
 
@@ -107,9 +116,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <item.icon className="w-4 h-4" />
               {item.label}
             </div>
-            {item.badge && openTicketsCount > 0 && (
+            {item.label === "Suporte" && openTicketsCount > 0 && (
               <Badge className="h-5 px-1.5 min-w-[20px] justify-center bg-destructive text-white border-none text-[10px] animate-pulse">
                 {openTicketsCount}
+              </Badge>
+            )}
+            {item.label === "Pedidos" && paidOrdersCount > 0 && (
+              <Badge className="h-5 px-1.5 min-w-[20px] justify-center bg-destructive text-white border-none text-[10px] animate-pulse">
+                {paidOrdersCount}
               </Badge>
             )}
           </Link>

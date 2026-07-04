@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 const emptyForm: AdminUserInput = {
   name: "",
   email: "",
+  password: "",
   role: "CUSTOMER",
   status: "ACTIVE"
 };
@@ -98,7 +99,7 @@ export default function AdminTeamPage() {
     try {
       setLoading(true);
       const data = await adminRepository.listUsers();
-      setUsers(Array.isArray(data) ? data : []);
+      setUsers(Array.isArray(data) ? data.filter(u => u.role === "ADMIN") : []);
     } catch (error) {
       toast.error("Erro ao carregar usuários");
     } finally {
@@ -390,6 +391,19 @@ export default function AdminTeamPage() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </div>
+
+            {!editingId && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Senha para este usuário"
+                  value={form.password || ""}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="role">Papel / Nível de Acesso</Label>
