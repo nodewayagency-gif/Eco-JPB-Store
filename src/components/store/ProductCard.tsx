@@ -47,7 +47,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
         <div className="relative w-full z-10 premium-card rounded-2xl overflow-hidden border border-primary/50 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(225,171,45,0.15)] transition-all duration-300">
           {/* Badge */}
           {product.badge && (
-            <div className="absolute top-4 left-4 z-10">
+            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10">
               <Badge className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${badgeStyles[product.badge] || ""}`}>
                 {product.badge}
               </Badge>
@@ -56,7 +56,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
 
           {/* Stock badge */}
           {!product.inStock && (
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10">
               <Badge variant="secondary" className="text-[10px] font-medium px-2 py-1 rounded-full bg-secondary/80 text-muted-foreground backdrop-blur-sm">
                 Esgotado
               </Badge>
@@ -75,7 +75,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
 
           {/* Quick View Button on Hover */}
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-            <div className="bg-white text-black px-6 py-2.5 rounded-full font-bold text-sm transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+            <div className="bg-white text-black px-4 py-1.5 sm:px-6 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
               Ver Detalhes
             </div>
           </div>
@@ -83,7 +83,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
 
 
         {/* Info */}
-        <div className="mt-5 space-y-2 px-1">
+        <div className="mt-3 sm:mt-5 gap-1.5 sm:gap-2 px-1 flex flex-col flex-1">
           <div className="flex items-center justify-between">
             <p className="text-[10px] text-primary font-bold uppercase tracking-[0.15em]">{product.category}</p>
             <div className="flex gap-1">
@@ -98,33 +98,33 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
             </div>
           </div>
 
-          <h3 className="text-lg font-bold text-foreground leading-tight group-hover:text-primary transition-colors duration-300">
+          <h3 className="text-sm sm:text-lg font-bold text-foreground leading-tight group-hover:text-primary transition-colors duration-300 line-clamp-2">
             {product.name}
           </h3>
 
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black text-foreground group-hover:text-primary transition-colors duration-300">
+          <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+            <span className="text-base sm:text-xl font-black text-foreground group-hover:text-primary transition-colors duration-300">
               {formatPrice(product.price)}
             </span>
             {product.originalPrice && (
-              <span className="text-sm text-muted-foreground line-through opacity-60 font-medium">
+              <span className="text-xs sm:text-sm text-muted-foreground line-through opacity-60 font-medium">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
             {(product.shipping?.freeShipping || (product as any).freeShipping) && (
-              <span className="ml-auto text-[9px] font-black uppercase tracking-tighter text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+              <span className="ml-auto mt-1 sm:mt-0 text-[8px] sm:text-[9px] font-black uppercase tracking-tighter text-emerald-500 bg-emerald-500/10 px-1 sm:px-1.5 py-0.5 rounded">
                 Frete Grátis
               </span>
             )}
           </div>
 
-          <div className="pt-3 relative z-20">
+          <div className="pt-2 sm:pt-3 relative z-20 mt-auto">
             <Button
-              className="w-full rounded-xl transition-all duration-300 shadow-none hover:shadow-[0_0_20px_rgba(225,171,45,0.3)] bg-primary text-primary-foreground hover:bg-primary/90"
+              className="w-full rounded-xl transition-all duration-300 shadow-none hover:shadow-[0_0_20px_rgba(225,171,45,0.3)] bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm h-9 sm:h-10"
               onClick={handleAddToCart}
               disabled={!product.inStock}
             >
-              <ShoppingCart className="w-4 h-4 mr-2" />
+              <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
               Adicionar
             </Button>
           </div>

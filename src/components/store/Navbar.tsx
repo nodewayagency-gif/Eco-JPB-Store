@@ -6,6 +6,7 @@ import { useCart } from "@/providers/CartContext";
 import { useAuth } from "@/providers/auth/AuthProvider";
 import { useConfig } from "@/providers/ConfigContext";
 import { CartSheet } from "./CartSheet";
+import PromoBanner from "./PromoBanner";
 const logo = "/brand/logo.png";
 
 const Navbar = () => {
@@ -143,7 +144,7 @@ const Navbar = () => {
             </div>
           </div>
         </div>
-
+        <PromoBanner />
       </nav>
       <CartSheet />
     </>
