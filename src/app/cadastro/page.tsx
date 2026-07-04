@@ -135,7 +135,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="flex-1 pt-24 pb-20">
+      <main className="flex-1 pt-32 pb-20">
         <div className="container mx-auto px-4 max-w-2xl">
           <Card className="bg-card border-border overflow-hidden">
             <div className="h-2 bg-primary w-full" />

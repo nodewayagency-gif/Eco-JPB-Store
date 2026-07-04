@@ -556,7 +556,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <main className="flex-1 pt-24 pb-20 flex items-center justify-center">
+        <main className="flex-1 pt-32 pb-20 flex items-center justify-center">
           <div className="container mx-auto px-4 max-w-2xl text-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -650,7 +650,7 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <main className="flex-1 pt-24">
+        <main className="flex-1 pt-32">
           <div className="container mx-auto px-4 md:px-8 flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <p className="text-muted-foreground">Seu carrinho está vazio.</p>
             <Link href="/">
@@ -668,7 +668,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="flex-1 pt-24 pb-20 relative overflow-hidden">
+      <main className="flex-1 pt-32 pb-20 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-[680px] h-[680px] bg-primary/7 rounded-full blur-3xl" />
         </div>

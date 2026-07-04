@@ -50,7 +50,7 @@ export default function ProductsPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="flex-1 pt-24 pb-20 relative overflow-hidden">
+      <main className="flex-1 pt-32 pb-20 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[780px] h-[780px] bg-primary/8 rounded-full blur-3xl" />
         </div>
