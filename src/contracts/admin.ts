@@ -255,6 +255,7 @@ export interface AdminUserRow {
   createdAt: string;
   customerProfile?: {
     name: string;
+    phone?: string;
   };
 }
 
