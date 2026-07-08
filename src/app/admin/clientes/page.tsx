@@ -155,7 +155,11 @@ export default function AdminCustomersPage() {
         phoneOnlyNumbers = `55${phoneOnlyNumbers}`; // Assume Brazilian number if code missing
       }
       const url = `https://wa.me/${phoneOnlyNumbers}?text=${encodeURIComponent(message)}`;
-      window.open(url, '_blank');
+      
+      const newWindow = window.open(url, '_blank');
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        window.location.href = url;
+      }
     } catch (error) {
       toast.error("Erro ao gerar mensagem");
     }
