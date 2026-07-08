@@ -34,6 +34,7 @@ export async function GET() {
       <g:price>${Number(product.price).toFixed(2)} BRL</g:price>
       <g:link>${link}</g:link>
       <g:image_link>${product.image || ''}</g:image_link>
+      <g:condition>new</g:condition>
     </item>`;
     }).join('');
 
