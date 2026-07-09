@@ -93,7 +93,7 @@ const FloatingInput = ({
 export default function CheckoutPage() {
   const router = useRouter();
   const { isCustomerAuthenticated, isLoading: authLoading, customerSession } = useAuth();
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, totalPrice, clearCart, addItem, updateQuantity } = useCart();
   const [payment, setPayment] = useState("CREDIT_CARD");
   const [profileLoading, setProfileLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -282,6 +282,56 @@ export default function CheckoutPage() {
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
   const [isLoadingShipping, setIsLoadingShipping] = useState(false);
   const [shippingError, setShippingError] = useState("");
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const productId = searchParams.get('product_id');
+    const quantityParam = searchParams.get('quantity');
+    const couponParam = searchParams.get('coupon');
+
+    if (productId) {
+      const handleDirectCheckout = async () => {
+        try {
+          const { data } = await api.get(`/products/${productId}`);
+          if (data) {
+            const product = {
+              ...data,
+              category: data.category?.name || 'Geral',
+              price: Number(data.price),
+              originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
+              freeShipping: data.freeShipping || false,
+              colors: data.variants && data.variants.length > 0 
+                ? data.variants.map((v: any) => ({ name: v.name, hex: v.colorHex || "#1D1D1F" }))
+                : [{ name: "Padrão", hex: "#1D1D1F" }],
+              rating: data.rating || 5.0,
+              reviews: data.reviewCount || 0,
+              image: data.image || (data.images && data.images.length > 0 ? data.images[0] : ""),
+              specs: []
+            };
+
+            const existing = items.find((i: any) => i.product.id === productId);
+            if (!existing) {
+               addItem(product, product.colors[0].name);
+            }
+            if (quantityParam) {
+               setTimeout(() => {
+                  updateQuantity(productId, Number(quantityParam));
+               }, 100);
+            }
+            if (couponParam) {
+               setCouponCode(couponParam);
+            }
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (e) {
+          console.error("Direct checkout failed", e);
+        }
+      };
+      handleDirectCheckout();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   const discount = appliedCoupon
