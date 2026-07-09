@@ -35,6 +35,8 @@ export async function GET() {
       <g:link>${link}</g:link>
       <g:image_link>${product.image || ''}</g:image_link>
       <g:condition>new</g:condition>
+      <g:quantity_to_sell_on_facebook>${product.stockQuantity}</g:quantity_to_sell_on_facebook>
+      <g:inventory>${product.stockQuantity}</g:inventory>
     </item>`;
     }).join('');
 
