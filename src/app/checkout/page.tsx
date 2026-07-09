@@ -286,44 +286,60 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const searchParams = new URLSearchParams(window.location.search);
-    const productId = searchParams.get('product_id');
+    const productIdParam = searchParams.get('product_id');
     const quantityParam = searchParams.get('quantity');
     const couponParam = searchParams.get('coupon');
 
-    if (productId) {
+    if (productIdParam) {
       const handleDirectCheckout = async () => {
         try {
-          const { data } = await api.get(`/products/${productId}`);
-          if (data) {
-            const product = {
-              ...data,
-              category: data.category?.name || 'Geral',
-              price: Number(data.price),
-              originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
-              freeShipping: data.freeShipping || false,
-              colors: data.variants && data.variants.length > 0 
-                ? data.variants.map((v: any) => ({ name: v.name, hex: v.colorHex || "#1D1D1F" }))
-                : [{ name: "Padrão", hex: "#1D1D1F" }],
-              rating: data.rating || 5.0,
-              reviews: data.reviewCount || 0,
-              image: data.image || (data.images && data.images.length > 0 ? data.images[0] : ""),
-              specs: []
-            };
+          const productIds = productIdParam.split(',');
+          const quantities = quantityParam ? quantityParam.split(',') : [];
 
-            const existing = items.find((i: any) => i.product.id === productId);
-            if (!existing) {
-               addItem(product, product.colors[0].name);
+          for (let i = 0; i < productIds.length; i++) {
+            const pid = productIds[i].trim();
+            if (!pid) continue;
+            
+            const qty = quantities[i] ? Number(quantities[i].trim()) : 1;
+
+            try {
+              const { data } = await api.get(`/products/${pid}`);
+              if (data) {
+                const product = {
+                  ...data,
+                  category: data.category?.name || 'Geral',
+                  price: Number(data.price),
+                  originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
+                  freeShipping: data.freeShipping || false,
+                  colors: data.variants && data.variants.length > 0 
+                    ? data.variants.map((v: any) => ({ name: v.name, hex: v.colorHex || "#1D1D1F" }))
+                    : [{ name: "Padrão", hex: "#1D1D1F" }],
+                  rating: data.rating || 5.0,
+                  reviews: data.reviewCount || 0,
+                  image: data.image || (data.images && data.images.length > 0 ? data.images[0] : ""),
+                  specs: []
+                };
+
+                const existing = items.find((item: any) => item.product.id === pid);
+                if (!existing) {
+                  addItem(product, product.colors[0].name);
+                }
+                
+                if (qty) {
+                  setTimeout(() => {
+                    updateQuantity(pid, qty);
+                  }, 150); // slight delay to ensure addItem state has processed
+                }
+              }
+            } catch (err) {
+              console.error(`Falha ao buscar produto ${pid} para o checkout direto`, err);
             }
-            if (quantityParam) {
-               setTimeout(() => {
-                  updateQuantity(productId, Number(quantityParam));
-               }, 100);
-            }
-            if (couponParam) {
-               setCouponCode(couponParam);
-            }
-            window.history.replaceState({}, document.title, window.location.pathname);
           }
+
+          if (couponParam) {
+             setCouponCode(couponParam);
+          }
+          window.history.replaceState({}, document.title, window.location.pathname);
         } catch (e) {
           console.error("Direct checkout failed", e);
         }
