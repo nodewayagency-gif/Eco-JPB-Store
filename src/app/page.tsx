@@ -1,19 +1,32 @@
-'use client';
+import { Metadata } from 'next';
+import HomeClient from './HomeClient';
 
-import Navbar from "@/components/store/Navbar";
-import HeroSection from "@/components/store/HeroSection";
-import ProductGrid from "@/components/store/ProductGrid";
-import Footer from "@/components/store/Footer";
+export const metadata: Metadata = {
+  title: 'JPBStoreX | Acessórios e Eletrônicos Premium',
+  description: 'A melhor experiência com produtos premium. Especialistas em acessórios e eletrônicos que todo mundo já quis ter.',
+  keywords: 'ecommerce, eletrônicos, acessórios premium, jpbstorex',
+};
 
 export default function Home() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'JPBStoreX',
+    url: 'https://www.jpbstorex.com.br',
+    logo: 'https://www.jpbstorex.com.br/logo.png',
+    description: 'Especialistas em acessórios e eletrônicos que todo mundo já quis ter.',
+    sameAs: [
+      // Add social links here if available
+    ],
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <main className="flex-1">
-        <HeroSection />
-        <ProductGrid />
-      </main>
-      <Footer />
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <HomeClient />
+    </>
   );
 }

@@ -30,6 +30,7 @@ export async function GET() {
       <g:id>${product.id}</g:id>
       <g:title><![CDATA[${product.name}]]></g:title>
       <g:description><![CDATA[${product.description || ''}]]></g:description>
+      <g:brand>JPBStoreX</g:brand>
       <g:availability>${availability}</g:availability>
       <g:price>${Number(product.price).toFixed(2)} BRL</g:price>
       <g:link>${link}</g:link>
