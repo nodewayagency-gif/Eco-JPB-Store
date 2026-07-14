@@ -18,7 +18,13 @@ import {
   Plus,
   Image as ImageIcon,
   X,
-  Paperclip
+  Paperclip,
+  CreditCard,
+  QrCode,
+  FileText,
+  Loader2,
+  Lock,
+  Check
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -42,6 +48,12 @@ import { resolveProductImage } from "@/lib/imageResolver";
 import { supabase } from "@/lib/supabase";
 import PaymentBrick from "@/components/store/PaymentBrick";
 import { api } from "@/services/api";
+
+const paymentMethods = [
+  { id: "CREDIT_CARD", label: "Cartão de Crédito", icon: CreditCard, desc: "Parcele sua compra" },
+  { id: "PIX", label: "Pix", icon: QrCode, desc: "Aprovação imediata" },
+  { id: "TICKET", label: "Boleto", icon: FileText, desc: "Vencimento em 3 dias" },
+];
 
 const statusColor: Record<string, string> = {
   "Criado": "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
@@ -139,6 +151,9 @@ export default function CustomerPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [ordersPage, setOrdersPage] = useState(1);
   const [repayOrder, setRepayOrder] = useState<CustomerOrderView | null>(null);
+  const [repayPayment, setRepayPayment] = useState("CREDIT_CARD");
+  const [repayProcessing, setRepayProcessing] = useState(false);
+  const [repayPaymentInfo, setRepayPaymentInfo] = useState<any>(null);
   const ordersPerPage = 5;
 
   const totalOrdersPages = Math.ceil(orders.length / ordersPerPage);
@@ -460,7 +475,16 @@ export default function CustomerPage() {
       
       if (data.status === 'approved' || data.status === 'in_process' || data.status === 'pending') {
         toast.success(data.status === 'approved' ? "Pagamento aprovado!" : "Pagamento em processamento.");
-        setRepayOrder(null);
+        if (data.qr_code || data.ticket_url) {
+          setRepayPaymentInfo({
+            qr_code: data.qr_code,
+            qr_code_base64: data.qr_code_base64,
+            ticket_url: data.ticket_url,
+            status: data.status
+          });
+        } else {
+          setRepayOrder(null);
+        }
         // Atualiza a lista de pedidos silenciosamente
         const userId = customerSession?.user.id;
         if (userId) {
@@ -468,10 +492,63 @@ export default function CustomerPage() {
           setOrders(orderData);
         }
       } else {
-        toast.error("Pagamento recusado ou com erro.");
+        toast.error(`Falha no pagamento: ${data.detail || 'Tente novamente'}`);
       }
-    } catch (error) {
-      toast.error("Erro ao processar pagamento.");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erro ao processar pagamento.");
+    }
+  };
+
+  const handleRepayAlternativeSubmit = async () => {
+    if (!repayOrder) return;
+    setRepayProcessing(true);
+    try {
+      const actualPaymentMethod = repayPayment === "PIX" ? "pix" : "bolbradesco";
+      const email = customerSession?.user.email || profile?.email || 'cliente@eco.com';
+      const name = customerSession?.user.displayName || profile?.name || 'Cliente';
+      const document = profile?.document || '';
+
+      const { data } = await api.post("/checkout/process", {
+        formData: {
+          payment_method_id: actualPaymentMethod,
+          payer: {
+            email: email,
+            first_name: name.split(' ')[0],
+            last_name: name.split(' ').slice(1).join(' '),
+            identification: document ? {
+               type: document.length > 14 ? 'CNPJ' : 'CPF',
+               number: document.replace(/\D/g, '')
+            } : undefined
+          }
+        },
+        orderId: repayOrder.id
+      });
+      
+      if (data.status === 'approved' || data.status === 'in_process' || data.status === 'pending') {
+        toast.success("Pedido gerado com sucesso!");
+        if (data.qr_code || data.ticket_url) {
+          setRepayPaymentInfo({
+            qr_code: data.qr_code,
+            qr_code_base64: data.qr_code_base64,
+            ticket_url: data.ticket_url,
+            status: data.status
+          });
+        } else {
+          setRepayOrder(null);
+        }
+        // Atualiza a lista de pedidos silenciosamente
+        const userId = customerSession?.user.id;
+        if (userId) {
+          const orderData = await customerRepository.getOrders(userId);
+          setOrders(orderData);
+        }
+      } else {
+        toast.error(`Falha no pagamento: ${data.detail || 'Tente novamente'}`);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erro ao processar pagamento.");
+    } finally {
+      setRepayProcessing(false);
     }
   };
 
@@ -1198,28 +1275,122 @@ export default function CustomerPage() {
       </>
     )}
 
-    <Dialog open={!!repayOrder} onOpenChange={(open) => !open && setRepayOrder(null)}>
+    <Dialog open={!!repayOrder} onOpenChange={(open) => {
+      if (!open) {
+        setRepayOrder(null);
+        setRepayPaymentInfo(null);
+        setRepayPayment("CREDIT_CARD");
+      }
+    }}>
       <DialogContent className="sm:max-w-[500px] bg-card border-border p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">Finalizar Pagamento</DialogTitle>
+          <DialogTitle className="text-lg font-bold">
+            {repayPaymentInfo ? "Aguardando Pagamento" : "Finalizar Pagamento"}
+          </DialogTitle>
         </DialogHeader>
         {repayOrder && (
           <div className="pt-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Finalize o pagamento do pedido <strong className="text-foreground">{repayOrder.orderCode}</strong> no valor de <strong className="text-primary">{repayOrder.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>.
-            </p>
-            <div className="mt-2 min-h-[300px]">
-              <PaymentBrick
-                amount={repayOrder.total}
-                onSubmit={handleRepaySubmit}
-                payer={{
-                  email: customerSession?.user.email || profile?.email || 'cliente@eco.com',
-                  firstName: (customerSession?.user.displayName?.split(' ')[0] || profile?.name?.split(' ')[0]) || undefined,
-                  lastName: (customerSession?.user.displayName?.split(' ').slice(1).join(' ') || profile?.name?.split(' ').slice(1).join(' ')) || undefined,
-                  documents: profile?.document ? [{ type: profile.document.length > 14 ? 'CNPJ' : 'CPF', number: profile.document.replace(/\D/g, '') }] : undefined,
-                }}
-              />
-            </div>
+            {!repayPaymentInfo ? (
+              <>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Finalize o pagamento do pedido <strong className="text-foreground">{repayOrder.orderCode}</strong> no valor de <strong className="text-primary">{repayOrder.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  {paymentMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setRepayPayment(method.id)}
+                      className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-300 ${repayPayment === method.id
+                        ? "border-primary bg-primary/8"
+                        : "border-border hover:border-muted-foreground/30"
+                        }`}
+                    >
+                      <method.icon
+                        className={`h-5 w-5 ${repayPayment === method.id ? "text-primary" : "text-muted-foreground"}`}
+                      />
+                      <span className="text-xs font-semibold text-foreground">{method.label}</span>
+                      <span className="text-[10px] text-muted-foreground text-center">{method.desc}</span>
+                      {repayPayment === method.id ? (
+                        <motion.div layoutId="repay-payment-check" className="absolute top-2 right-2">
+                          <Check className="h-3.5 w-3.5 text-primary" />
+                        </motion.div>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+
+                {repayPayment === "CREDIT_CARD" ? (
+                  <div className="mt-2 min-h-[300px]">
+                    <PaymentBrick
+                      amount={repayOrder.total}
+                      onSubmit={handleRepaySubmit}
+                      payer={{
+                        email: customerSession?.user.email || profile?.email || 'cliente@eco.com',
+                        firstName: (customerSession?.user.displayName?.split(' ')[0] || profile?.name?.split(' ')[0]) || undefined,
+                        lastName: (customerSession?.user.displayName?.split(' ').slice(1).join(' ') || profile?.name?.split(' ').slice(1).join(' ')) || undefined,
+                        documents: profile?.document ? [{ type: profile.document.length > 14 ? 'CNPJ' : 'CPF', number: profile.document.replace(/\D/g, '') }] : undefined,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4 pt-6 mt-4 border-t border-border/50">
+                    <Button
+                      type="button"
+                      onClick={handleRepayAlternativeSubmit}
+                      size="lg"
+                      className="w-full h-14 shimmer-btn rounded-xl text-base font-bold"
+                      disabled={repayProcessing}
+                    >
+                      {repayProcessing ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Processando...
+                        </span>
+                      ) : (
+                        `Finalizar Pagamento`
+                      )}
+                    </Button>
+
+                    <div className="rounded-xl border border-border/70 bg-card/50 px-4 py-3 flex items-center gap-2 justify-center text-xs text-muted-foreground">
+                      <Lock className="h-4 w-4 text-primary" />
+                      Pagamento criptografado e 100% seguro.
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center space-y-4">
+                {repayPaymentInfo?.qr_code_base64 && (
+                  <div className="mb-4 flex flex-col items-center gap-4 bg-background p-6 rounded-2xl border border-border w-full">
+                    <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                      Escaneie o QR Code para pagar via Pix
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    </h3>
+                    <img src={`data:image/png;base64,${repayPaymentInfo.qr_code_base64}`} alt="QR Code Pix" className="w-56 h-56 border border-border rounded-xl p-2 bg-white" />
+                    <div className="w-full flex items-center gap-2 mt-2">
+                      <Input readOnly value={repayPaymentInfo.qr_code} className="font-mono text-[10px] text-muted-foreground bg-secondary/50" />
+                      <Button type="button" onClick={() => { navigator.clipboard.writeText(repayPaymentInfo.qr_code); toast.success("Código Copiado!"); }} variant="outline" className="flex-shrink-0">
+                        Copiar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {repayPaymentInfo?.ticket_url && (
+                  <div className="mb-4 flex flex-col items-center gap-4 bg-background p-6 rounded-2xl border border-border w-full">
+                    <h3 className="font-bold text-lg text-foreground">Boleto Gerado</h3>
+                    <p className="text-sm text-muted-foreground">Clique abaixo para visualizar e imprimir seu boleto.</p>
+                    <Button asChild className="w-full h-12 rounded-xl">
+                      <a href={repayPaymentInfo.ticket_url} target="_blank" rel="noreferrer">Visualizar Boleto</a>
+                    </Button>
+                  </div>
+                )}
+                
+                <Button variant="outline" onClick={() => { setRepayOrder(null); setRepayPaymentInfo(null); setRepayPayment("CREDIT_CARD"); }} className="w-full">
+                  Fechar
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
