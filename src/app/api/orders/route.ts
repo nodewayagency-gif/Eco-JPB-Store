@@ -52,6 +52,8 @@ export async function POST(req: Request) {
         status: "CREATED",
         paymentGateway: paymentMethod,
         shippingAddress: shippingAddress as any,
+        shippingCost: shippingAddress?.shippingCost ? Number(shippingAddress.shippingCost) : null,
+        shippingCarrier: shippingAddress?.shippingMethod || null,
         items: {
           create: items.map((item: any) => {
             const product = dbProducts.find(p => p.id === item.productId);
