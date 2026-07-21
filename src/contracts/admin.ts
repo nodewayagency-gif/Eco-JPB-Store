@@ -48,6 +48,7 @@ export interface AdminOrderRow {
   currentStep: AdminOrderStepKey;
   statusLabel: "Criado" | "Pagamento confirmado" | "Separação" | "Pronto para envio" | "Enviado" | "Saiu para entrega" | "Entregue";
   createdAt: string;
+  paidAt?: string;
   channel: "Loja" | "Venda externa";
   paymentGateway?: "Mercado Pago" | "Asaas" | "Outro";
   shippingProvider?: "Melhor Envio" | "Mercado Livre" | "Manual";

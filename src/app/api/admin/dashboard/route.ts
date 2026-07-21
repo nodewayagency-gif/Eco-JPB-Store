@@ -27,7 +27,11 @@ export async function GET() {
       currentCustomers,
       previousCustomers,
       currentPaidOrders,
-      previousPaidOrders
+      previousPaidOrders,
+      totalOrdersValue,
+      totalPaidOrdersCount,
+      currentTotalValue,
+      previousTotalValue
     ] = await Promise.all([
       prisma.order.aggregate({ where: { status: 'PAID' }, _sum: { total: true } }),
       prisma.order.count(),
@@ -44,14 +48,18 @@ export async function GET() {
         take: 5,
         orderBy: { createdAt: 'desc' }
       }),
-      prisma.order.aggregate({ where: { status: 'PAID', createdAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
-      prisma.order.aggregate({ where: { status: 'PAID', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } }),
       prisma.order.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
       prisma.order.count({ where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
       prisma.user.count({ where: { role: 'CUSTOMER', createdAt: { gte: thirtyDaysAgo } } }),
       prisma.user.count({ where: { role: 'CUSTOMER', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
-      prisma.order.count({ where: { status: 'PAID', createdAt: { gte: thirtyDaysAgo } } }),
-      prisma.order.count({ where: { status: 'PAID', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } })
+      prisma.order.count({ where: { status: 'PAID', paidAt: { gte: thirtyDaysAgo } } }),
+      prisma.order.count({ where: { status: 'PAID', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
+      prisma.order.aggregate({ _sum: { total: true } }),
+      prisma.order.count({ where: { status: 'PAID' } }),
+      prisma.order.aggregate({ where: { createdAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } })
     ]);
 
     const calculateTrend = (current: number, previous: number) => {
@@ -67,29 +75,45 @@ export async function GET() {
     const revPrevious = Number(previousRevenue._sum.total || 0);
     const revTrend = calculateTrend(revCurrent, revPrevious);
 
+    const totalValCurrent = Number(currentTotalValue._sum.total || 0);
+    const totalValPrevious = Number(previousTotalValue._sum.total || 0);
+    const totalValTrend = calculateTrend(totalValCurrent, totalValPrevious);
+
     const ordTrend = calculateTrend(currentOrders, previousOrders);
+    const paidOrdTrend = calculateTrend(currentPaidOrders, previousPaidOrders);
     const custTrend = calculateTrend(currentCustomers, previousCustomers);
 
     const currentConv = currentOrders > 0 ? (currentPaidOrders / currentOrders) * 100 : 0;
     const previousConv = previousOrders > 0 ? (previousPaidOrders / previousOrders) * 100 : 0;
     const convTrendData = calculateTrend(currentConv, previousConv);
 
-    // Mapeia os dados para o formato esperado pela UI
     const metrics = [
       {
-        title: "Receita Total",
-        value: Number(totalRevenue._sum.total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-        change: `${revTrend.direction === 'up' ? '+' : revTrend.direction === 'down' ? '-' : ''}${revTrend.trend}%`,
-        trend: revTrend.direction
-      },
-      {
-        title: "Pedidos",
+        title: "Todos os Pedidos (Qtd)",
         value: ordersCount.toString(),
         change: `${ordTrend.direction === 'up' ? '+' : ordTrend.direction === 'down' ? '-' : ''}${ordTrend.trend}%`,
         trend: ordTrend.direction
       },
       {
-        title: "Clientes",
+        title: "Valor Bruto Gerado",
+        value: Number(totalOrdersValue._sum.total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        change: `${totalValTrend.direction === 'up' ? '+' : totalValTrend.direction === 'down' ? '-' : ''}${totalValTrend.trend}%`,
+        trend: totalValTrend.direction
+      },
+      {
+        title: "Pedidos Confirmados (Qtd)",
+        value: totalPaidOrdersCount.toString(),
+        change: `${paidOrdTrend.direction === 'up' ? '+' : paidOrdTrend.direction === 'down' ? '-' : ''}${paidOrdTrend.trend}%`,
+        trend: paidOrdTrend.direction
+      },
+      {
+        title: "Receita Confirmada",
+        value: Number(totalRevenue._sum.total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        change: `${revTrend.direction === 'up' ? '+' : revTrend.direction === 'down' ? '-' : ''}${revTrend.trend}%`,
+        trend: revTrend.direction
+      },
+      {
+        title: "Total de Clientes",
         value: customersCount.toString(),
         change: `${custTrend.direction === 'up' ? '+' : custTrend.direction === 'down' ? '-' : ''}${custTrend.trend}%`,
         trend: custTrend.direction

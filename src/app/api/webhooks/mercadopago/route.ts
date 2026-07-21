@@ -85,6 +85,7 @@ export async function POST(req: Request) {
             data: {
               status: "PAID",
               paymentStatus: status,
+              paidAt: new Date(),
               gatewayTransactionId: dataIdToUse.toString(),
               paymentMethodId: payment.payment_method_id,
               installments: payment.installments,

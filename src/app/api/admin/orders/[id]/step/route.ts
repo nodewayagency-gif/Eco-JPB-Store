@@ -86,7 +86,8 @@ export async function PATCH(
         where: { id: orderId },
         data: { 
           status: newStatus,
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          ...(stepKey === 'paid' ? { paidAt: new Date() } : {})
         },
         include: {
           items: {

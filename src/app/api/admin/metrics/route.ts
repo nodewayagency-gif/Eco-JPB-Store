@@ -32,8 +32,8 @@ export async function GET() {
       prisma.order.count(),
       prisma.user.count({ where: { role: 'CUSTOMER' } }),
       
-      prisma.order.aggregate({ where: { status: 'PAID', createdAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
-      prisma.order.aggregate({ where: { status: 'PAID', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } }),
       
       prisma.order.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
       prisma.order.count({ where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
@@ -41,8 +41,8 @@ export async function GET() {
       prisma.user.count({ where: { role: 'CUSTOMER', createdAt: { gte: thirtyDaysAgo } } }),
       prisma.user.count({ where: { role: 'CUSTOMER', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
       
-      prisma.order.count({ where: { status: 'PAID', createdAt: { gte: thirtyDaysAgo } } }),
-      prisma.order.count({ where: { status: 'PAID', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } })
+      prisma.order.count({ where: { status: 'PAID', paidAt: { gte: thirtyDaysAgo } } }),
+      prisma.order.count({ where: { status: 'PAID', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } })
     ]);
 
     const calculateTrend = (current: number, previous: number) => {

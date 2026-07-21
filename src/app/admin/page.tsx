@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react";
+import { DollarSign, ShoppingCart, TrendingUp, Users, Package, CheckCircle2, Percent } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,7 +15,7 @@ import {
 import type { AdminMetric, AdminOrderSummary } from "@premium/contracts";
 import { adminRepository } from "@/services/api/adminRepository";
 
-const iconMap = [DollarSign, ShoppingCart, Users, TrendingUp];
+const iconMap = [Package, DollarSign, CheckCircle2, TrendingUp, Users, Percent];
 
 const statusColor: Record<string, string> = {
   Entregue: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
@@ -62,7 +62,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {metrics.map((metric, index) => {
           const Icon = iconMap[index % iconMap.length];
 

@@ -212,6 +212,7 @@ export const adminRepository: AdminRepository = {
       currentStep: order.steps.find((s: any) => s.active)?.key || "created",
       statusLabel: this.mapStatusToLabel(order.status, order.steps),
       createdAt: order.createdAt,
+      paidAt: order.paidAt,
       channel: order.channel || "Loja Virtual",
       paymentGateway: order.paymentGateway,
       shippingProvider: order.shippingCarrier
@@ -252,6 +253,7 @@ export const adminRepository: AdminRepository = {
       currentStep: data.steps.find((s: any) => s.active)?.key || "created",
       statusLabel: this.mapStatusToLabel(data.status, data.steps),
       createdAt: data.createdAt,
+      paidAt: data.paidAt,
       channel: data.channel || "Loja Virtual",
       paymentGateway: data.paymentGateway,
       shippingProvider: data.shippingCarrier,
