@@ -155,6 +155,7 @@ export interface AdminRepository {
   listProductReviews: (productId: string) => Promise<import("@premium/contracts").AdminReviewView[]>;
   createProductReview: (productId: string, data: import("@premium/contracts").AdminReviewInput) => Promise<import("@premium/contracts").AdminReviewView>;
   deleteProductReview: (productId: string, reviewId: string) => Promise<void>;
+  formatPaymentMethod: (method?: string) => string;
 }
 
 
@@ -244,11 +245,28 @@ export const adminRepository: AdminRepository = {
     return this.mapToOrderDetail(data);
   },
 
+  formatPaymentMethod(method?: string): string {
+    if (!method) return "";
+    const lower = method.toLowerCase();
+    if (lower === "credit_card" || lower === "creditcard" || lower === "credit") return "Cartão de Crédito";
+    if (lower === "debit_card" || lower === "debitcard" || lower === "debit") return "Cartão de Débito";
+    if (lower === "pix") return "PIX";
+    if (lower === "ticket" || lower === "boleto") return "Boleto";
+    if (lower === "account_money") return "Saldo Conta";
+    if (lower === "bank_transfer") return "Transferência Bancária";
+    return method;
+  },
+
   mapToOrderDetail(data: any): AdminOrderDetail {
     return {
       id: data.id,
       customerName: data.guestName || data.customer?.customerProfile?.name || data.customer?.name || "Cliente",
       customerEmail: data.guestEmail || data.customer?.email || "",
+      customerPhone: data.guestPhone || data.customer?.customerProfile?.phone || "",
+      customerDocument: data.guestDocument || data.customer?.customerProfile?.document || "",
+      paymentMethod: this.formatPaymentMethod(data.paymentMethodId),
+      installments: data.installments || 1,
+      shippingCost: Number(data.shippingCost || 0),
       total: Number(data.total),
       currentStep: data.steps.find((s: any) => s.active)?.key || "created",
       statusLabel: this.mapStatusToLabel(data.status, data.steps),

@@ -63,6 +63,11 @@ export interface AdminOrderDetail extends AdminOrderRow {
   }>;
   trackingCode?: string;
   customerEmail?: string;
+  customerPhone?: string;
+  customerDocument?: string;
+  paymentMethod?: string;
+  installments?: number;
+  shippingCost?: number;
   shippingQuoteId?: string;
   steps: AdminOrderWorkflowStep[];
   shippingAddress?: {

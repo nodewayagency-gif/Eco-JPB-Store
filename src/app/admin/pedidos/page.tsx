@@ -473,6 +473,14 @@ function OrdersContent() {
                     <p className="font-bold text-sm">{selectedOrder.paymentGateway || "-"}</p>
                   </div>
                   <div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Forma de Pagamento</p>
+                    <p className="font-bold text-sm uppercase">{selectedOrder.paymentMethod || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Parcelas</p>
+                    <p className="font-bold text-sm">{selectedOrder.installments}x</p>
+                  </div>
+                  <div>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Provedor de Envio</p>
                     <p className="font-bold text-sm">{selectedOrder.shippingProvider || "-"}</p>
                   </div>
@@ -506,10 +514,17 @@ function OrdersContent() {
                     </div>
                   </div>
                   <div className="bg-secondary/50 border border-border rounded-xl p-4 flex items-center gap-4">
+                    <div className="p-3 bg-blue-500/10 rounded-xl"><MapPin className="w-6 h-6 text-blue-500" /></div>
+                    <div className="overflow-hidden">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Telefone</p>
+                      <p className="font-bold text-sm truncate">{selectedOrder.customerPhone || "Não informado"}</p>
+                    </div>
+                  </div>
+                  <div className="bg-secondary/50 border border-border rounded-xl p-4 flex items-center gap-4">
                     <div className="p-3 bg-emerald-500/10 rounded-xl"><CreditCard className="w-6 h-6 text-emerald-500" /></div>
                     <div className="overflow-hidden">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">ID do Cliente</p>
-                      <p className="font-bold text-xs truncate">{selectedOrder.customerId || "-"}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Documento (CPF/CNPJ)</p>
+                      <p className="font-bold text-xs truncate">{selectedOrder.customerDocument || "Não informado"}</p>
                     </div>
                   </div>
                 </div>
@@ -611,6 +626,12 @@ function OrdersContent() {
                           <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).zipCode}</p>
                         </div>
                       </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Custo do Frete</p>
+                          <p className="text-sm font-medium text-emerald-500">{(selectedOrder.shippingCost || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="py-8 text-center border border-dashed border-border rounded-2xl">
@@ -700,16 +721,6 @@ function OrdersContent() {
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Dados Brutos (Literalmente todas as informações) */}
-              <div className="bg-secondary/30 border border-border rounded-3xl p-6 overflow-x-auto">
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2 text-muted-foreground">
-                  <FileText className="w-4 h-4" /> Todos os Dados (JSON)
-                </h3>
-                <pre className="text-[10px] text-muted-foreground p-4 bg-background rounded-xl border border-border overflow-x-auto">
-                  {JSON.stringify(selectedOrder, null, 2)}
-                </pre>
               </div>
             </div>
           ) : (
