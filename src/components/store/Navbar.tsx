@@ -50,16 +50,23 @@ const Navbar = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
               </Link>
 
+              {/* Somente Desktop - Prova Social */}
+              <Link href="/prova-social" className="hidden md:block relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
+                "Quem usa"
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
+              </Link>
+
               {/* Somente Mobile */}
               <Link href="/sobre" className="md:hidden relative text-[11px] sm:text-xs font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
                 Quem somos
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
               </Link>
 
-              <a href={instagramUrl} target="_blank" rel="noreferrer" className="md:hidden relative text-[11px] sm:text-xs font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
-                Instagram
+              {/* Somente Mobile - Prova Social */}
+              <Link href="/prova-social" className="md:hidden relative text-[11px] sm:text-xs font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">
+                "Quem usa"
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
-              </a>
+              </Link>
 
               {/* Somente Desktop */}
               <Link href="/login" className="hidden md:block relative text-sm font-bold text-muted-foreground hover:text-foreground transition-colors duration-300 group">

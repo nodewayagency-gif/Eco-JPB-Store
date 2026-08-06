@@ -3,6 +3,7 @@
 import Navbar from "@/components/store/Navbar";
 import HeroSection from "@/components/store/HeroSection";
 import ProductGrid from "@/components/store/ProductGrid";
+import FeaturedGallery from "@/components/store/FeaturedGallery";
 import Footer from "@/components/store/Footer";
 
 export default function HomeClient() {
@@ -12,6 +13,7 @@ export default function HomeClient() {
       <main className="flex-1">
         <HeroSection />
         <ProductGrid />
+        <FeaturedGallery />
       </main>
       <Footer />
     </div>
