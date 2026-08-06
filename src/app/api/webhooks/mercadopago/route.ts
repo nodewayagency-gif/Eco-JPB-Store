@@ -75,7 +75,7 @@ export async function POST(req: Request) {
         // Verificar o status atual do pedido para evitar reprocessamento e múltiplos decrementos de estoque
         const currentOrder = await prisma.order.findUnique({
           where: { id: orderId },
-          select: { status: true }
+          select: { status: true, couponCode: true }
         });
 
         if (currentOrder && currentOrder.status !== "PAID") {
@@ -148,6 +148,14 @@ export async function POST(req: Request) {
               }
             })
           ]);
+
+          // 4. Atualizar uso do cupom se existir (contabiliza apenas no pedido confirmado)
+          if (currentOrder.couponCode) {
+            await prisma.coupon.updateMany({
+              where: { code: currentOrder.couponCode },
+              data: { usedCount: { increment: 1 } }
+            });
+          }
 
           console.log(`✅ Pedido ${orderId}: Pagamento confirmado e ESTOQUE ATUALIZADO.`);
         } else {

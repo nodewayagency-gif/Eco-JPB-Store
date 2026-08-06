@@ -22,15 +22,13 @@ export async function POST(req: Request) {
     }
 
     // Processar cupom se fornecido
+    let validCouponCode = null;
     if (couponCode) {
       const coupon = await prisma.coupon.findUnique({ where: { code: couponCode.toUpperCase() } });
       if (coupon && coupon.active) {
         if (!coupon.endDate || new Date() <= new Date(coupon.endDate)) {
            if (!coupon.maxUses || coupon.usedCount < coupon.maxUses) {
-             await prisma.coupon.update({
-               where: { id: coupon.id },
-               data: { usedCount: { increment: 1 } }
-             });
+             validCouponCode = coupon.code;
            }
         }
       }
@@ -51,6 +49,7 @@ export async function POST(req: Request) {
         total,
         status: "CREATED",
         paymentGateway: paymentMethod,
+        couponCode: validCouponCode,
         shippingAddress: shippingAddress as any,
         shippingCost: shippingAddress?.shippingCost ? Number(shippingAddress.shippingCost) : null,
         shippingCarrier: shippingAddress?.shippingMethod || null,

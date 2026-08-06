@@ -81,6 +81,14 @@ export async function PATCH(
       if (stepKey === 'shipped') newStatus = 'SHIPPED';
       if (stepKey === 'delivered') newStatus = 'DELIVERED';
 
+      // Incrementa uso do cupom apenas na transição para PAID
+      if (newStatus === 'PAID' && order.status !== 'PAID' && order.couponCode) {
+        await tx.coupon.updateMany({
+          where: { code: order.couponCode },
+          data: { usedCount: { increment: 1 } }
+        });
+      }
+
       // 3. Atualiza o pedido e retorna com os passos
       return tx.order.update({
         where: { id: orderId },

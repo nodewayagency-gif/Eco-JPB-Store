@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     // Using prisma to fetch reviews for the product
     const reviews = await prisma.review.findMany({
@@ -34,10 +34,10 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     const { authorName, rating, comment } = body;
