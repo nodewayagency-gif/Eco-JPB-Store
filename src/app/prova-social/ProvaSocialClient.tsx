@@ -69,25 +69,25 @@ export default function ProvaSocialClient() {
           </motion.p>
         </motion.div>
 
-        {/* Hero Video Section com tamanho controlado (limitando a altura para não ficar enorme) */}
-        <motion.section
+        {/* Hero Video Section com tamanho controlado */}
+        <motion.section 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.4, ease: "easeOut" }}
-          className="mb-32 relative mx-auto max-w-[90%] md:max-w-3xl group cursor-pointer"
+          className="mb-32 relative mx-auto w-fit max-w-[95%] group cursor-pointer"
         >
-          {/* Efeito de brilho animado atrás do vídeo */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-primary/10 rounded-3xl blur-2xl opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
-
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-[#0a0a0a] border border-white/10 ring-1 ring-white/5 flex justify-center items-center">
-            <video
-              src="/prova-social/video_apresentacao.mp4"
-              autoPlay
-              loop
-              muted
+          {/* Efeito de brilho animado atrás do vídeo (adaptado ao tamanho do conteúdo) */}
+          <div className="absolute -inset-4 bg-gradient-to-r from-primary/30 to-primary/10 rounded-[40px] blur-2xl opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
+          
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl flex justify-center items-center">
+            <video 
+              src="/prova-social/video_apresentacao.mp4" 
+              autoPlay 
+              loop 
+              muted 
               playsInline
               controls
-              className="w-full max-h-[70vh] object-contain scale-[1.02] group-hover:scale-100 transition-transform duration-1000 ease-out opacity-90 group-hover:opacity-100"
+              className="max-h-[70vh] w-auto object-contain rounded-3xl scale-[1.02] group-hover:scale-100 transition-transform duration-1000 ease-out opacity-90 group-hover:opacity-100"
             />
           </div>
         </motion.section>
