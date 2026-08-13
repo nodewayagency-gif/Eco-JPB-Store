@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth-utils";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
     const authUser = await getAuthUser();
     if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
       return NextResponse.json({ message: "Não autorizado" }, { status: 403 });

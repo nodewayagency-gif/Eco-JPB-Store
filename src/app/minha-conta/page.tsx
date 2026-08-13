@@ -39,7 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, maskCEP, maskDocument, maskPhone } from "@/lib/utils";
 import type { CustomerOrderTrackingStep, CustomerOrderView, CustomerProfile, SupportTicketView } from "@premium/contracts";
 import { useAuth } from "@/providers/auth/AuthProvider";
 import { customerRepository } from "@/services/api/customerRepository";
@@ -259,12 +259,7 @@ export default function CustomerPage() {
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
   
-  const maskZipCode = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .substring(0, 9);
-  };
+
 
   const [addressForm, setAddressForm] = useState({
     title: "",
@@ -283,7 +278,7 @@ export default function CustomerPage() {
       setEditingAddress(address);
       setAddressForm({
         title: address.title,
-        zipCode: maskZipCode(address.zipCode),
+        zipCode: maskCEP(address.zipCode),
         street: address.street,
         number: address.number,
         complement: address.complement || "",
@@ -682,16 +677,7 @@ export default function CustomerPage() {
                     <Label>CPF / CNPJ</Label>
                     <Input 
                       value={profileForm.document} 
-                      onChange={e => {
-                        let value = e.target.value.replace(/\D/g, "");
-                        if (value.length <= 11) {
-                          value = value.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-                        } else {
-                          value = value.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
-                          value = value.substring(0, 18);
-                        }
-                        setProfileForm({...profileForm, document: value});
-                      }} 
+                      onChange={e => setProfileForm({...profileForm, document: maskDocument(e.target.value)})}
                       placeholder="000.000.000-00"
                     />
                   </div>
@@ -699,15 +685,7 @@ export default function CustomerPage() {
                     <Label>Telefone</Label>
                     <Input 
                       value={profileForm.phone} 
-                      onChange={e => {
-                        let value = e.target.value.replace(/\D/g, "");
-                        if (value.length <= 10) {
-                          value = value.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2");
-                        } else {
-                          value = value.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
-                        }
-                        setProfileForm({...profileForm, phone: value.substring(0, 15)});
-                      }} 
+                      onChange={e => setProfileForm({...profileForm, phone: maskPhone(e.target.value)})}
                       placeholder="(00) 00000-0000"
                     />
                   </div>
@@ -946,7 +924,7 @@ export default function CustomerPage() {
                     <Label>CEP</Label>
                     <Input 
                       value={addressForm.zipCode} 
-                      onChange={e => setAddressForm({...addressForm, zipCode: maskZipCode(e.target.value)})} 
+                      onChange={e => setAddressForm({...addressForm, zipCode: maskCEP(e.target.value)})} 
                       placeholder="00000-000"
                     />
                   </div>

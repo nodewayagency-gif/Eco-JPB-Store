@@ -26,7 +26,8 @@ export async function PUT(
         minOrderValue, 
         maxUses, 
         active, 
-        endDate 
+        endDate,
+        commissionPercent
     } = data;
 
     const coupon = await prisma.coupon.update({
@@ -38,6 +39,7 @@ export async function PUT(
         minOrderValue: minOrderValue !== undefined ? (minOrderValue ? Number(minOrderValue) : null) : undefined,
         maxUses: maxUses !== undefined ? (maxUses ? Number(maxUses) : null) : undefined,
         active: active !== undefined ? active : undefined,
+        commissionPercent: commissionPercent !== undefined ? (commissionPercent ? Number(commissionPercent) : null) : undefined,
         endDate: endDate !== undefined ? (endDate ? new Date(endDate) : null) : undefined
       }
     });

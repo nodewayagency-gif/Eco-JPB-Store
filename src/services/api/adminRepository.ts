@@ -139,6 +139,7 @@ export interface AdminRepository {
   updateCategory: (id: string, changes: Partial<AdminCategoryInput>) => Promise<AdminCategory>;
   deleteCategory: (id: string) => Promise<void>;
   listCoupons: () => Promise<AdminCoupon[]>;
+  listCouponCommissions: (month: number, year: number) => Promise<any>;
   createCoupon: (payload: AdminCouponInput) => Promise<AdminCoupon>;
   updateCoupon: (id: string, changes: Partial<AdminCouponInput>) => Promise<AdminCoupon>;
   deleteCoupon: (id: string) => Promise<void>;
@@ -258,6 +259,18 @@ export const adminRepository: AdminRepository = {
   },
 
   mapToOrderDetail(data: any): AdminOrderDetail {
+    const items = (data.items || []).map((item: any) => ({
+      productName: item.product?.name || "Produto Removido",
+      productImage: item.product?.image || "",
+      quantity: item.quantity,
+      unitPrice: Number(item.unitPrice || item.price || 0)
+    }));
+
+    const subtotal = items.reduce((acc: number, item: any) => acc + (item.quantity * item.unitPrice), 0);
+    const shippingCost = Number(data.shippingCost || 0);
+    const total = Number(data.total || 0);
+    const discountValue = Math.max(0, (subtotal + shippingCost) - total);
+
     return {
       id: data.id,
       customerName: data.guestName || data.customer?.customerProfile?.name || data.customer?.name || "Cliente",
@@ -275,13 +288,12 @@ export const adminRepository: AdminRepository = {
       channel: data.channel || "Loja Virtual",
       paymentGateway: data.paymentGateway,
       shippingProvider: data.shippingCarrier,
+      shippingMethod: data.shippingMethod,
       trackingCode: data.trackingCode,
-      items: (data.items || []).map((item: any) => ({
-        productName: item.product?.name || "Produto Removido",
-        productImage: item.product?.image || "",
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice || item.price || 0)
-      })),
+      couponCode: data.couponCode,
+      subtotal,
+      discountValue,
+      items,
       steps: (data.steps || []).map((step: any) => ({
         key: step.key,
         label: step.label,
@@ -436,10 +448,23 @@ export const adminRepository: AdminRepository = {
         minPurchase: Number(c.minOrderValue) || 0,
         usageCount: c.usedCount || 0,
         usageLimit: c.maxUses || 0,
+        commissionPercent: c.commissionPercent ? Number(c.commissionPercent) : undefined,
         active: c.active,
-        expiryDate: expiryDateStr
+        expiryDate: expiryDateStr,
+        orders: c.orders?.map((o: any) => ({
+          id: o.id,
+          orderCode: o.orderCode,
+          customerName: o.guestName || o.customer?.customerProfile?.name || o.customer?.name || "Cliente Desconhecido",
+          total: Number(o.total),
+          createdAt: o.createdAt
+        })) || []
       };
     });
+  },
+
+  async listCouponCommissions(month: number, year: number) {
+    const { data } = await api.get<any[]>(`/admin/coupons/commissions?month=${month}&year=${year}`);
+    return data;
   },
 
   async createCoupon(payload) {

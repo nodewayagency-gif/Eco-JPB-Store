@@ -17,7 +17,7 @@ import {
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import type { AdminLead } from "@premium/contracts";
 import { adminRepository } from "@/services/api/adminRepository";
-import { cn } from "@/lib/utils";
+import { cn, maskPhone } from "@/lib/utils";
 
 export default function AdminLeadsPage() {
   const [leads, setLeads] = useState<AdminLead[]>([]);
@@ -167,7 +167,7 @@ export default function AdminLeadsPage() {
                   paginatedLeads.map((lead, idx) => (
                     <TableRow key={`${lead.id}-${idx}`} className="border-border hover:bg-muted/30">
                       <TableCell className="pl-6 font-medium">{lead.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{lead.phone}</TableCell>
+                      <TableCell className="text-muted-foreground">{maskPhone(lead.phone)}</TableCell>
                       <TableCell className="text-muted-foreground">{lead.product}</TableCell>
                       <TableCell className="text-muted-foreground">{lead.date}</TableCell>
                       <TableCell className="text-center">

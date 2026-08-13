@@ -5,9 +5,10 @@ const prisma = new PrismaClient();
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string, reviewId: string } }
+  context: { params: Promise<{ id: string, reviewId: string }> }
 ) {
   try {
+    const params = await context.params;
     const { id, reviewId } = params;
     
     await prisma.review.delete({

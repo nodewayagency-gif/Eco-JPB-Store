@@ -68,8 +68,12 @@ export interface AdminOrderDetail extends AdminOrderRow {
   paymentMethod?: string;
   installments?: number;
   shippingCost?: number;
+  shippingMethod?: string;
   shippingQuoteId?: string;
   steps: AdminOrderWorkflowStep[];
+  couponCode?: string;
+  subtotal?: number;
+  discountValue?: number;
   shippingAddress?: {
     zipCode: string;
     street: string;
@@ -228,6 +232,14 @@ export interface AdminCategoryInput {
   active: boolean;
 }
 
+export interface AdminCouponOrder {
+  id: string;
+  orderCode: string;
+  customerName: string;
+  total: number;
+  createdAt: string;
+}
+
 export interface AdminCoupon {
   id: string;
   code: string;
@@ -239,6 +251,8 @@ export interface AdminCoupon {
   usageLimit?: number;
   usageCount: number;
   active: boolean;
+  commissionPercent?: number;
+  orders?: AdminCouponOrder[];
 }
 
 export interface AdminCouponInput {
@@ -250,6 +264,7 @@ export interface AdminCouponInput {
   expiryDate?: string;
   usageLimit?: number;
   active: boolean;
+  commissionPercent?: number;
 }
 
 export interface AdminUserRow {

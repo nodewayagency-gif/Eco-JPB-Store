@@ -15,6 +15,7 @@ export interface CreateOrderInput {
   guestPhone?: string;
   guestDocument?: string;
   couponCode?: string;
+  couponId?: string;
 }
 
 export const orderRepository = {

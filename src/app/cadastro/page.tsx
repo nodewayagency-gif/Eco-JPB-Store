@@ -13,6 +13,7 @@ import { useAuth } from "@/providers/auth/AuthProvider";
 import Navbar from "@/components/store/Navbar";
 import Footer from "@/components/store/Footer";
 import { api } from "@/services/api";
+import { maskCEP, maskDocument, maskPhone } from "@/lib/utils";
 
 export default function RegisterPage() {
   const { registerCustomer } = useAuth();
@@ -38,15 +39,8 @@ export default function RegisterPage() {
     state: ""
   });
 
-  // Masks
-  const maskCPF = (v: string) => v.replace(/\D/g, "").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2").slice(0, 14);
-  const maskCNPJ = (v: string) => v.replace(/\D/g, "").replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2").slice(0, 18);
-  const maskPhone = (v: string) => v.replace(/\D/g, "").replace(/^(\d{2})(\d)/g, "($1) $2").replace(/(\d)(\d{4})$/, "$1-$2").slice(0, 15);
-  const maskCEP = (v: string) => v.replace(/\D/g, "").replace(/(\d{5})(\d)/, "$1-$2").slice(0, 9);
-
   const handleDocumentChange = (v: string) => {
-    const masked = docType === "CPF" ? maskCPF(v) : maskCNPJ(v);
-    setForm({ ...form, document: masked });
+    setForm({ ...form, document: maskDocument(v) });
   };
 
   // CNPJ Auto-fill

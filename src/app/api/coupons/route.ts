@@ -7,6 +7,22 @@ export async function GET() {
     const coupons = await prisma.coupon.findMany({
       orderBy: {
         code: 'asc'
+      },
+      include: {
+        orders: {
+          select: {
+            id: true,
+            orderCode: true,
+            guestName: true,
+            total: true,
+            createdAt: true,
+            customer: {
+              include: {
+                customerProfile: true
+              }
+            }
+          }
+        }
       }
     });
 
@@ -33,7 +49,8 @@ export async function POST(request: Request) {
         minOrderValue, 
         maxUses, 
         active, 
-        endDate 
+        endDate,
+        commissionPercent
     } = data;
 
     const coupon = await prisma.coupon.create({
@@ -44,6 +61,7 @@ export async function POST(request: Request) {
         minOrderValue: minOrderValue ? Number(minOrderValue) : null,
         maxUses: maxUses ? Number(maxUses) : null,
         active: active !== undefined ? active : true,
+        commissionPercent: commissionPercent ? Number(commissionPercent) : null,
         endDate: endDate ? new Date(endDate) : null
       }
     });

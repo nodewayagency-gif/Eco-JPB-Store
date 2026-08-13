@@ -483,6 +483,7 @@ export default function CheckoutPage() {
             neighborhood: form.neighborhood,
             city: form.city,
             state: form.state,
+            shippingCarrier: selectedShipping?.company,
             shippingMethod: selectedShipping?.name,
             shippingCost: selectedShipping?.price
           },
@@ -490,7 +491,8 @@ export default function CheckoutPage() {
           guestEmail: form.email,
           guestPhone: form.phone,
           guestDocument: form.document,
-          couponCode: appliedCoupon?.code
+          couponCode: appliedCoupon?.code,
+          couponId: appliedCoupon?.id
         };
 
         const order = await orderRepository.create(orderData);
@@ -551,13 +553,17 @@ export default function CheckoutPage() {
           complement: form.complement,
           neighborhood: form.neighborhood,
           city: form.city,
-          state: form.state
+          state: form.state,
+          shippingCarrier: selectedShipping?.company,
+          shippingMethod: selectedShipping?.name,
+          shippingCost: selectedShipping?.price
         },
         guestName: form.name,
         guestEmail: form.email,
         guestPhone: form.phone,
         guestDocument: form.document,
-        couponCode: appliedCoupon?.code
+        couponCode: appliedCoupon?.code,
+        couponId: appliedCoupon?.id
       };
 
       const order = await orderRepository.create(orderData);

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, ChevronRight, ListChecks, Search, Filter, Package, User, CreditCard, Truck, ExternalLink, MapPin, FileText, Box, Home, Check, ChevronLeft } from "lucide-react";
+import { CheckCircle2, ChevronRight, ListChecks, Search, Filter, Package, User, CreditCard, Truck, ExternalLink, MapPin, FileText, Box, Home, Check, ChevronLeft, Phone, Mail, Copy, Smartphone, MessagesSquare } from "lucide-react";
 import type { AdminOrderDetail, AdminOrderRow, AdminOrderStepKey } from "@premium/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { adminRepository } from "@/services/api/adminRepository";
-import { cn } from "@/lib/utils";
+import { cn, maskDocument, maskPhone, maskCEP } from "@/lib/utils";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 
@@ -42,10 +42,20 @@ const statusColor: Record<string, string> = {
   "Aguardando Pagamento": "bg-amber-500/10 text-amber-500 border-amber-500/20",
   "Pagamento confirmado": "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   "Separação": "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  "Pronto para envio": "bg-sky-500/10 text-sky-500 border-sky-500/20",
+  "Pronto para Envio": "bg-sky-500/10 text-sky-500 border-sky-500/20",
   "Enviado": "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
   "Saiu para entrega": "bg-violet-500/10 text-violet-500 border-violet-500/20",
   "Entregue": "bg-emerald-500/20 text-emerald-500 border-emerald-500/30"
+};
+
+const translatePaymentMethod = (method: string) => {
+  const map: Record<string, string> = {
+    CREDIT_CARD: "Cartão de Crédito",
+    PIX: "Pix",
+    TICKET: "Boleto",
+    BOLETO: "Boleto",
+  };
+  return map[method] || method;
 };
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -170,7 +180,7 @@ function OrdersContent() {
     return orders.filter((order) => {
       const matchesSearch = order.id.toLowerCase().includes(search.toLowerCase()) || 
                             order.customerName.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "ALL" || order.statusLabel === statusFilter;
+      const matchesStatus = statusFilter === "ALL" || order.statusLabel.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [orders, search, statusFilter]);
@@ -225,15 +235,15 @@ function OrdersContent() {
       <Card className="hidden lg:block bg-card/50 border-border overflow-hidden shadow-xl">
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-secondary/10">
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="w-[140px] text-[11px] uppercase font-bold text-muted-foreground py-4">ID Pedido</TableHead>
+            <TableHeader className="bg-secondary/20 border-b border-border/50">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[120px] text-[11px] uppercase font-bold text-muted-foreground py-4">Pedido</TableHead>
                 <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Cliente</TableHead>
-                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground text-center">Origem</TableHead>
                 <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Pagamento</TableHead>
+                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Envio</TableHead>
                 <TableHead className="text-right text-[11px] uppercase font-bold text-muted-foreground">Total</TableHead>
-                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Status</TableHead>
-                <TableHead className="text-right w-[100px] text-[11px] uppercase font-bold text-muted-foreground">Ações</TableHead>
+                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground text-center">Status</TableHead>
+                <TableHead className="text-right w-[80px] text-[11px] uppercase font-bold text-muted-foreground">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -254,71 +264,104 @@ function OrdersContent() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedOrders.map((order, idx) => (
+                  paginatedOrders.map((order, idx) => {
+                    const initials = order.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                    return (
                     <motion.tr
                       key={order.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
                       onClick={() => openOrder(order.id)}
                       className={cn(
-                        "border-border/40 group hover:bg-secondary/20 transition-all duration-200 cursor-pointer",
+                        "border-b border-border/40 group hover:bg-secondary/30 transition-all duration-300 cursor-pointer relative",
                         loadingOrderId === order.id && "opacity-50 pointer-events-none"
                       )}
                     >
-                      <TableCell className="py-5">
-                        <span className="font-mono text-[11px] text-muted-foreground group-hover:text-primary transition-colors">
-                          #{order.id.slice(-8).toUpperCase()}
-                        </span>
+                      <TableCell className="py-4">
+                        <div className="flex flex-col">
+                          <span className="font-mono text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                            #{order.id.slice(-6).toUpperCase()}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground mt-0.5">
+                            {new Date(order.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
+                            <span className="text-[10px] font-bold text-primary">{initials}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-tight">
+                              {order.customerName}
+                            </p>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                              {order.channel === "Venda externa" ? <Badge variant="outline" className="text-[8px] py-0 px-1 border-amber-500/30 text-amber-500">Externa</Badge> : <Badge variant="outline" className="text-[8px] py-0 px-1 border-sky-500/30 text-sky-500">Site</Badge>}
+                            </span>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-none mb-1">
-                            {order.customerName}
-                          </p>
-                          <span className="text-[11px] text-muted-foreground/60">
-                            {new Date(order.createdAt).toLocaleDateString('pt-BR')}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <CreditCard className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs font-medium">
+                              {order.paymentGateway ? translatePaymentMethod(order.paymentGateway) : "-"}
+                            </span>
+                          </div>
+                          {order.paidAt ? (
+                            <span className="text-[10px] text-emerald-500 font-medium mt-0.5 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Pago
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-amber-500 font-medium mt-0.5">Pendente</span>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-background/40 border-border/40 font-bold text-[9px] py-1 px-2 uppercase tracking-tight whitespace-nowrap">
-                          {order.channel}
-                        </Badge>
-                      </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="w-3.5 h-3.5 opacity-40" />
-                          <span className="text-xs text-muted-foreground font-medium">
-                            {order.paymentGateway ?? "-"}
-                          </span>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <Truck className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs font-medium">
+                              {order.shippingProvider || "Retirada"}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className="font-bold text-sm text-foreground tracking-tight">
+                        <span className="font-black text-sm text-foreground group-hover:text-primary transition-colors">
                           {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cn(
-                          "px-3 py-1 text-[10px] font-bold uppercase border min-w-[120px] justify-center text-center", 
-                          statusColor[order.statusLabel]
-                        )}>
-                          {order.statusLabel}
-                        </Badge>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center">
+                          <Badge variant="outline" className={cn(
+                            "px-2 py-1 text-[10px] font-bold uppercase border min-w-[110px] justify-center text-center relative overflow-hidden", 
+                            statusColor[order.statusLabel]
+                          )}>
+                            <span className="relative z-10 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                              {order.statusLabel}
+                            </span>
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center">
                           {loadingOrderId === order.id ? (
-                            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all duration-200 shadow-sm">
+                            <div className="w-8 h-8 rounded-xl bg-secondary/50 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 group-hover:text-black transition-all duration-300 shadow-sm">
                               <ChevronRight className="w-4 h-4" />
                             </div>
                           )}
                         </div>
                       </TableCell>
                     </motion.tr>
-                  ))
+                    );
+                  })
                 )}
               </AnimatePresence>
             </TableBody>
@@ -337,30 +380,46 @@ function OrdersContent() {
              Nenhum pedido encontrado.
            </div>
         ) : (
-          paginatedOrders.map((order) => (
+          paginatedOrders.map((order) => {
+            const initials = order.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            return (
             <Card key={order.id} className="bg-card border-border active:scale-[0.98] transition-transform" onClick={() => openOrder(order.id)}>
             <CardContent className="p-4">
               <div className="flex justify-between items-start mb-3">
-                <div className="space-y-1">
-                  <p className="font-mono text-[10px] text-muted-foreground">#{order.id.slice(-8).toUpperCase()}</p>
-                  <h3 className="font-bold text-lg">{order.customerName}</h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-bold text-primary">{initials}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="font-mono text-[10px] text-muted-foreground">#{order.id.slice(-6).toUpperCase()}</p>
+                    <h3 className="font-bold text-sm leading-tight">{order.customerName}</h3>
+                  </div>
                 </div>
                 <Badge variant="outline" className={cn("text-[9px] uppercase font-bold", statusColor[order.statusLabel])}>
                   {order.statusLabel}
                 </Badge>
               </div>
               
-              <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mb-4">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span className="text-xs truncate">{order.paymentGateway || "-"}</span>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mb-4 bg-secondary/30 p-3 rounded-xl border border-border/50">
+                <div className="flex flex-col gap-1 text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span className="text-[11px] font-medium truncate">{order.paymentGateway ? translatePaymentMethod(order.paymentGateway) : "-"}</span>
+                  </div>
+                  {order.paidAt ? (
+                    <span className="text-[10px] text-emerald-500 font-medium pl-5 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Pago
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-500 font-medium pl-5">Pendente</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Package className="w-3.5 h-3.5" />
-                  <span className="text-xs">{order.channel}</span>
+                  <Truck className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-medium truncate">{order.shippingProvider || "Retirada"}</span>
                 </div>
-                <div className="col-span-2 text-right">
-                  <p className="text-primary font-bold">{order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                <div className="col-span-2 text-right border-t border-border/50 pt-2 mt-1">
+                  <p className="text-foreground font-black text-lg">{order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
                 </div>
               </div>
 
@@ -369,7 +428,8 @@ function OrdersContent() {
               </Button>
             </CardContent>
           </Card>
-        )))}
+          )
+        }))}
       </div>
 
       {totalPages > 1 && (
@@ -474,15 +534,18 @@ function OrdersContent() {
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Forma de Pagamento</p>
-                    <p className="font-bold text-sm uppercase">{selectedOrder.paymentMethod || "-"}</p>
+                    <p className="font-bold text-sm uppercase">{selectedOrder.paymentMethod ? translatePaymentMethod(selectedOrder.paymentMethod) : "-"}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Parcelas</p>
                     <p className="font-bold text-sm">{selectedOrder.installments}x</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Provedor de Envio</p>
-                    <p className="font-bold text-sm">{selectedOrder.shippingProvider || "-"}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Logística de Envio</p>
+                    <p className="font-bold text-sm">
+                      {selectedOrder.shippingProvider || "-"} 
+                      {selectedOrder.shippingMethod && <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0">{selectedOrder.shippingMethod}</Badge>}
+                    </p>
                   </div>
                   {selectedOrder.shippingQuoteId && (
                     <div>
@@ -494,37 +557,64 @@ function OrdersContent() {
               </div>
 
               {/* Cliente */}
-              <div className="bg-secondary/30 border border-border rounded-3xl p-6">
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <User className="w-4 h-4 text-primary" /> Cliente
+              <div className="bg-secondary/30 border border-border rounded-3xl p-6 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-32 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none transition-transform group-hover:scale-110 duration-700"></div>
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-6 flex items-center gap-2 relative z-10">
+                  <User className="w-4 h-4 text-primary" /> Dados do Cliente
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-secondary/50 border border-border rounded-xl p-4 flex items-center gap-4">
-                    <div className="p-3 bg-blue-500/10 rounded-xl"><User className="w-6 h-6 text-blue-500" /></div>
-                    <div className="overflow-hidden">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Nome</p>
-                      <p className="font-bold text-sm truncate">{selectedOrder.customerName}</p>
-                    </div>
+                
+                <div className="flex flex-col md:flex-row gap-6 items-start relative z-10">
+                  <div className="w-20 h-20 shrink-0 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 border-2 border-primary/20 flex items-center justify-center shadow-lg">
+                    <span className="text-2xl font-black text-primary">
+                      {selectedOrder.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </span>
                   </div>
-                  <div className="bg-secondary/50 border border-border rounded-xl p-4 flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl"><FileText className="w-6 h-6 text-primary" /></div>
-                    <div className="overflow-hidden">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Email</p>
-                      <p className="font-bold text-sm truncate">{selectedOrder.customerEmail || "Não informado"}</p>
+                  
+                  <div className="flex-1 w-full space-y-4">
+                    <div>
+                      <h4 className="text-xl font-bold leading-tight">{selectedOrder.customerName}</h4>
+                      <div className="flex flex-wrap items-center gap-3 mt-2">
+                        {selectedOrder.customerDocument && (
+                          <Badge variant="outline" className="bg-background/50 border-border/50 text-[10px] font-mono tracking-widest px-2">
+                            <CreditCard className="w-3 h-3 mr-1.5 opacity-50" /> {maskDocument(selectedOrder.customerDocument)}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="bg-primary/10 border-primary/20 text-primary text-[10px] uppercase font-bold tracking-widest px-2">
+                          Cliente desde {new Date().getFullYear()}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded-xl p-4 flex items-center gap-4">
-                    <div className="p-3 bg-blue-500/10 rounded-xl"><MapPin className="w-6 h-6 text-blue-500" /></div>
-                    <div className="overflow-hidden">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Telefone</p>
-                      <p className="font-bold text-sm truncate">{selectedOrder.customerPhone || "Não informado"}</p>
-                    </div>
-                  </div>
-                  <div className="bg-secondary/50 border border-border rounded-xl p-4 flex items-center gap-4">
-                    <div className="p-3 bg-emerald-500/10 rounded-xl"><CreditCard className="w-6 h-6 text-emerald-500" /></div>
-                    <div className="overflow-hidden">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Documento (CPF/CNPJ)</p>
-                      <p className="font-bold text-xs truncate">{selectedOrder.customerDocument || "Não informado"}</p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      <div className="flex items-center p-3 rounded-xl bg-background/50 border border-border hover:border-primary/30 transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center mr-3 shrink-0">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-0.5">Email</p>
+                          <p className="font-semibold text-sm truncate">{selectedOrder.customerEmail || "Não informado"}</p>
+                        </div>
+                        {selectedOrder.customerEmail && (
+                          <a href={`mailto:${selectedOrder.customerEmail}`} className="p-2 hover:bg-secondary rounded-lg transition-colors ml-2" title="Enviar Email">
+                            <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="flex items-center p-3 rounded-xl bg-background/50 border border-border hover:border-emerald-500/30 transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mr-3 shrink-0">
+                          <Smartphone className="w-4 h-4 text-emerald-500" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-0.5">WhatsApp / Telefone</p>
+                          <p className="font-semibold text-sm truncate">{maskPhone(selectedOrder.customerPhone) || "Não informado"}</p>
+                        </div>
+                        {selectedOrder.customerPhone && (
+                          <a href={`https://wa.me/55${selectedOrder.customerPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 rounded-lg transition-colors ml-2" title="Abrir WhatsApp">
+                            <MessagesSquare className="w-4 h-4" />
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -623,7 +713,7 @@ function OrdersContent() {
                         </div>
                         <div>
                           <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">CEP</p>
-                          <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).zipCode}</p>
+                          <p className="text-sm font-medium break-words">{maskCEP((selectedOrder.shippingAddress as any).zipCode)}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -720,6 +810,28 @@ function OrdersContent() {
                       </div>
                     </div>
                   ))}
+                </div>
+                <div className="mt-6 pt-4 border-t border-border/50 flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Subtotal ({selectedOrder.items.reduce((acc, item) => acc + item.quantity, 0)} itens)</span>
+                    <span className="font-medium">{(selectedOrder.subtotal || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Frete</span>
+                    <span className="font-medium">{(selectedOrder.shippingCost || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                  </div>
+                  {selectedOrder.discountValue ? (
+                    <div className="flex justify-between items-center text-sm text-emerald-500">
+                      <span className="flex items-center gap-2">
+                        Desconto {selectedOrder.couponCode && <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono tracking-widest px-1">{selectedOrder.couponCode}</Badge>}
+                      </span>
+                      <span className="font-bold">-{(selectedOrder.discountValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex justify-between items-center text-base font-black mt-2 pt-2 border-t border-border/50 text-primary">
+                    <span>Total do Pedido</span>
+                    <span>{selectedOrder.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                  </div>
                 </div>
               </div>
             </div>

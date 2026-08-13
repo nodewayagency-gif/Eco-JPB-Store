@@ -183,6 +183,7 @@ model Order {
   paymentGateway       String?
   gatewayTransactionId String?
   shippingCarrier      String?
+  shippingMethod       String?     // Ex: "SEDEX", "PAC"
   shippingQuoteId      String?
   shippingCost         Decimal?    @db.Decimal(12, 2)
   shippingAddress      Json?       // Endereço completo de entrega
@@ -191,6 +192,8 @@ model Order {
   installments         Int?        @default(1)
   gatewayResponse      Json?       // Resposta bruta do gateway para auditoria
   couponCode           String?     // Código do cupom utilizado no pedido
+  couponId             String?     // ID do cupom para vínculo relacional
+  coupon               Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
   channel              String      @default("Loja Virtual") // "Loja Virtual" ou "Venda externa"
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
@@ -333,11 +336,13 @@ model Coupon {
   minOrderValue Decimal?  @db.Decimal(12, 2)
   maxUses       Int?
   usedCount     Int       @default(0)
+  commissionPercent Decimal? @db.Decimal(5, 2)
   startDate     DateTime?
   endDate       DateTime?
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  orders        Order[]
 
   @@index([active])
   @@map("jpb_coupons")

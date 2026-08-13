@@ -1,4 +1,5 @@
 'use client';
+import { cn, maskCEP } from "@/lib/utils";
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -46,10 +47,9 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { adminProductMapper, adminRepository } from "@/services/api/adminRepository";
 import { adminSettingsRepository } from "@/services/api/adminSettingsRepository";
 import { ImageUploader } from "@/components/ui/ImageUploader";
-import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-export const TOPIC_ICONS: Record<string, any> = {
+const TOPIC_ICONS: Record<string, any> = {
   Check,
   Star,
   Shield,
@@ -215,7 +215,7 @@ export default function AdminProductsPage() {
 
   const startCreate = () => {
     setEditingProductId(null);
-    setForm({ ...emptyForm, originZipCode: defaultOriginZipCode });
+    setForm({ ...emptyForm, originZipCode: maskCEP(defaultOriginZipCode) });
     setActiveTab("info");
     setProductModalOpen(true);
   };

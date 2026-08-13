@@ -10,30 +10,7 @@ import { Label } from "@/components/ui/label";
 import { adminSettingsRepository } from "@/services/api/adminSettingsRepository";
 import { toast } from "sonner";
 import axios from "axios";
-import { cn } from "@/lib/utils";
-
-// Helper masks
-const maskCNPJ = (value: string) => {
-  return value
-    .replace(/\D/g, "")
-    .replace(/^(\d{2})(\d)/, "$1.$2")
-    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1/$2")
-    .replace(/(\d{4})(\d)/, "$1-$2")
-    .slice(0, 18);
-};
-
-const maskCEP = (value: string) => {
-  return value.replace(/\D/g, "").replace(/^(\d{5})(\d)/, "$1-$2").slice(0, 9);
-};
-
-const maskPhone = (value: string) => {
-  return value
-    .replace(/\D/g, "")
-    .replace(/^(\d{2})(\d)/, "($1) $2")
-    .replace(/(\d{5})(\d)/, "$1-$2")
-    .slice(0, 15);
-};
+import { cn, maskDocument, maskCEP, maskPhone } from "@/lib/utils";
 
 export default function AdminCompanySettingsPage() {
   const [form, setForm] = useState<CompanySettings | null>(null);
@@ -143,7 +120,7 @@ export default function AdminCompanySettingsPage() {
               <div className="flex gap-2">
                 <Input 
                   value={form.document} 
-                  onChange={(e) => setForm({ ...form, document: maskCNPJ(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, document: maskDocument(e.target.value) })}
                   placeholder="00.000.000/0001-00"
                   className="bg-background border-border"
                 />

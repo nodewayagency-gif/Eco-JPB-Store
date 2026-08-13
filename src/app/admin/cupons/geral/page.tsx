@@ -51,6 +51,7 @@ const emptyForm: AdminCouponInput = {
   minPurchase: 0,
   maxDiscount: 0,
   usageLimit: 0,
+  commissionPercent: 0,
   active: true,
   expiryDate: ""
 };
@@ -66,6 +67,9 @@ export default function AdminCouponsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<AdminCouponInput>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [ordersModalOpen, setOrdersModalOpen] = useState(false);
+  const [selectedCouponOrders, setSelectedCouponOrders] = useState<AdminCoupon | null>(null);
 
   useEffect(() => {
     loadCoupons();
@@ -109,6 +113,7 @@ export default function AdminCouponsPage() {
       minPurchase: coupon.minPurchase || 0,
       maxDiscount: coupon.maxDiscount || 0,
       usageLimit: coupon.usageLimit || 0,
+      commissionPercent: coupon.commissionPercent || 0,
       active: coupon.active,
       expiryDate: coupon.expiryDate ? new Date(coupon.expiryDate).toISOString().split('T')[0] : ""
     });
@@ -130,6 +135,7 @@ export default function AdminCouponsPage() {
           minPurchase: Number(form.minPurchase) || undefined,
           maxDiscount: Number(form.maxDiscount) || undefined,
           usageLimit: Number(form.usageLimit) || undefined,
+          commissionPercent: Number(form.commissionPercent) || undefined,
       };
 
       if (editingId) {
@@ -298,6 +304,9 @@ export default function AdminCouponsPage() {
                             <DropdownMenuItem onClick={() => handleOpenEdit(coupon)} className="gap-2 cursor-pointer">
                               <Edit className="w-4 h-4" /> Editar
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setSelectedCouponOrders(coupon); setOrdersModalOpen(true); }} className="gap-2 cursor-pointer">
+                              <Search className="w-4 h-4" /> Ver Pedidos
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDelete(coupon.id)} className="gap-2 text-destructive cursor-pointer hover:bg-destructive/10">
                               <Trash2 className="w-4 h-4" /> Excluir
                             </DropdownMenuItem>
@@ -398,13 +407,24 @@ export default function AdminCouponsPage() {
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <Label>Data de Expiração</Label>
-                <Input
-                    type="date"
-                    value={form.expiryDate}
-                    onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-                />
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Data de Expiração</Label>
+                    <Input
+                        type="date"
+                        value={form.expiryDate}
+                        onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Comissão do Cupom (%)</Label>
+                    <Input
+                        type="number"
+                        placeholder="Ex: 5"
+                        value={form.commissionPercent}
+                        onChange={(e) => setForm({ ...form, commissionPercent: Number(e.target.value) })}
+                    />
+                </div>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
@@ -425,6 +445,48 @@ export default function AdminCouponsPage() {
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               {isSaving ? "Salvando..." : "Salvar Cupom"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ordersModalOpen} onOpenChange={setOrdersModalOpen}>
+        <DialogContent className="sm:max-w-[600px] bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Pedidos com o Cupom {selectedCouponOrders?.code}</DialogTitle>
+            <DialogDescription>
+              Abaixo estão os pedidos que utilizaram este cupom de desconto.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto mt-4">
+            {selectedCouponOrders?.orders && selectedCouponOrders.orders.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedCouponOrders.orders.map((order) => (
+                    <TableRow key={order.id} className="border-border">
+                      <TableCell className="font-mono text-xs">{order.orderCode}</TableCell>
+                      <TableCell>{order.customerName}</TableCell>
+                      <TableCell className="text-right">
+                        {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="py-8 text-center text-muted-foreground bg-secondary/20 rounded-lg">
+                Nenhum pedido utilizou este cupom ainda.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOrdersModalOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -37,10 +37,14 @@ const navItems = [
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/produtos", label: "Produtos", icon: Package },
   { href: "/admin/categorias", label: "Categorias", icon: Tags },
-  { href: "/admin/cupons", label: "Cupons", icon: Ticket },
   { href: "/admin/suporte", label: "Suporte", icon: MessageSquare, badge: true },
   { href: "/admin/usuarios", label: "Equipe", icon: Users },
   { href: "/admin/leads", label: "Leads", icon: Users }
+];
+
+const couponsItems = [
+  { href: "/admin/cupons/geral", label: "Gestão de Cupons", icon: Ticket },
+  { href: "/admin/cupons/comissoes", label: "Comissões", icon: Wallet }
 ];
 
 const settingsItems = [
@@ -59,6 +63,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [paidOrdersCount, setPaidOrdersCount] = useState(0);
 
   const settingsOpen = pathname.startsWith("/admin/configuracoes");
+  const couponsOpen = pathname.startsWith("/admin/cupons");
 
   useEffect(() => {
     if (isAdminLogin || !adminSession) {
@@ -129,6 +134,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         );
       })}
+
+      <Collapsible defaultOpen={couponsOpen}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm border bg-card text-muted-foreground border-border hover:text-foreground transition-colors">
+            <span className="flex items-center gap-3"><Ticket className="w-4 h-4" /> Cupons</span>
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-2 space-y-1">
+          {couponsItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "w-full flex items-center gap-3 pl-8 pr-3 py-2 rounded-lg text-sm border transition-colors",
+                  isActive
+                    ? "bg-primary/10 text-primary border-primary/20"
+                    : "bg-transparent text-muted-foreground border-transparent hover:bg-card hover:text-foreground hover:border-border"
+                )}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </CollapsibleContent>
+      </Collapsible>
 
       <Collapsible defaultOpen={settingsOpen}>
         <CollapsibleTrigger asChild>

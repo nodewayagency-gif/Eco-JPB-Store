@@ -6,7 +6,7 @@ import { getMpPreference } from "@/lib/mercadopago";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { items, total, shippingAddress, paymentMethod, guestName, guestEmail, guestPhone, guestDocument, couponCode } = body;
+    const { items, total, shippingAddress, paymentMethod, guestName, guestEmail, guestPhone, guestDocument, couponCode, couponId } = body;
 
     const authUser = await getAuthUser();
 
@@ -50,9 +50,11 @@ export async function POST(req: Request) {
         status: "CREATED",
         paymentGateway: paymentMethod,
         couponCode: validCouponCode,
+        couponId: validCouponCode && couponId ? couponId : null,
         shippingAddress: shippingAddress as any,
         shippingCost: shippingAddress?.shippingCost ? Number(shippingAddress.shippingCost) : null,
-        shippingCarrier: shippingAddress?.shippingMethod || null,
+        shippingCarrier: shippingAddress?.shippingCarrier || null,
+        shippingMethod: shippingAddress?.shippingMethod || null,
         items: {
           create: items.map((item: any) => {
             const product = dbProducts.find(p => p.id === item.productId);
