@@ -96,25 +96,22 @@ const OrderTimeline = ({ steps }: { steps: CustomerOrderTrackingStep[] }) => (
         >
           {!isLast ? (
             <div
-              className={`absolute left-[-20px] top-8 w-px h-[calc(100%-8px)] ${
-                step.completed ? "bg-primary/60" : "bg-border"
-              }`}
+              className={`absolute left-[-20px] top-8 w-px h-[calc(100%-8px)] ${step.completed ? "bg-primary/60" : "bg-border"
+                }`}
             />
           ) : null}
 
           <div
-            className={`absolute left-[-28px] top-1 w-[17px] h-[17px] rounded-full flex items-center justify-center ${
-              step.active
+            className={`absolute left-[-28px] top-1 w-[17px] h-[17px] rounded-full flex items-center justify-center ${step.active
                 ? "bg-primary ring-4 ring-primary/20"
                 : step.completed
                   ? "bg-primary/80"
                   : "bg-secondary border border-border"
-            }`}
+              }`}
           >
             <Icon
-              className={`w-2.5 h-2.5 ${
-                step.completed || step.active ? "text-primary-foreground" : "text-muted-foreground"
-              }`}
+              className={`w-2.5 h-2.5 ${step.completed || step.active ? "text-primary-foreground" : "text-muted-foreground"
+                }`}
             />
           </div>
 
@@ -146,8 +143,8 @@ export default function CustomerPage() {
   const [replyContent, setReplyContent] = useState("");
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [newTicket, setNewTicket] = useState({ subject: "", description: "", orderId: "none" });
-  const [selectedImages, setSelectedImages] = useState<{file: File, preview: string}[]>([]);
-  const [replyImages, setReplyImages] = useState<{file: File, preview: string}[]>([]);
+  const [selectedImages, setSelectedImages] = useState<{ file: File, preview: string }[]>([]);
+  const [replyImages, setReplyImages] = useState<{ file: File, preview: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [ordersPage, setOrdersPage] = useState(1);
   const [repayOrder, setRepayOrder] = useState<CustomerOrderView | null>(null);
@@ -246,7 +243,7 @@ export default function CustomerPage() {
       setIsCreatingTicket(false);
       setNewTicket({ subject: "", description: "", orderId: "none" });
       setSelectedImages([]);
-      
+
       const ticketsData = await customerRepository.getTickets(userId);
       setTickets(ticketsData);
     } catch (error) {
@@ -258,7 +255,7 @@ export default function CustomerPage() {
 
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
-  
+
 
 
   const [addressForm, setAddressForm] = useState({
@@ -325,7 +322,7 @@ export default function CustomerPage() {
     try {
       const ticketsData = await customerRepository.getTickets(userId);
       setTickets(ticketsData);
-      
+
       if (selectedTicket) {
         const updated = ticketsData.find(t => t.id === selectedTicket.id);
         if (updated) setSelectedTicket(updated);
@@ -440,11 +437,11 @@ export default function CustomerPage() {
         }
       }
 
-      const updated = await customerRepository.replyTicket(userId, selectedTicket.id, { 
+      const updated = await customerRepository.replyTicket(userId, selectedTicket.id, {
         content: replyContent,
         images: imageUrls
       });
-      
+
       if (updated) {
         setTickets(tickets.map(t => t.id === updated.id ? updated : t));
         setSelectedTicket(updated);
@@ -462,12 +459,12 @@ export default function CustomerPage() {
     if (!repayOrder) return;
     try {
       const actualFormData = param.formData ? param.formData : param;
-      
+
       const { data } = await api.post("/checkout/process", {
         formData: actualFormData,
         orderId: repayOrder.id
       });
-      
+
       if (data.status === 'approved' || data.status === 'in_process' || data.status === 'pending') {
         toast.success(data.status === 'approved' ? "Pagamento aprovado!" : "Pagamento em processamento.");
         if (data.qr_code || data.ticket_url) {
@@ -511,14 +508,14 @@ export default function CustomerPage() {
             first_name: name.split(' ')[0],
             last_name: name.split(' ').slice(1).join(' '),
             identification: document ? {
-               type: document.length > 14 ? 'CNPJ' : 'CPF',
-               number: document.replace(/\D/g, '')
+              type: document.length > 14 ? 'CNPJ' : 'CPF',
+              number: document.replace(/\D/g, '')
             } : undefined
           }
         },
         orderId: repayOrder.id
       });
-      
+
       if (data.status === 'approved' || data.status === 'in_process' || data.status === 'pending') {
         toast.success("Pedido gerado com sucesso!");
         if (data.qr_code || data.ticket_url) {
@@ -547,100 +544,153 @@ export default function CustomerPage() {
     }
   };
 
+  const navItems = [
+    { id: "profile", label: "Meus Dados", icon: User },
+    { id: "orders", label: "Meus Pedidos", icon: Package },
+    { id: "addresses", label: "Endereços", icon: MapPin },
+    { id: "tickets", label: "Atendimento", icon: MessageSquare }
+  ] as const;
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border glass-surface sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-background flex flex-col md:flex-row font-sans">
+      {/* Mobile Header */}
+      <header className="md:hidden border-b border-border/40 glass-surface sticky top-0 z-50">
+        <div className="px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <Link href="/">
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
             <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              <div>
-                <span className="text-lg font-bold gold-text">Minha Conta</span>
-                <p className="text-xs text-muted-foreground">{profile?.name || customerSession?.user.displayName}</p>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
+                <User className="w-4 h-4 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold leading-none">{profile?.name?.split(' ')[0] || customerSession?.user.displayName?.split(' ')[0] || 'Cliente'}</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="outline" size="sm" className="gap-2 border-border hover:border-primary/50">
-                <ShoppingBag className="w-4 h-4" /> Loja
-              </Button>
-            </Link>
-            <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Sair">
+            <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Sair" className="text-muted-foreground hover:text-destructive">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 space-y-4">
-            <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary/60">Sincronizando sua conta</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <Card className="bg-card border-border">
-            <CardContent className="p-5 text-center">
-              <p className="text-2xl font-bold text-foreground">{orders.length}</p>
-              <p className="text-xs text-muted-foreground mt-1">Pedidos</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-5 text-center">
-              <p className="text-2xl font-bold text-foreground">
-                {totalSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">Total gasto</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border col-span-2 sm:col-span-1">
-            <CardContent className="p-5 text-center">
-              <p className="text-2xl font-bold text-primary">
-                {orders.filter((order) => order.status === "Em Trânsito").length}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">Em trânsito</p>
-            </CardContent>
-          </Card>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col w-[280px] border-r border-border/40 bg-card/30 backdrop-blur-xl h-screen sticky top-0 p-6">
+        <div className="flex items-center gap-3 mb-10">
+          <Link href="/">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary -ml-2">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div className="font-black text-xl tracking-tight gold-text">Minha Conta</div>
         </div>
 
-        <div className="flex gap-6 border-b border-border overflow-x-auto no-scrollbar pb-1">
-          <button 
-            onClick={() => setActiveTab("profile")}
-            className={`pb-3 text-sm font-semibold transition-colors relative whitespace-nowrap ${activeTab === "profile" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Meus Dados
-            {activeTab === "profile" && <motion.div layoutId="tab-indicator" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-primary" />}
-          </button>
-          <button 
-            onClick={() => setActiveTab("orders")}
-            className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === "orders" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Histórico de Pedidos
-            {activeTab === "orders" && <motion.div layoutId="tab-indicator" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-primary" />}
-          </button>
-          <button 
-            onClick={() => setActiveTab("addresses")}
-            className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === "addresses" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Meus Endereços
-            {activeTab === "addresses" && <motion.div layoutId="tab-indicator" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-primary" />}
-          </button>
-          <button 
-            onClick={() => setActiveTab("tickets")}
-            className={`pb-3 text-sm font-semibold transition-colors relative ${activeTab === "tickets" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Atendimento
-            {activeTab === "tickets" && <motion.div layoutId="tab-indicator" className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-primary" />}
-          </button>
+        <div className="flex items-center gap-4 mb-10 p-4 rounded-2xl bg-secondary/50 border border-border/50">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/40 to-primary/10 border border-primary/20 flex items-center justify-center shrink-0 shadow-lg shadow-primary/10">
+            <User className="w-5 h-5 text-primary" />
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-sm font-bold text-foreground truncate">{profile?.name || customerSession?.user.displayName || 'Cliente'}</p>
+            <p className="text-xs text-muted-foreground truncate">{profile?.email || customerSession?.user.email}</p>
+          </div>
         </div>
+
+        <nav className="flex flex-col gap-2 flex-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 relative group overflow-hidden",
+                  isActive 
+                    ? "text-primary-foreground bg-primary shadow-md shadow-primary/20" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                {isActive && (
+                  <motion.div layoutId="sidebar-active" className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent" />
+                )}
+                <Icon className={cn("w-4 h-4 relative z-10 transition-transform group-hover:scale-110", isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary")} />
+                <span className="relative z-10">{item.label}</span>
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className="mt-auto pt-6 border-t border-border/40">
+          <Button variant="ghost" onClick={onLogout} className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+            <LogOut className="w-4 h-4" />
+            <span className="font-semibold">Sair da conta</span>
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-8 py-6 md:py-10 space-y-8 pb-28 md:pb-10">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 space-y-4">
+            <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(var(--primary),0.3)]" />
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary/60">Preparando Dashboard...</p>
+          </div>
+        ) : (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Resumo Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 shadow-sm relative overflow-hidden group hover:border-primary/30 transition-colors">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Pedidos</span>
+                  </div>
+                  <p className="text-3xl font-black text-foreground">{orders.length}</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 shadow-sm relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Gasto</span>
+                  </div>
+                  <p className="text-3xl font-black text-foreground tracking-tight">
+                    {totalSpent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 shadow-sm relative overflow-hidden col-span-2 md:col-span-1 group hover:border-sky-500/30 transition-colors">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-500">
+                      <Truck className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Em Trânsito</span>
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <p className="text-3xl font-black text-foreground">
+                      {orders.filter((order) => order.status === "Em Trânsito").length}
+                    </p>
+                    <span className="text-sm font-medium text-sky-500 mb-1">entregas ativas</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
 
         {activeTab === "profile" ? (
           <motion.div 
@@ -648,51 +698,61 @@ export default function CustomerPage() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" /> Dados Pessoais
-              </h2>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  Meus Dados
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">Gerencie suas informações pessoais e credenciais.</p>
+              </div>
             </div>
-            <Card className="bg-card border-border">
-              <CardContent className="p-6 space-y-6">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label>Nome Completo</Label>
+            <Card className="bg-card/50 backdrop-blur-xl border-border/50 shadow-sm overflow-hidden">
+              <div className="h-1 w-full bg-gradient-to-r from-primary via-primary/50 to-transparent" />
+              <CardContent className="p-6 md:p-8 space-y-8">
+                <div className="grid sm:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nome Completo</Label>
                     <Input 
                       value={profileForm.name} 
                       onChange={e => setProfileForm({...profileForm, name: e.target.value})} 
                       placeholder="Seu nome completo"
+                      className="h-12 bg-secondary/30 border-border/50 focus:border-primary/50 focus:bg-background transition-colors text-base"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>E-mail (Login)</Label>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                      E-mail (Login)
+                      <Lock className="w-3 h-3 text-muted-foreground" />
+                    </Label>
                     <Input 
                       value={profileForm.email} 
                       disabled
-                      className="bg-secondary/50 text-muted-foreground cursor-not-allowed border-dashed"
+                      className="h-12 bg-secondary/30 text-muted-foreground cursor-not-allowed border-dashed opacity-70"
                     />
-                    <p className="text-[10px] text-muted-foreground">O e-mail não pode ser alterado pois é a sua chave de acesso seguro.</p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-1">Sua chave de acesso não pode ser alterada.</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label>CPF / CNPJ</Label>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CPF / CNPJ</Label>
                     <Input 
                       value={profileForm.document} 
                       onChange={e => setProfileForm({...profileForm, document: maskDocument(e.target.value)})}
                       placeholder="000.000.000-00"
+                      className="h-12 bg-secondary/30 border-border/50 focus:border-primary/50 focus:bg-background transition-colors text-base"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Telefone</Label>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Telefone</Label>
                     <Input 
                       value={profileForm.phone} 
                       onChange={e => setProfileForm({...profileForm, phone: maskPhone(e.target.value)})}
                       placeholder="(00) 00000-0000"
+                      className="h-12 bg-secondary/30 border-border/50 focus:border-primary/50 focus:bg-background transition-colors text-base"
                     />
                   </div>
                 </div>
-                <div className="pt-4 border-t border-border/50 flex justify-end">
+                <div className="pt-6 border-t border-border/30 flex justify-end">
                   <Button 
-                    className="shimmer-btn h-11 px-8 rounded-xl font-bold" 
+                    className="shimmer-btn h-12 px-10 rounded-xl font-bold shadow-lg shadow-primary/20" 
                     disabled={isSavingProfile}
                     onClick={async () => {
                       if (!profileForm.name || !profileForm.document || !profileForm.phone) {
@@ -1250,8 +1310,9 @@ export default function CustomerPage() {
             )}
           </motion.div>
         )}
-      </>
+      </div>
     )}
+
 
     <Dialog open={!!repayOrder} onOpenChange={(open) => {
       if (!open) {
@@ -1373,7 +1434,7 @@ export default function CustomerPage() {
         )}
       </DialogContent>
     </Dialog>
-  </main>
-</div>
+  </main >
+</div >
   );
 }

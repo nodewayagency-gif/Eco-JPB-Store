@@ -15,9 +15,12 @@ export async function GET() {
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    const paidStatuses = ['PAID', 'SHIPPED', 'DELIVERED'];
+
     // Consultas em paralelo para performance máxima em produção
     const [
       totalRevenue, 
+      monthlyRevenue,
       ordersCount, 
       customersCount,
       currentRevenue,
@@ -29,12 +32,13 @@ export async function GET() {
       currentPaidOrders,
       previousPaidOrders
     ] = await Promise.all([
-      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: startOfCurrentMonth } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: { in: paidStatuses as any } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: { in: paidStatuses as any }, paidAt: { gte: startOfCurrentMonth } }, _sum: { total: true } }),
       prisma.order.count(),
       prisma.user.count({ where: { role: 'CUSTOMER' } }),
       
-      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
-      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: { in: paidStatuses as any }, paidAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: { in: paidStatuses as any }, paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } }),
       
       prisma.order.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
       prisma.order.count({ where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
@@ -42,8 +46,8 @@ export async function GET() {
       prisma.user.count({ where: { role: 'CUSTOMER', createdAt: { gte: thirtyDaysAgo } } }),
       prisma.user.count({ where: { role: 'CUSTOMER', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
       
-      prisma.order.count({ where: { status: 'PAID', paidAt: { gte: thirtyDaysAgo } } }),
-      prisma.order.count({ where: { status: 'PAID', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } })
+      prisma.order.count({ where: { status: { in: paidStatuses as any }, paidAt: { gte: thirtyDaysAgo } } }),
+      prisma.order.count({ where: { status: { in: paidStatuses as any }, paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } })
     ]);
 
     const calculateTrend = (current: number, previous: number) => {
@@ -72,13 +76,18 @@ export async function GET() {
         trend: revTrend.trend,
         trendDirection: revTrend.direction
       },
+      monthlyRevenue: {
+        value: Number(monthlyRevenue._sum.total || 0),
+        trend: revTrend.trend,
+        trendDirection: revTrend.direction
+      },
       orders: {
-        value: ordersCount,
+        value: currentOrders,
         trend: ordTrend.trend,
         trendDirection: ordTrend.direction
       },
       customers: {
-        value: customersCount,
+        value: currentCustomers,
         trend: custTrend.trend,
         trendDirection: custTrend.direction
       },

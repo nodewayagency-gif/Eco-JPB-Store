@@ -14,6 +14,8 @@ export async function GET() {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
+    const paidStatuses = ['PAID', 'SHIPPED', 'DELIVERED'];
+
     // Busca todos os dados necessários em paralelo com seleções otimizadas
     const [
       totalRevenue, 
@@ -33,7 +35,7 @@ export async function GET() {
       currentTotalValue,
       previousTotalValue
     ] = await Promise.all([
-      prisma.order.aggregate({ where: { status: 'PAID' }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: { in: paidStatuses as any } }, _sum: { total: true } }),
       prisma.order.count(),
       prisma.user.count({ where: { role: 'CUSTOMER' } }),
       prisma.order.findMany({
@@ -48,16 +50,16 @@ export async function GET() {
         take: 5,
         orderBy: { createdAt: 'desc' }
       }),
-      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
-      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: { in: paidStatuses as any }, paidAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: { in: paidStatuses as any }, paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } }),
       prisma.order.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
       prisma.order.count({ where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
       prisma.user.count({ where: { role: 'CUSTOMER', createdAt: { gte: thirtyDaysAgo } } }),
       prisma.user.count({ where: { role: 'CUSTOMER', createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
-      prisma.order.count({ where: { status: 'PAID', paidAt: { gte: thirtyDaysAgo } } }),
-      prisma.order.count({ where: { status: 'PAID', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
+      prisma.order.count({ where: { status: { in: paidStatuses as any }, paidAt: { gte: thirtyDaysAgo } } }),
+      prisma.order.count({ where: { status: { in: paidStatuses as any }, paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
       prisma.order.aggregate({ _sum: { total: true } }),
-      prisma.order.count({ where: { status: 'PAID' } }),
+      prisma.order.count({ where: { status: { in: paidStatuses as any } } }),
       prisma.order.aggregate({ where: { createdAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
       prisma.order.aggregate({ where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } }, _sum: { total: true } })
     ]);

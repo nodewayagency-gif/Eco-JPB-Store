@@ -173,6 +173,12 @@ export const adminRepository: AdminRepository = {
         trend: data.revenue.trendDirection
       },
       {
+        title: "Receita do Mês",
+        value: (data.monthlyRevenue?.value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        change: `+${data.monthlyRevenue?.trend || 0}%`,
+        trend: data.monthlyRevenue?.trendDirection || "neutral"
+      },
+      {
         title: "Pedidos",
         value: data.orders.value.toString(),
         change: `+${data.orders.trend}%`,
