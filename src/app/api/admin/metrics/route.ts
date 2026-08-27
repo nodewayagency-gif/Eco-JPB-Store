@@ -13,6 +13,7 @@ export async function GET() {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Consultas em paralelo para performance máxima em produção
     const [
@@ -28,7 +29,7 @@ export async function GET() {
       currentPaidOrders,
       previousPaidOrders
     ] = await Promise.all([
-      prisma.order.aggregate({ where: { status: 'PAID' }, _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: 'PAID', paidAt: { gte: startOfCurrentMonth } }, _sum: { total: true } }),
       prisma.order.count(),
       prisma.user.count({ where: { role: 'CUSTOMER' } }),
       
