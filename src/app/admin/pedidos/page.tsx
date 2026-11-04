@@ -2,14 +2,39 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, ChevronRight, ListChecks, Search, Filter, Package, User, CreditCard, Truck, ExternalLink, MapPin, FileText, Box, Home, Check, ChevronLeft, Phone, Mail, Copy, Smartphone, MessagesSquare } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  ListChecks,
+  Search,
+  Filter,
+  Package,
+  User,
+  CreditCard,
+  Truck,
+  ExternalLink,
+  MapPin,
+  FileText,
+  Box,
+  Home,
+  Check,
+  Smartphone,
+  MessagesSquare,
+  Mail
+} from "lucide-react";
 import type { AdminOrderDetail, AdminOrderRow, AdminOrderStepKey } from "@premium/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
 import {
   Dialog,
   DialogContent,
@@ -18,12 +43,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -35,17 +54,17 @@ import {
 import { adminRepository } from "@/services/api/adminRepository";
 import { cn, maskDocument, maskPhone, maskCEP } from "@/lib/utils";
 import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
+import { motion, AnimatePresence } from "framer-motion";
 
 const statusColor: Record<string, string> = {
-  "Criado": "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-  "Aguardando Pagamento": "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  "Pagamento confirmado": "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  "Separação": "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  "Pronto para Envio": "bg-sky-500/10 text-sky-500 border-sky-500/20",
-  "Enviado": "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
-  "Saiu para entrega": "bg-violet-500/10 text-violet-500 border-violet-500/20",
-  "Entregue": "bg-emerald-500/20 text-emerald-500 border-emerald-500/30"
+  "Criado": "bg-zinc-800/80 text-zinc-300 border-zinc-700/80",
+  "Aguardando Pagamento": "bg-amber-500/10 text-amber-400 border-amber-500/30",
+  "Pagamento confirmado": "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  "Separação": "bg-sky-500/10 text-sky-400 border-sky-500/30",
+  "Pronto para Envio": "bg-blue-500/10 text-blue-400 border-blue-500/30",
+  "Enviado": "bg-indigo-500/10 text-indigo-400 border-indigo-500/30",
+  "Saiu para entrega": "bg-purple-500/10 text-purple-400 border-purple-500/30",
+  "Entregue": "bg-emerald-500/15 text-emerald-400 border-emerald-500/40"
 };
 
 const translatePaymentMethod = (method: string) => {
@@ -57,8 +76,6 @@ const translatePaymentMethod = (method: string) => {
   };
   return map[method] || method;
 };
-
-import { motion, AnimatePresence } from "framer-motion";
 
 function OrdersContent() {
   const searchParams = useSearchParams();
@@ -115,27 +132,14 @@ function OrdersContent() {
     }
   };
 
-  const refreshSelected = async () => {
-    if (!selectedOrder) return;
-    try {
-      const updated = await adminRepository.getOrder(selectedOrder.id);
-      if (updated) {
-        setSelectedOrder(updated);
-        await loadOrders();
-      }
-    } catch (error) {
-      console.error("Erro ao atualizar pedido:", error);
-    }
-  };
-
   const nextStep = async () => {
     if (!selectedOrder || isUpdating) return;
     try {
       setIsUpdating(true);
       const updated = await adminRepository.advanceOrderStep(selectedOrder.id);
       setSelectedOrder(updated);
-      toast.success("Status avançado!");
-      loadOrders(); // Atualiza a lista em background
+      toast.success("Status avançado com sucesso!");
+      loadOrders(true);
     } catch (error) {
       console.error("Erro ao avançar status:", error);
       toast.error("Erro ao avançar status.");
@@ -151,7 +155,7 @@ function OrdersContent() {
       const updated = await adminRepository.updateTrackingCode(selectedOrder.id, trackingCodeInput);
       setSelectedOrder(updated);
       toast.success("Código de rastreio salvo!");
-      loadOrders();
+      loadOrders(true);
     } catch (error) {
       console.error("Erro ao salvar rastreio:", error);
       toast.error("Erro ao salvar rastreio.");
@@ -167,7 +171,7 @@ function OrdersContent() {
       const updated = await adminRepository.setOrderStep(selectedOrder.id, step);
       setSelectedOrder(updated);
       toast.success("Status atualizado!");
-      loadOrders(); // Atualiza a lista em background
+      loadOrders(true);
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
       toast.error("Erro ao atualizar status.");
@@ -178,9 +182,11 @@ function OrdersContent() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      const matchesSearch = order.id.toLowerCase().includes(search.toLowerCase()) || 
-                            order.customerName.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "ALL" || order.statusLabel.toLowerCase() === statusFilter.toLowerCase();
+      const matchesSearch =
+        order.id.toLowerCase().includes(search.toLowerCase()) ||
+        order.customerName.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus =
+        statusFilter === "ALL" || order.statusLabel.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [orders, search, statusFilter]);
@@ -195,293 +201,252 @@ function OrdersContent() {
   }, [search, statusFilter]);
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6 pb-12">
+      {/* Header */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <ListChecks className="w-6 h-6 text-primary" />
+          <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shadow-sm">
+            <ListChecks className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Gestão de Pedidos</h1>
-            <p className="text-sm text-muted-foreground">Gerencie o fluxo de entrega e status das vendas.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Gestão de Pedidos</h1>
+            <p className="text-xs text-zinc-400">Acompanhe vendas, despachos e status logísticos em tempo real.</p>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="ID ou nome do cliente..." 
-              className="pl-10 bg-secondary/50 border-border" 
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+            <Input
+              placeholder="ID ou nome do cliente..."
+              className="pl-9 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 text-xs h-9 rounded-lg focus:ring-1 focus:ring-amber-400"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48 bg-secondary/50 border-border">
-              <Filter className="w-4 h-4 mr-2" />
+            <SelectTrigger className="w-full sm:w-48 bg-zinc-900 border-zinc-800 text-zinc-200 text-xs h-9 rounded-lg">
+              <Filter className="w-3.5 h-3.5 mr-2 text-zinc-400" />
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200 text-xs">
               <SelectItem value="ALL">Todos os status</SelectItem>
-              {Object.keys(statusColor).map(status => (
-                <SelectItem key={status} value={status}>{status}</SelectItem>
+              {Object.keys(statusColor).map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <Card className="hidden lg:block bg-card/50 border-border overflow-hidden shadow-xl">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-secondary/20 border-b border-border/50">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[120px] text-[11px] uppercase font-bold text-muted-foreground py-4">Pedido</TableHead>
-                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Cliente</TableHead>
-                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Pagamento</TableHead>
-                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground">Envio</TableHead>
-                <TableHead className="text-right text-[11px] uppercase font-bold text-muted-foreground">Total</TableHead>
-                <TableHead className="text-[11px] uppercase font-bold text-muted-foreground text-center">Status</TableHead>
-                <TableHead className="text-right w-[80px] text-[11px] uppercase font-bold text-muted-foreground">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <AnimatePresence mode="popLayout">
-                {loading ? (
-                   <TableRow>
-                     <TableCell colSpan={7} className="h-40 text-center py-10">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                          <p className="text-muted-foreground text-sm">Carregando pedidos...</p>
-                        </div>
-                     </TableCell>
-                   </TableRow>
-                ) : paginatedOrders.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-40 text-center text-muted-foreground italic opacity-40">
-                      Nenhum pedido encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedOrders.map((order, idx) => {
-                    const initials = order.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                    return (
+      {/* Desktop Table */}
+      <div className="hidden lg:block rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur overflow-hidden shadow-sm">
+        <Table>
+          <TableHeader className="bg-zinc-950/60 border-b border-zinc-800/80">
+            <TableRow className="hover:bg-transparent border-zinc-800/80">
+              <TableHead className="w-[130px] text-[11px] uppercase font-bold text-zinc-400 py-3.5 pl-5">Pedido</TableHead>
+              <TableHead className="text-[11px] uppercase font-bold text-zinc-400">Cliente</TableHead>
+              <TableHead className="text-[11px] uppercase font-bold text-zinc-400">Pagamento</TableHead>
+              <TableHead className="text-[11px] uppercase font-bold text-zinc-400">Envio</TableHead>
+              <TableHead className="text-right text-[11px] uppercase font-bold text-zinc-400">Total</TableHead>
+              <TableHead className="text-center text-[11px] uppercase font-bold text-zinc-400">Status</TableHead>
+              <TableHead className="text-right w-[90px] text-[11px] uppercase font-bold text-zinc-400 pr-5">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <AnimatePresence mode="popLayout">
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-48 text-center py-10">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-zinc-400 text-xs">Carregando pedidos...</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : paginatedOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-48 text-center py-10 text-zinc-400 text-xs">
+                    Nenhum pedido encontrado.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedOrders.map((order) => {
+                  const initials = order.customerName
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .substring(0, 2)
+                    .toUpperCase();
+
+                  return (
                     <motion.tr
                       key={order.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="group border-b border-zinc-800/40 hover:bg-zinc-800/40 cursor-pointer transition-colors"
                       onClick={() => openOrder(order.id)}
-                      className={cn(
-                        "border-b border-border/40 group hover:bg-secondary/30 transition-all duration-300 cursor-pointer relative",
-                        loadingOrderId === order.id && "opacity-50 pointer-events-none"
-                      )}
                     >
-                      <TableCell className="py-4">
-                        <div className="flex flex-col">
-                          <span className="font-mono text-xs font-bold text-foreground group-hover:text-primary transition-colors">
-                            #{order.id.slice(-6).toUpperCase()}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground mt-0.5">
-                            {new Date(order.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
+                      <TableCell className="font-mono text-xs pl-5 font-semibold text-zinc-300">
+                        #{order.id.slice(-6).toUpperCase()}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
-                            <span className="text-[10px] font-bold text-primary">{initials}</span>
+                          <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/80 flex items-center justify-center shrink-0 text-[10px] font-bold text-amber-400">
+                            {initials}
                           </div>
-                          <div className="flex flex-col">
-                            <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors leading-tight">
+                          <div>
+                            <div className="font-medium text-xs text-zinc-200 group-hover:text-amber-400 transition-colors">
                               {order.customerName}
-                            </p>
-                            <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                              {order.channel === "Venda externa" ? <Badge variant="outline" className="text-[8px] py-0 px-1 border-amber-500/30 text-amber-500">Externa</Badge> : <Badge variant="outline" className="text-[8px] py-0 px-1 border-sky-500/30 text-sky-500">Site</Badge>}
-                            </span>
+                            </div>
+                            <div className="text-[11px] text-zinc-400">
+                              {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5">
-                            <CreditCard className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs font-medium">
-                              {order.paymentGateway ? translatePaymentMethod(order.paymentGateway) : "-"}
-                            </span>
-                          </div>
+                        <div className="space-y-0.5">
+                          <span className="text-xs text-zinc-300 block">
+                            {order.paymentGateway ? translatePaymentMethod(order.paymentGateway) : "-"}
+                          </span>
                           {order.paidAt ? (
-                            <span className="text-[10px] text-emerald-500 font-medium mt-0.5 flex items-center gap-1">
+                            <span className="text-[10px] text-emerald-400 font-medium inline-flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" /> Pago
                             </span>
                           ) : (
-                            <span className="text-[10px] text-amber-500 font-medium mt-0.5">Pendente</span>
+                            <span className="text-[10px] text-amber-400 font-medium">Pendente</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5">
-                            <Truck className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs font-medium">
-                              {order.shippingProvider || "Retirada"}
-                            </span>
-                          </div>
+                        <div className="text-xs text-zinc-300 flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-zinc-400" />
+                          <span>{order.shippingProvider || "Retirada"}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-black text-sm text-foreground group-hover:text-primary transition-colors">
-                          {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                        </span>
+                      <TableCell className="text-right font-semibold text-xs text-zinc-100">
+                        {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex justify-center">
-                          <Badge variant="outline" className={cn(
-                            "px-2 py-1 text-[10px] font-bold uppercase border min-w-[110px] justify-center text-center relative overflow-hidden", 
-                            statusColor[order.statusLabel]
-                          )}>
-                            <span className="relative z-10 flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                              {order.statusLabel}
-                            </span>
-                          </Badge>
-                        </div>
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px] font-semibold px-2.5 py-0.5 rounded-full", statusColor[order.statusLabel] || "bg-zinc-800 text-zinc-300 border-zinc-700")}
+                        >
+                          {order.statusLabel}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pr-5">
                         <div className="flex justify-end items-center">
                           {loadingOrderId === order.id ? (
-                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <div className="w-8 h-8 rounded-xl bg-secondary/50 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 group-hover:text-black transition-all duration-300 shadow-sm">
+                            <div className="w-7 h-7 rounded-lg bg-zinc-800/80 border border-zinc-700/80 flex items-center justify-center group-hover:bg-amber-400 group-hover:text-zinc-950 transition-colors">
                               <ChevronRight className="w-4 h-4" />
                             </div>
                           )}
                         </div>
                       </TableCell>
                     </motion.tr>
-                    );
-                  })
-                )}
-              </AnimatePresence>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4 lg:hidden">
-        {loading ? (
-           <div className="flex flex-col items-center py-10 gap-2">
-             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-             <p className="text-muted-foreground text-sm">Carregando pedidos...</p>
-           </div>
-        ) : paginatedOrders.length === 0 ? (
-           <div className="h-40 flex items-center justify-center text-muted-foreground italic opacity-40">
-             Nenhum pedido encontrado.
-           </div>
-        ) : (
-          paginatedOrders.map((order) => {
-            const initials = order.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-            return (
-            <Card key={order.id} className="bg-card border-border active:scale-[0.98] transition-transform" onClick={() => openOrder(order.id)}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-bold text-primary">{initials}</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="font-mono text-[10px] text-muted-foreground">#{order.id.slice(-6).toUpperCase()}</p>
-                    <h3 className="font-bold text-sm leading-tight">{order.customerName}</h3>
-                  </div>
-                </div>
-                <Badge variant="outline" className={cn("text-[9px] uppercase font-bold", statusColor[order.statusLabel])}>
-                  {order.statusLabel}
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mb-4 bg-secondary/30 p-3 rounded-xl border border-border/50">
-                <div className="flex flex-col gap-1 text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-3.5 h-3.5" />
-                    <span className="text-[11px] font-medium truncate">{order.paymentGateway ? translatePaymentMethod(order.paymentGateway) : "-"}</span>
-                  </div>
-                  {order.paidAt ? (
-                    <span className="text-[10px] text-emerald-500 font-medium pl-5 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Pago
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-amber-500 font-medium pl-5">Pendente</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Truck className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-medium truncate">{order.shippingProvider || "Retirada"}</span>
-                </div>
-                <div className="col-span-2 text-right border-t border-border/50 pt-2 mt-1">
-                  <p className="text-foreground font-black text-lg">{order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
-                </div>
-              </div>
-
-              <Button variant="outline" className="w-full bg-secondary border-border hover:bg-secondary/80 text-xs gap-2">
-                Abrir Gestão <ExternalLink className="w-3 h-3" />
-              </Button>
-            </CardContent>
-          </Card>
-          )
-        }))}
+                  );
+                })
+              )}
+            </AnimatePresence>
+          </TableBody>
+        </Table>
       </div>
 
+      {/* Mobile Cards */}
+      <div className="grid grid-cols-1 gap-3 lg:hidden">
+        {loading ? (
+          <div className="flex flex-col items-center py-10 gap-2">
+            <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-zinc-400 text-xs">Carregando pedidos...</p>
+          </div>
+        ) : paginatedOrders.length === 0 ? (
+          <div className="h-32 flex items-center justify-center text-zinc-400 text-xs">
+            Nenhum pedido encontrado.
+          </div>
+        ) : (
+          paginatedOrders.map((order) => {
+            const initials = order.customerName
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .substring(0, 2)
+              .toUpperCase();
+
+            return (
+              <Card
+                key={order.id}
+                className="bg-zinc-900/60 border-zinc-800 active:scale-[0.99] transition-transform cursor-pointer"
+                onClick={() => openOrder(order.id)}
+              >
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/80 flex items-center justify-center text-[10px] font-bold text-amber-400">
+                        {initials}
+                      </div>
+                      <div>
+                        <p className="font-mono text-[10px] text-zinc-400">#{order.id.slice(-6).toUpperCase()}</p>
+                        <h3 className="font-medium text-xs text-zinc-200">{order.customerName}</h3>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", statusColor[order.statusLabel])}
+                    >
+                      {order.statusLabel}
+                    </Badge>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-zinc-950/50 border border-zinc-800/80 flex justify-between items-center text-xs">
+                    <span className="text-zinc-400 flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5" />
+                      {order.paymentGateway ? translatePaymentMethod(order.paymentGateway) : "-"}
+                    </span>
+                    <span className="font-bold text-zinc-100">
+                      {order.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </span>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-200 text-xs h-8 gap-1.5"
+                  >
+                    Ver detalhes <ExternalLink className="w-3 h-3" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center mt-6">
           <Pagination>
-            <PaginationContent className="bg-card border border-border rounded-full px-2 py-1">
+            <PaginationContent className="bg-zinc-900 border border-zinc-800 rounded-full px-2 py-1">
               <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  className={cn("rounded-full h-8 w-8 p-0 cursor-pointer", page === 1 && "pointer-events-none opacity-20")}
+                <PaginationPrevious
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className={cn("rounded-full h-7 w-7 p-0 cursor-pointer text-zinc-300 hover:bg-zinc-800", page === 1 && "pointer-events-none opacity-30")}
                 />
               </PaginationItem>
-              
-              {/* Números das páginas */}
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                // Mostrar primeira, última, atual, e páginas ao redor da atual
-                if (
-                  p === 1 || 
-                  p === totalPages || 
-                  (p >= page - 1 && p <= page + 1)
-                ) {
-                  return (
-                    <PaginationItem key={p}>
-                      <PaginationLink
-                        onClick={() => setPage(p)}
-                        isActive={page === p}
-                        className={cn(
-                          "h-8 w-8 rounded-full cursor-pointer text-xs",
-                          page === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
-                        )}
-                      >
-                        {p}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                }
-                
-                // Mostrar reticências
-                if (p === 2 && page > 3) {
-                  return <PaginationItem key="dots-1"><PaginationEllipsis className="w-4 h-4" /></PaginationItem>;
-                }
-                if (p === totalPages - 1 && page < totalPages - 2) {
-                  return <PaginationItem key="dots-2"><PaginationEllipsis className="w-4 h-4" /></PaginationItem>;
-                }
-                
-                return null;
-              })}
-
+              <span className="text-xs text-zinc-400 px-3 font-medium">
+                Página {page} de {totalPages}
+              </span>
               <PaginationItem>
-                <PaginationNext 
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  className={cn("rounded-full h-8 w-8 p-0 cursor-pointer", page === totalPages && "pointer-events-none opacity-20")}
+                <PaginationNext
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className={cn("rounded-full h-7 w-7 p-0 cursor-pointer text-zinc-300 hover:bg-zinc-800", page === totalPages && "pointer-events-none opacity-30")}
                 />
               </PaginationItem>
             </PaginationContent>
@@ -489,129 +454,116 @@ function OrdersContent() {
         </div>
       )}
 
+      {/* Order Details Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-4xl w-[95vw] sm:w-[90vw] h-[95vh] md:h-auto max-h-[95vh] overflow-y-auto overflow-x-hidden bg-card border-border text-foreground p-4 md:p-6">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+        <DialogContent className="max-w-4xl w-[95vw] sm:w-[90vw] max-h-[92vh] overflow-y-auto bg-[#0c0d12] border-zinc-800 text-zinc-100 p-4 md:p-6 rounded-2xl">
+          <DialogHeader className="pb-3 border-b border-zinc-800/80">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <Badge variant="outline" className="bg-amber-400/10 text-amber-400 border-amber-400/30 text-xs font-mono font-bold">
                 Pedido #{selectedOrder?.id.slice(-8).toUpperCase()}
               </Badge>
               {selectedOrder?.channel === "Venda externa" && (
-                <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/20">Venda Externa</Badge>
+                <Badge className="bg-purple-500/15 text-purple-400 border-purple-500/30 text-xs">Venda Externa</Badge>
               )}
             </div>
-            <DialogTitle className="text-xl md:text-2xl font-bold">Gestão do Pedido</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Gerencie as etapas e acompanhe os itens deste pedido.
+            <DialogTitle className="text-lg md:text-xl font-bold text-zinc-100">Gestão do Pedido</DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              Acompanhe as etapas de separação, envio e detalhes do comprador.
             </DialogDescription>
           </DialogHeader>
 
           {selectedOrder ? (
-            <div className="space-y-8 w-full min-w-0 max-w-full mt-2">
+            <div className="space-y-6 mt-4">
               {/* Informações Gerais */}
-              <div className="bg-secondary/30 border border-border rounded-3xl p-6">
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" /> Informações Gerais
+              <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-4 md:p-5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-amber-400" /> Informações Gerais
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Data do Pedido</p>
-                    <p className="font-bold text-sm">{new Date(selectedOrder.createdAt).toLocaleString('pt-BR')}</p>
+                    <p className="text-[10px] text-zinc-400 uppercase font-semibold mb-0.5">Data do Pedido</p>
+                    <p className="font-medium text-zinc-200">{new Date(selectedOrder.createdAt).toLocaleString('pt-BR')}</p>
                   </div>
                   {selectedOrder.paidAt && (
                     <div>
-                      <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-widest mb-1">Data de Pagamento</p>
-                      <p className="font-bold text-sm text-emerald-500">{new Date(selectedOrder.paidAt).toLocaleString('pt-BR')}</p>
+                      <p className="text-[10px] text-emerald-400 uppercase font-semibold mb-0.5">Pago em</p>
+                      <p className="font-medium text-emerald-400">{new Date(selectedOrder.paidAt).toLocaleString('pt-BR')}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Origem (Canal)</p>
-                    <p className="font-bold text-sm">{selectedOrder.channel}</p>
+                    <p className="text-[10px] text-zinc-400 uppercase font-semibold mb-0.5">Canal de Venda</p>
+                    <p className="font-medium text-zinc-200">{selectedOrder.channel}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Gateway de Pagamento</p>
-                    <p className="font-bold text-sm">{selectedOrder.paymentGateway || "-"}</p>
+                    <p className="text-[10px] text-zinc-400 uppercase font-semibold mb-0.5">Forma de Pagamento</p>
+                    <p className="font-medium text-zinc-200">{selectedOrder.paymentMethod ? translatePaymentMethod(selectedOrder.paymentMethod) : "-"}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Forma de Pagamento</p>
-                    <p className="font-bold text-sm uppercase">{selectedOrder.paymentMethod ? translatePaymentMethod(selectedOrder.paymentMethod) : "-"}</p>
+                    <p className="text-[10px] text-zinc-400 uppercase font-semibold mb-0.5">Parcelas</p>
+                    <p className="font-medium text-zinc-200">{selectedOrder.installments}x</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Parcelas</p>
-                    <p className="font-bold text-sm">{selectedOrder.installments}x</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Logística de Envio</p>
-                    <p className="font-bold text-sm">
-                      {selectedOrder.shippingProvider || "-"} 
-                      {selectedOrder.shippingMethod && <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0">{selectedOrder.shippingMethod}</Badge>}
+                    <p className="text-[10px] text-zinc-400 uppercase font-semibold mb-0.5">Transportadora</p>
+                    <p className="font-medium text-zinc-200">
+                      {selectedOrder.shippingProvider || "-"}
+                      {selectedOrder.shippingMethod && (
+                        <Badge variant="outline" className="ml-1.5 text-[9px] px-1 py-0 border-zinc-700 text-zinc-400">
+                          {selectedOrder.shippingMethod}
+                        </Badge>
+                      )}
                     </p>
                   </div>
-                  {selectedOrder.shippingQuoteId && (
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">ID da Cotação (Frete)</p>
-                      <p className="font-bold text-sm">{selectedOrder.shippingQuoteId}</p>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Cliente */}
-              <div className="bg-secondary/30 border border-border rounded-3xl p-6 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-32 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none transition-transform group-hover:scale-110 duration-700"></div>
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-6 flex items-center gap-2 relative z-10">
-                  <User className="w-4 h-4 text-primary" /> Dados do Cliente
+              {/* Dados do Cliente */}
+              <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-4 md:p-5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4 text-amber-400" /> Dados do Comprador
                 </h3>
-                
-                <div className="flex flex-col md:flex-row gap-6 items-start relative z-10">
-                  <div className="w-20 h-20 shrink-0 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 border-2 border-primary/20 flex items-center justify-center shadow-lg">
-                    <span className="text-2xl font-black text-primary">
-                      {selectedOrder.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
-                    </span>
+                <div className="flex flex-col md:flex-row gap-4 items-start">
+                  <div className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700/80 flex items-center justify-center font-bold text-amber-400 text-base shrink-0">
+                    {selectedOrder.customerName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
                   </div>
-                  
-                  <div className="flex-1 w-full space-y-4">
-                    <div>
-                      <h4 className="text-xl font-bold leading-tight">{selectedOrder.customerName}</h4>
-                      <div className="flex flex-wrap items-center gap-3 mt-2">
+                  <div className="flex-1 w-full space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-zinc-100 text-sm">{selectedOrder.customerName}</h4>
                         {selectedOrder.customerDocument && (
-                          <Badge variant="outline" className="bg-background/50 border-border/50 text-[10px] font-mono tracking-widest px-2">
-                            <CreditCard className="w-3 h-3 mr-1.5 opacity-50" /> {maskDocument(selectedOrder.customerDocument)}
-                          </Badge>
+                          <span className="text-xs font-mono text-zinc-400">
+                            CPF: {maskDocument(selectedOrder.customerDocument)}
+                          </span>
                         )}
-                        <Badge variant="outline" className="bg-primary/10 border-primary/20 text-primary text-[10px] uppercase font-bold tracking-widest px-2">
-                          Cliente desde {new Date().getFullYear()}
-                        </Badge>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                      <div className="flex items-center p-3 rounded-xl bg-background/50 border border-border hover:border-primary/30 transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center mr-3 shrink-0">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-0.5">Email</p>
-                          <p className="font-semibold text-sm truncate">{selectedOrder.customerEmail || "Não informado"}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Mail className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                          <span className="truncate text-zinc-300">{selectedOrder.customerEmail || "Sem email"}</span>
                         </div>
                         {selectedOrder.customerEmail && (
-                          <a href={`mailto:${selectedOrder.customerEmail}`} className="p-2 hover:bg-secondary rounded-lg transition-colors ml-2" title="Enviar Email">
-                            <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                          <a href={`mailto:${selectedOrder.customerEmail}`} className="p-1 text-zinc-400 hover:text-amber-400 transition-colors" title="Enviar e-mail">
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         )}
                       </div>
 
-                      <div className="flex items-center p-3 rounded-xl bg-background/50 border border-border hover:border-emerald-500/30 transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mr-3 shrink-0">
-                          <Smartphone className="w-4 h-4 text-emerald-500" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-0.5">WhatsApp / Telefone</p>
-                          <p className="font-semibold text-sm truncate">{maskPhone(selectedOrder.customerPhone) || "Não informado"}</p>
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Smartphone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span className="truncate text-zinc-300">{maskPhone(selectedOrder.customerPhone) || "Sem telefone"}</span>
                         </div>
                         {selectedOrder.customerPhone && (
-                          <a href={`https://wa.me/55${selectedOrder.customerPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 rounded-lg transition-colors ml-2" title="Abrir WhatsApp">
-                            <MessagesSquare className="w-4 h-4" />
+                          <a
+                            href={`https://wa.me/55${selectedOrder.customerPhone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 font-semibold text-[11px]"
+                            title="Abrir WhatsApp"
+                          >
+                            <MessagesSquare className="w-3.5 h-3.5" /> WhatsApp
                           </a>
                         )}
                       </div>
@@ -620,24 +572,21 @@ function OrdersContent() {
                 </div>
               </div>
 
-              {/* Logística */}
-              <div className="w-full min-w-0 max-w-full bg-secondary/50 border border-border rounded-3xl p-4 md:p-8 overflow-x-auto pb-6">
-                <h3 className="text-sm font-bold uppercase tracking-wider mb-8 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-primary" /> Logística e Status
+              {/* Stepper de Logística */}
+              <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-4 md:p-5 overflow-x-auto">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-6 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-amber-400" /> Fluxo de Atendimento
                 </h3>
-                <div className="min-w-[700px] relative flex justify-between items-center px-2 md:px-4 pb-4">
-                  <div className="absolute top-[24px] left-0 w-full h-[2px] bg-border -translate-y-1/2 z-0 px-10" />
-                  
+                <div className="min-w-[650px] relative flex justify-between items-center px-4 pb-2">
+                  <div className="absolute top-[20px] left-0 w-full h-[2px] bg-zinc-800 -translate-y-1/2 z-0 px-8" />
                   {selectedOrder.steps
                     .sort((a, b) => {
-                      const order = ["created", "waiting_payment", "paid", "in_separation", "ready_for_shipping", "shipped", "out_for_delivery", "delivered"];
-                      return order.indexOf(a.key) - order.indexOf(b.key);
+                      const orderKeys = ["created", "waiting_payment", "paid", "in_separation", "ready_for_shipping", "shipped", "out_for_delivery", "delivered"];
+                      return orderKeys.indexOf(a.key) - orderKeys.indexOf(b.key);
                     })
                     .map((step, idx, arr) => {
                       const isCompleted = step.completed;
                       const isActive = step.active;
-                      const isNext = !step.completed && (idx === 0 || arr[idx - 1].completed);
-                      
                       const icons: Record<string, any> = {
                         created: FileText,
                         waiting_payment: FileText,
@@ -650,202 +599,192 @@ function OrdersContent() {
                       };
                       const StepIcon = icons[step.key] || Package;
 
-                      const showLine = idx < arr.length - 1;
-                      const lineCompleted = isCompleted && arr[idx + 1]?.completed;
-
                       return (
-                        <div key={step.key} className="relative z-10 flex flex-col items-center gap-3">
-                          {showLine && (
-                            <div className={`absolute top-[24px] left-[50%] w-[100%] h-[2px] -translate-y-1/2 z-0 ${lineCompleted || (isCompleted && arr[idx + 1]?.active) ? "bg-gradient-to-r from-primary to-orange-500" : "bg-border"}`} style={{ width: 'calc(100% * 1.5)' }} />
-                          )}
-
-                          <div 
-                            className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 relative z-20 ${isCompleted ? "bg-gradient-to-br from-primary to-orange-500 border-none shadow-[0_0_20px_rgba(251,191,36,0.4)]" : isActive ? "bg-background border-primary ring-4 ring-primary/20 scale-110" : isNext ? "bg-background border-blue-500 animate-pulse" : "bg-background border-border opacity-100"} ${isUpdating ? "opacity-50 cursor-wait" : ""}`}
+                        <div key={step.key} className="relative z-10 flex flex-col items-center gap-2">
+                          <div
                             onClick={() => !isUpdating && setManualStep(step.key as AdminOrderStepKey)}
                             role="button"
+                            className={cn(
+                              "w-10 h-10 rounded-full border flex items-center justify-center transition-all cursor-pointer",
+                              isCompleted
+                                ? "bg-emerald-500 border-emerald-400 text-zinc-950 shadow-sm"
+                                : isActive
+                                ? "bg-amber-400 border-amber-300 text-zinc-950 ring-4 ring-amber-400/20 font-bold scale-105"
+                                : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                            )}
                           >
                             {isUpdating && isActive ? (
-                              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              <div className="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
                             ) : isCompleted ? (
-                              <Check className="w-6 h-6 text-black font-bold" />
+                              <Check className="w-4 h-4 stroke-[3]" />
                             ) : (
-                              <StepIcon className={`w-5 h-5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                              <StepIcon className="w-4 h-4" />
                             )}
                           </div>
-
-                          <div className="text-center h-12 flex flex-col items-center justify-start">
-                            <p className={`text-[9px] font-black uppercase tracking-tighter w-20 leading-[1.1] ${isActive ? "text-primary" : isCompleted ? "text-foreground" : "text-muted-foreground"}`}>
-                              {step.label}
-                            </p>
-                            {isActive && (
-                              <div className="mt-1">
-                                <Badge className="bg-primary text-black text-[7px] h-3.5 px-1 font-black animate-bounce">ATUAL</Badge>
-                              </div>
+                          <span
+                            className={cn(
+                              "text-[9px] font-semibold uppercase tracking-tight text-center max-w-[70px] leading-tight",
+                              isActive ? "text-amber-400" : isCompleted ? "text-zinc-300" : "text-zinc-400"
                             )}
-                          </div>
+                          >
+                            {step.label}
+                          </span>
                         </div>
                       );
                     })}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-secondary/30 border border-border rounded-3xl p-6">
-                  <h3 className="text-sm font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary" /> Endereço de Entrega
+              {/* Endereço & Ações */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Endereço */}
+                <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-4 md:p-5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-amber-400" /> Endereço de Entrega
                   </h3>
                   {selectedOrder.shippingAddress ? (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Rua e Número</p>
-                          <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).street}, {(selectedOrder.shippingAddress as any).number}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Bairro</p>
-                          <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).neighborhood}</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Cidade/Estado</p>
-                          <p className="text-sm font-medium break-words">{(selectedOrder.shippingAddress as any).city} - {(selectedOrder.shippingAddress as any).state}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">CEP</p>
-                          <p className="text-sm font-medium break-words">{maskCEP((selectedOrder.shippingAddress as any).zipCode)}</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Custo do Frete</p>
-                          <p className="text-sm font-medium text-emerald-500">{(selectedOrder.shippingCost || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
-                        </div>
-                      </div>
+                    <div className="space-y-2 text-xs text-zinc-300">
+                      <p>
+                        <span className="text-zinc-400">Logradouro: </span>
+                        {(selectedOrder.shippingAddress as any).street}, {(selectedOrder.shippingAddress as any).number}
+                      </p>
+                      <p>
+                        <span className="text-zinc-400">Bairro: </span>
+                        {(selectedOrder.shippingAddress as any).neighborhood}
+                      </p>
+                      <p>
+                        <span className="text-zinc-400">Cidade/UF: </span>
+                        {(selectedOrder.shippingAddress as any).city} - {(selectedOrder.shippingAddress as any).state}
+                      </p>
+                      <p>
+                        <span className="text-zinc-400">CEP: </span>
+                        <span className="font-mono">{maskCEP((selectedOrder.shippingAddress as any).zipCode)}</span>
+                      </p>
                     </div>
                   ) : (
-                    <div className="py-8 text-center border border-dashed border-border rounded-2xl">
-                      <p className="text-sm text-muted-foreground">Dados de endereço não disponíveis.</p>
-                    </div>
+                    <p className="text-xs text-zinc-400 italic">Dados de endereço não disponíveis.</p>
                   )}
                 </div>
 
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col justify-center gap-4 bg-secondary/30 border border-border rounded-3xl p-6">
-                    <div className="text-center space-y-2 mb-4">
-                       <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Status Atual</p>
-                       <h4 className="text-2xl font-black text-primary uppercase">{selectedOrder.statusLabel}</h4>
+                {/* Avançar status & Rastreio */}
+                <div className="space-y-4">
+                  <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-4 md:p-5 flex flex-col justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] text-zinc-400 uppercase font-semibold">Status Atual</p>
+                      <h4 className="text-base font-bold text-amber-400">{selectedOrder.statusLabel}</h4>
                     </div>
-                    
-                    <Button 
-                      className="w-full gap-2 bg-gradient-to-r from-primary to-orange-500 text-black font-black hover:opacity-90 min-h-[4rem] h-auto py-3 rounded-2xl shadow-[0_10px_30px_rgba(251,191,36,0.2)] transition-all active:scale-95 text-sm sm:text-lg flex-wrap leading-tight" 
+                    <Button
                       onClick={nextStep}
                       disabled={isUpdating || selectedOrder.currentStep === "delivered"}
+                      className="w-full bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold text-xs h-10 rounded-lg flex items-center justify-center gap-1.5 transition-colors"
                     >
                       {isUpdating ? (
-                        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <>
-                          <span className="text-center">{selectedOrder.currentStep === "delivered" ? "Pedido Concluído" : "Avançar para Próxima Etapa"}</span> <ChevronRight className="w-5 h-5 shrink-0" />
+                          <span>{selectedOrder.currentStep === "delivered" ? "Pedido Concluído" : "Avançar para Próxima Etapa"}</span>
+                          <ChevronRight className="w-4 h-4" />
                         </>
                       )}
                     </Button>
                   </div>
 
-                  <div className="flex flex-col gap-3 bg-secondary/30 border border-border rounded-3xl p-6">
-                    <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-primary" /> Rastreamento do Pedido
-                    </h3>
-                    <div className="flex flex-col gap-2 mt-2">
-                      <label className="text-xs text-muted-foreground font-bold">Código de Rastreio da Transportadora</label>
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <Input 
-                          placeholder="Ex: BR123456789BR" 
-                          value={trackingCodeInput}
-                          onChange={(e) => setTrackingCodeInput(e.target.value)}
-                          className="bg-background border-border uppercase font-mono w-full"
-                        />
-                        <Button 
-                          onClick={saveTrackingCode}
-                          disabled={isUpdating || trackingCodeInput === (selectedOrder.trackingCode || "")}
-                          className="shimmer-btn w-full sm:w-auto shrink-0"
-                        >
-                          Salvar
-                        </Button>
-                      </div>
+                  <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-4 md:p-5 space-y-2">
+                    <label className="text-xs font-semibold text-zinc-300">Código de Rastreio</label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Ex: BR123456789BR"
+                        value={trackingCodeInput}
+                        onChange={(e) => setTrackingCodeInput(e.target.value)}
+                        className="bg-zinc-950 border-zinc-800 text-zinc-100 uppercase font-mono text-xs h-9"
+                      />
+                      <Button
+                        onClick={saveTrackingCode}
+                        disabled={isUpdating || trackingCodeInput === (selectedOrder.trackingCode || "")}
+                        size="sm"
+                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs h-9 shrink-0"
+                      >
+                        Salvar
+                      </Button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Itens */}
-              <div className="bg-secondary/30 border border-border rounded-2xl p-4 md:p-6">
+              {/* Produtos do Pedido */}
+              <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-xl p-4 md:p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider">Produtos no Pedido</h3>
-                  <Badge className="bg-emerald-500 text-black font-bold">
-                    {selectedOrder.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </Badge>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Itens Comprados</h3>
+                  <span className="text-xs font-semibold text-zinc-200">
+                    {selectedOrder.items.length} {selectedOrder.items.length === 1 ? 'item' : 'itens'}
+                  </span>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {selectedOrder.items.map((item, index) => (
-                    <div key={`${item.productName}-${index}`} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50 hover:border-border transition-colors gap-4">
-                      <div className="flex gap-4 items-center">
-                        <div className="w-16 h-16 shrink-0 rounded-lg bg-background flex items-center justify-center overflow-hidden border border-border">
+                    <div
+                      key={`${item.productName}-${index}`}
+                      className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/80 gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
                           {item.productImage ? (
                             <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover" />
                           ) : (
-                            <Package className="w-8 h-8 text-muted-foreground" />
+                            <Package className="w-5 h-5 text-zinc-400" />
                           )}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-foreground line-clamp-2">{item.productName}</span>
-                          <span className="text-[11px] text-muted-foreground mt-1">Qtd: <span className="text-foreground font-bold">{item.quantity}</span></span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-zinc-200 truncate">{item.productName}</p>
+                          <p className="text-[11px] text-zinc-400">Qtd: {item.quantity}</p>
                         </div>
                       </div>
-                      <div className="text-left sm:text-right w-full sm:w-auto mt-2 sm:mt-0 bg-background/50 sm:bg-transparent p-2 sm:p-0 rounded-lg">
-                        <span className="text-sm font-bold text-primary">
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-bold text-amber-400">
                           {item.unitPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                        </span>
-                        <p className="text-[10px] text-muted-foreground hidden sm:block">unitário</p>
+                        </p>
+                        <p className="text-[10px] text-zinc-400">unidade</p>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="mt-6 pt-4 border-t border-border/50 flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Subtotal ({selectedOrder.items.reduce((acc, item) => acc + item.quantity, 0)} itens)</span>
-                    <span className="font-medium">{(selectedOrder.subtotal || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+
+                {/* Resumo Financeiro */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/80 space-y-1.5 text-xs">
+                  <div className="flex justify-between text-zinc-400">
+                    <span>Subtotal</span>
+                    <span>{(selectedOrder.subtotal || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Frete</span>
-                    <span className="font-medium">{(selectedOrder.shippingCost || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                  <div className="flex justify-between text-zinc-400">
+                    <span>Frete</span>
+                    <span>{(selectedOrder.shippingCost || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                   </div>
                   {selectedOrder.discountValue ? (
-                    <div className="flex justify-between items-center text-sm text-emerald-500">
-                      <span className="flex items-center gap-2">
-                        Desconto {selectedOrder.couponCode && <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono tracking-widest px-1">{selectedOrder.couponCode}</Badge>}
-                      </span>
-                      <span className="font-bold">-{(selectedOrder.discountValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    <div className="flex justify-between text-emerald-400 font-medium">
+                      <span>Desconto ({selectedOrder.couponCode || "Cupom"})</span>
+                      <span>-{(selectedOrder.discountValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                     </div>
                   ) : null}
-                  <div className="flex justify-between items-center text-base font-black mt-2 pt-2 border-t border-border/50 text-primary">
+                  <div className="flex justify-between text-sm font-bold text-zinc-100 pt-2 border-t border-zinc-800/80">
                     <span>Total do Pedido</span>
-                    <span>{selectedOrder.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    <span className="text-amber-400">{selectedOrder.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-muted-foreground animate-pulse">Carregando detalhes...</p>
-              </div>
+            <div className="h-48 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
-          <DialogFooter className="mt-4 pt-4 border-t border-border flex flex-row items-center justify-end gap-2">
-            <Button variant="ghost" className="hover:bg-secondary text-muted-foreground" onClick={() => setModalOpen(false)}>Fechar</Button>
+          <DialogFooter className="mt-4 pt-3 border-t border-zinc-800/80 flex justify-end">
+            <Button
+              variant="ghost"
+              className="text-zinc-400 hover:text-zinc-200 text-xs h-9"
+              onClick={() => setModalOpen(false)}
+            >
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -855,7 +794,7 @@ function OrdersContent() {
 
 export default function AdminOrdersPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Carregando painel de pedidos...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-zinc-400 text-xs">Carregando pedidos...</div>}>
       <OrdersContent />
     </Suspense>
   );

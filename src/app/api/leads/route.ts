@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth-utils";
 
 export async function GET() {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const leads = await prisma.lead.findMany({
       orderBy: {
         createdAt: 'desc',

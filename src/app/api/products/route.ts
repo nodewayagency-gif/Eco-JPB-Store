@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,12 +39,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(products);
   } catch (error) {
     console.error('Error listing products:', error);
-    return NextResponse.json({ message: 'Erro ao listar produtos', error }, { status: 500 });
+    return NextResponse.json({ message: 'Erro ao listar produtos' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const data = await request.json();
     const { id, category, variants, gatewayProductId, ...productData } = data as any;
     
@@ -52,6 +58,7 @@ export async function POST(request: NextRequest) {
         data: {
           ...productData,
           price: Number(data.price),
+          originalPrice: data.originalPrice ? Number(data.originalPrice) : null,
           costPrice: data.costPrice ? Number(data.costPrice) : 0,
           stockQuantity: Number(data.stockQuantity),
           minStockAlert: data.minStockAlert ? Number(data.minStockAlert) : 0,
@@ -89,6 +96,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(product, { status: 201 });
   } catch (error: any) {
     console.error('Error creating product:', error);
-    return NextResponse.json({ message: 'Erro ao criar produto', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Erro ao criar produto' }, { status: 500 });
   }
 }

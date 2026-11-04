@@ -2,15 +2,14 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { Product } from "@premium/contracts";
-import { productImages } from "@/lib/productImages";
 import { resolveProductImage } from "@/lib/imageResolver";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/providers/CartContext";
 import { Button } from "@/components/ui/button";
 
-interface ProductCardProps {
+export interface ProductCardProps {
   product: Product;
-  index: number;
+  index?: number;
 }
 
 const badgeStyles: Record<string, string> = {
@@ -19,16 +18,21 @@ const badgeStyles: Record<string, string> = {
   Novo: "bg-primary/15 text-primary border border-primary/30",
 };
 
-const ProductCard = ({ product, index }: ProductCardProps) => {
+export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const { addItem } = useCart();
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
+
+  const discountPercent =
+    product.originalPrice && product.originalPrice > product.price
+      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+      : 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (product.inStock) {
-      addItem(product, product.colors[0]?.name);
+      addItem(product, product.colors?.[0]?.name || "Padrão");
     }
   };
 
@@ -45,14 +49,19 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
           <div className="w-full h-full bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.30)_0%,rgba(225,171,45,0)_68%)] blur-2xl" />
         </div>
         <div className="relative w-full z-10 premium-card rounded-2xl overflow-hidden border border-primary/50 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(225,171,45,0.15)] transition-all duration-300">
-          {/* Badge */}
-          {product.badge && (
-            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10">
+          {/* Badge & Discount */}
+          <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10 flex flex-col gap-1 items-start">
+            {product.badge && (
               <Badge className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${badgeStyles[product.badge] || ""}`}>
                 {product.badge}
               </Badge>
-            </div>
-          )}
+            )}
+            {discountPercent > 0 && (
+              <Badge className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-black shadow-md border-none">
+                -{discountPercent}% OFF
+              </Badge>
+            )}
+          </div>
 
           {/* Stock badge */}
           {!product.inStock && (
@@ -81,21 +90,22 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
           </div>
         </div>
 
-
         {/* Info */}
         <div className="mt-3 sm:mt-5 gap-1.5 sm:gap-2 px-1 flex flex-col flex-1">
           <div className="flex items-center justify-between">
             <p className="text-[10px] text-primary font-bold uppercase tracking-[0.15em]">{product.category}</p>
-            <div className="flex gap-1">
-              {product.colors.map((c) => (
-                <span
-                  key={c.name}
-                  className="h-2 w-2 rounded-full border border-white/10"
-                  style={{ backgroundColor: c.hex }}
-                  title={c.name}
-                />
-              ))}
-            </div>
+            {product.colors && product.colors.length > 0 && (
+              <div className="flex gap-1">
+                {product.colors.map((c) => (
+                  <span
+                    key={c.name}
+                    className="h-2 w-2 rounded-full border border-white/10"
+                    style={{ backgroundColor: c.hex }}
+                    title={c.name}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <h3 className="text-sm sm:text-lg font-bold text-foreground leading-tight group-hover:text-primary transition-colors duration-300 line-clamp-2">
@@ -106,7 +116,7 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
             <span className="text-base sm:text-xl font-black text-foreground group-hover:text-primary transition-colors duration-300">
               {formatPrice(product.price)}
             </span>
-            {product.originalPrice && (
+            {product.originalPrice && product.originalPrice > product.price && (
               <span className="text-xs sm:text-sm text-muted-foreground line-through opacity-60 font-medium">
                 {formatPrice(product.originalPrice)}
               </span>
@@ -129,7 +139,6 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
             </Button>
           </div>
         </div>
-
       </Link>
     </motion.div>
   );

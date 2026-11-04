@@ -91,6 +91,7 @@ export interface AdminProductRow {
   name: string;
   category: string;
   price: number;
+  originalPrice?: number;
   costPrice: number;
   rating: number;
   reviews: number;
@@ -125,6 +126,7 @@ export interface AdminProductInput {
   category: string;
   categoryId?: string;
   price: number;
+  originalPrice?: number;
   costPrice: number;
   inStock: boolean;
   stockQuantity: number;

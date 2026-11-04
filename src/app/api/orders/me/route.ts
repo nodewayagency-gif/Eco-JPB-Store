@@ -46,25 +46,48 @@ export async function GET() {
     ];
 
     // Map to frontend format
-    const mappedOrders = orders.map(order => ({
-      id: order.id,
-      orderCode: order.orderCode,
-      date: new Date(order.createdAt).toLocaleDateString('pt-BR'),
-      status: order.status === 'CREATED' ? 'Aguardando Pagamento' : order.status === 'PAID' ? 'Confirmado' : order.status === 'SHIPPED' ? 'Em Trânsito' : order.status === 'DELIVERED' ? 'Entregue' : 'Processando',
-      total: Number(order.total),
-      product: order.items[0]?.product?.name || 'Pedido JPB Store',
-      productImage: order.items[0]?.product?.image || order.items[0]?.product?.images?.[0] || '',
-      tracking: order.steps
-        .sort((a, b) => stepOrder.indexOf(a.key) - stepOrder.indexOf(b.key))
-        .map(step => ({
-          title: step.label,
-          description: '',
-          date: step.completed ? new Date(step.updatedAt).toLocaleDateString('pt-BR') : '',
-          completed: step.completed,
-          active: step.active
+    const mappedOrders = orders.map(order => {
+      const statusMap: Record<string, string> = {
+        CREATED: 'Aguardando Pagamento',
+        PAID: 'Confirmado',
+        SHIPPED: 'Em Trânsito',
+        DELIVERED: 'Entregue',
+        CANCELLED: 'Cancelado'
+      };
+
+      const primaryItem = order.items[0];
+      const itemsCount = order.items.reduce((acc, item) => acc + item.quantity, 0);
+
+      return {
+        id: order.id,
+        orderCode: order.orderCode,
+        date: new Date(order.createdAt).toLocaleDateString('pt-BR'),
+        status: statusMap[order.status] || 'Processando',
+        total: Number(order.total),
+        product: primaryItem?.product?.name 
+          ? (order.items.length > 1 ? `${primaryItem.product.name} (+${order.items.length - 1} itens)` : primaryItem.product.name)
+          : 'Pedido JPB Store',
+        itemsCount,
+        items: order.items.map(item => ({
+          id: item.id,
+          name: item.product?.name || 'Produto',
+          quantity: item.quantity,
+          price: Number(item.unitPrice),
+          image: item.product?.image || item.product?.images?.[0] || ''
         })),
-      trackingCode: order.trackingCode || undefined
-    }));
+        productImage: primaryItem?.product?.image || primaryItem?.product?.images?.[0] || '',
+        tracking: order.steps
+          .sort((a, b) => stepOrder.indexOf(a.key) - stepOrder.indexOf(b.key))
+          .map(step => ({
+            title: step.label,
+            description: '',
+            date: step.completed ? new Date(step.updatedAt).toLocaleDateString('pt-BR') : '',
+            completed: step.completed,
+            active: step.active
+          })),
+        trackingCode: order.trackingCode || undefined
+      };
+    });
 
     return NextResponse.json(mappedOrders);
   } catch (error: any) {

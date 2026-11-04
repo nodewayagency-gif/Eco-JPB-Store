@@ -1,6 +1,6 @@
 'use client';
 
-import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
+import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react';
 import { useMemo, useState, useEffect } from 'react';
 
 interface PaymentBrickProps {
@@ -32,10 +32,17 @@ const PaymentBrick = ({ amount, onSubmit, payer }: PaymentBrickProps) => {
   useEffect(() => {
     const fetchMpKey = async () => {
       try {
+        const directKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY || process.env.NEXT_PUBLIC_MP_TEST_PUBLIC_KEY;
+        if (directKey) {
+          initMercadoPago(directKey, { locale: 'pt-BR' });
+          setIsInitialized(true);
+          return;
+        }
+
         const res = await fetch('/api/settings/company/public');
         const data = await res.json();
         if (data.mpPublicKey) {
-          initMercadoPago(data.mpPublicKey);
+          initMercadoPago(data.mpPublicKey, { locale: 'pt-BR' });
           setIsInitialized(true);
         } else {
           console.error("Chave pública do MP não configurada!");
@@ -47,71 +54,62 @@ const PaymentBrick = ({ amount, onSubmit, payer }: PaymentBrickProps) => {
     fetchMpKey();
   }, []);
 
+  const doc = payer?.documents?.[0];
+
   const initialization = useMemo(() => {
-    // Remove campos vazios que causam erro silencioso {} no SDK
-    const cleanPayer = payer ? JSON.parse(JSON.stringify(payer, (key, value) => {
-      if (value === "" || value === null) return undefined;
-      return value;
-    })) : undefined;
-
-    if (cleanPayer?.address && Object.keys(cleanPayer.address).length === 0) {
-      delete cleanPayer.address;
-    }
-
-    const initData: any = {
-      amount: amount,
+    const cleanDocNumber = doc?.number ? doc.number.replace(/\D/g, '') : undefined;
+    return {
+      amount: Number(amount.toFixed(2)),
+      payer: {
+        email: payer?.email || '',
+        identification: cleanDocNumber ? {
+          type: doc?.type || (cleanDocNumber.length > 11 ? 'CNPJ' : 'CPF'),
+          number: cleanDocNumber
+        } : undefined
+      }
     };
-    
-    if (cleanPayer && Object.keys(cleanPayer).length > 0) {
-      initData.payer = cleanPayer;
-    }
-
-    return initData;
-  }, [amount, payer]); // Dependências corrigidas para garantir que o payer e amount atualizados sejam usados
+  }, [amount, payer?.email, doc?.type, doc?.number]);
 
   const customization = useMemo(() => ({
     visual: {
       style: {
-        theme: "dark",
+        theme: "dark" as const,
       },
+      hideFormTitle: true,
       texts: {
-        formSubmit: "Finalizar Pagamento",
+        formSubmit: "Finalizar Pagamento com Cartão",
       }
     },
     paymentMethods: {
-      creditCard: "all",
-      debitCard: "all",
-      ticket: "all",
-      bankTransfer: "all",
+      minInstallments: 1,
+      maxInstallments: 12,
     },
   }), []);
 
   const handleOnReady = async () => {
-    /*
-      Callback chamado quando o Brick estiver pronto.
-      Aqui você pode ocultar loadings do seu site, por exemplo.
-    */
+    /* Brick de cartão pronto */
   };
 
   const handleOnError = async (error: any) => {
-    // Callback chamado para qualquer erro no Brick
-    console.error('Mercado Pago Brick Error:', error);
+    console.error('Mercado Pago Card Error:', error);
   };
 
   if (!isInitialized) {
     return (
       <div className="animate-pulse bg-secondary/20 rounded-xl h-64 flex items-center justify-center border border-border/50">
-        <p className="text-muted-foreground text-sm">Carregando ambiente seguro...</p>
+        <p className="text-muted-foreground text-sm">Carregando ambiente seguro do cartão...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-card p-4 rounded-2xl border border-border">
-      <Payment
+    <div className="bg-card p-4 rounded-2xl border border-border/70 shadow-sm">
+      <CardPayment
         initialization={initialization}
-        customization={customization as any}
-        onSubmit={onSubmit}
+        customization={customization}
+        onSubmit={async (cardFormData) => {
+          await onSubmit({ formData: cardFormData });
+        }}
         onReady={handleOnReady}
         onError={handleOnError}
       />

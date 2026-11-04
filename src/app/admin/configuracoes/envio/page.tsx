@@ -1,23 +1,39 @@
 'use client';
 
-import { Truck } from "lucide-react";
+import { Truck, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function AdminShippingSettingsPage() {
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-10">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Integrações de Envio</h1>
-        <p className="text-sm text-muted-foreground">Conecte sua loja com os principais serviços de logística do Brasil.</p>
+    <div className="max-w-4xl space-y-6 pb-12">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shadow-sm">
+          <Truck className="w-5 h-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Integração Logística & Frete</h1>
+          <p className="text-xs text-zinc-400">Status das conexões com Melhor Envio e transportadoras integradas.</p>
+        </div>
       </div>
 
-      <Card className="bg-card border-border overflow-hidden">
-        <CardContent className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center gap-4 h-48">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
-             <Truck className="w-8 h-8 opacity-80" />
+      <Card className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur overflow-hidden shadow-sm">
+        <CardContent className="p-8 text-center flex flex-col items-center justify-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
+            <ShieldCheck className="w-7 h-7" />
           </div>
-          <p className="text-lg font-medium text-foreground">Configurado via Variáveis de Ambiente</p>
-          <p className="max-w-md">As configurações, credenciais e tokens de integrações logísticas (como Melhor Envio) agora são configuradas de forma segura através do arquivo <strong>.env</strong> do servidor, evitando exposição no painel.</p>
+
+          <div className="space-y-1 max-w-md">
+            <div className="flex justify-center mb-2">
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[11px] font-semibold">
+                Protegido por Variáveis de Ambiente
+              </Badge>
+            </div>
+            <h3 className="text-base font-bold text-zinc-100">Cálculo de Cotações em Produção</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Os tokens de API do <strong>Melhor Envio</strong> e o modo de operação estão configurados e protegidos no ambiente do servidor (<span className="font-mono text-zinc-300">.env</span>), garantindo cotação instantânea de PAC, SEDEX e transportadoras privadas no carrinho sem vazamento de chaves.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

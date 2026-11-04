@@ -16,7 +16,7 @@ import {
   Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +47,7 @@ export default function AdminSupportPage() {
   const [tickets, setTickets] = useState<SupportTicketView[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketView | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [replyImages, setReplyImages] = useState<{ file: File, preview: string }[]>([]);
+  const [replyImages, setReplyImages] = useState<{ file: File; preview: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"ALL" | TicketStatus>("ALL");
   const [search, setSearch] = useState("");
@@ -94,13 +94,14 @@ export default function AdminSupportPage() {
       if (Array.isArray(data)) {
         setTickets(data);
         if (selectedTicket) {
-          const updated = data.find(t => t.id === selectedTicket.id);
+          const updated = data.find((t) => t.id === selectedTicket.id);
           if (updated) {
-            setSelectedTicket(prev => {
+            setSelectedTicket((prev) => {
               if (!prev) return updated;
-              const messages = (updated.messages && updated.messages.length > 0)
-                ? updated.messages
-                : prev.messages;
+              const messages =
+                updated.messages && updated.messages.length > 0
+                  ? updated.messages
+                  : prev.messages;
               return { ...prev, ...updated, messages };
             });
           }
@@ -118,10 +119,10 @@ export default function AdminSupportPage() {
       const updated = await adminRepository.updateTicketStatus(id, status);
       toast.success("Status atualizado!");
 
-      setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
+      setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, ...updated } : t)));
 
       if (selectedTicket?.id === id) {
-        setSelectedTicket(prev => prev ? { ...prev, ...updated } : updated);
+        setSelectedTicket((prev) => (prev ? { ...prev, ...updated } : updated));
       }
     } catch (error) {
       toast.error("Erro ao atualizar status");
@@ -131,16 +132,16 @@ export default function AdminSupportPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newImages = Array.from(files).map(file => ({
+      const newImages = Array.from(files).map((file) => ({
         file,
         preview: URL.createObjectURL(file)
       }));
-      setReplyImages(prev => [...prev, ...newImages]);
+      setReplyImages((prev) => [...prev, ...newImages]);
     }
   };
 
   const removeImage = (index: number) => {
-    setReplyImages(prev => {
+    setReplyImages((prev) => {
       const newImages = [...prev];
       URL.revokeObjectURL(newImages[index].preview);
       newImages.splice(index, 1);
@@ -165,9 +166,9 @@ export default function AdminSupportPage() {
           .upload(filePath, item.file);
 
         if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('jpb_tickets')
-            .getPublicUrl(filePath);
+          const {
+            data: { publicUrl }
+          } = supabase.storage.from('jpb_tickets').getPublicUrl(filePath);
           imageUrls.push(publicUrl);
         }
       }
@@ -184,17 +185,18 @@ export default function AdminSupportPage() {
       setReplyContent("");
       setReplyImages([]);
       await loadTickets();
-      toast.success("Resposta enviada!");
+      toast.success("Resposta enviada com sucesso!");
     } catch (error) {
-      toast.error("Erro ao responder");
+      toast.error("Erro ao enviar resposta");
     } finally {
       setIsUploading(false);
     }
   };
 
-  const filteredTickets = tickets.filter(t => {
+  const filteredTickets = tickets.filter((t) => {
     const matchesStatus = statusFilter === "ALL" || t.status === statusFilter;
-    const matchesSearch = (t.customerName || "").toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch =
+      (t.customerName || "").toLowerCase().includes(search.toLowerCase()) ||
       (t.subject || "").toLowerCase().includes(search.toLowerCase()) ||
       (t.id || "").toLowerCase().includes(search.toLowerCase());
     return matchesStatus && matchesSearch;
@@ -204,31 +206,35 @@ export default function AdminSupportPage() {
   const paginatedTickets = filteredTickets.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-4 rounded-xl border border-border">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-primary" /> Central de Atendimento
-          </h1>
-          <p className="text-xs text-muted-foreground">Gerencie chamados e suporte aos clientes.</p>
+    <div className="h-[calc(100vh-130px)] flex flex-col space-y-4 pb-4">
+      {/* Top Filter Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800/80 backdrop-blur shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shadow-sm">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-100">Central de Atendimento</h1>
+            <p className="text-xs text-zinc-400">Atenda dúvidas, solicitações e suporte pós-venda dos clientes.</p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <Input
-              placeholder="Buscar chamado..."
-              className="pl-9 h-10 bg-background/50 border-border/50"
+              placeholder="Buscar chamado ou cliente..."
+              className="pl-9 h-9 bg-zinc-950 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 text-xs rounded-lg focus:ring-1 focus:ring-amber-400"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-            <SelectTrigger className="w-[180px] h-10 bg-background/50 border-border/50">
-              <Filter className="w-4 h-4 mr-2 opacity-50" />
+            <SelectTrigger className="w-[160px] h-9 bg-zinc-950 border-zinc-800 text-zinc-200 text-xs rounded-lg">
+              <Filter className="w-3.5 h-3.5 mr-2 text-zinc-400" />
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200 text-xs">
               <SelectItem value="ALL">Todos os status</SelectItem>
               <SelectItem value="OPEN">Novo</SelectItem>
               <SelectItem value="IN_PROGRESS">Em Atendimento</SelectItem>
@@ -238,79 +244,86 @@ export default function AdminSupportPage() {
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
-        <div className={cn("lg:col-span-4 flex-col space-y-4 overflow-hidden", selectedTicket ? "hidden lg:flex" : "flex")}>
-          <Card className="flex-1 flex flex-col bg-card border-border overflow-hidden">
-            <div className="p-3 border-b border-border bg-secondary/10 flex justify-between items-center">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fila de Chamados</span>
-              <Badge variant="outline" className="text-[10px] bg-primary/5">{filteredTickets.length}</Badge>
+      {/* Main Two-Column Layout */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden min-h-0">
+        {/* Left: Ticket List */}
+        <div className={cn("lg:col-span-4 flex-col space-y-3 overflow-hidden h-full", selectedTicket ? "hidden lg:flex" : "flex")}>
+          <div className="flex-1 flex flex-col bg-zinc-900/60 border border-zinc-800/80 rounded-2xl overflow-hidden shadow-sm">
+            <div className="p-3.5 border-b border-zinc-800/80 bg-zinc-950/60 flex justify-between items-center">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Fila de Chamados</span>
+              <Badge variant="outline" className="border-zinc-800 bg-zinc-900 text-zinc-400 text-xs font-normal">
+                {filteredTickets.length}
+              </Badge>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
               <AnimatePresence mode="popLayout">
                 {loading ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center justify-center py-20"
-                  >
-                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2" />
-                    <p className="text-muted-foreground text-sm">Carregando chamados...</p>
-                  </motion.div>
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+                    <p className="text-zinc-400 text-xs">Carregando chamados...</p>
+                  </div>
                 ) : paginatedTickets.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-30"
-                  >
-                    <MessageSquare className="w-10 h-10 mb-2" />
-                    <p className="text-sm">Nenhum chamado</p>
-                  </motion.div>
+                  <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
+                    <MessageSquare className="w-8 h-8 mb-2 opacity-30" />
+                    <p className="text-xs">Nenhum chamado pendente</p>
+                  </div>
                 ) : (
                   paginatedTickets.map((ticket, idx) => (
                     <motion.button
                       key={ticket.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.03 }}
                       onClick={() => setSelectedTicket(ticket)}
                       className={cn(
-                        "w-full text-left p-4 rounded-2xl border transition-all relative overflow-hidden group",
+                        "w-full text-left p-3.5 rounded-xl border transition-all relative overflow-hidden group",
                         selectedTicket?.id === ticket.id
-                          ? "bg-primary/10 border-primary shadow-[0_8px_30px_rgb(251,191,36,0.1)] scale-[1.02] z-10"
-                          : "bg-[#111111] border-border/40 hover:border-primary/30 hover:bg-[#151515]"
+                          ? "bg-amber-400/10 border-amber-400/40 text-zinc-100 shadow-sm"
+                          : "bg-zinc-950/50 border-zinc-800/80 hover:bg-zinc-800/40 text-zinc-300"
                       )}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className={cn(
-                          "font-bold text-sm truncate pr-2 flex-1 transition-colors",
-                          selectedTicket?.id === ticket.id ? "text-primary" : "text-foreground"
-                        )}>
+                      <div className="flex justify-between items-start mb-1.5 gap-2">
+                        <h4
+                          className={cn(
+                            "font-semibold text-xs truncate flex-1",
+                            selectedTicket?.id === ticket.id ? "text-amber-400 font-bold" : "text-zinc-200"
+                          )}
+                        >
                           {ticket.subject || "Sem Assunto"}
                         </h4>
-                        <div className={cn(
-                          "w-2 h-2 rounded-full",
-                          ticket.status === "OPEN" ? "bg-destructive animate-pulse" :
-                            ticket.status === "IN_PROGRESS" ? "bg-amber-500" : "bg-emerald-500"
-                        )} />
+                        <div
+                          className={cn(
+                            "w-2 h-2 rounded-full shrink-0 mt-1",
+                            ticket.status === "OPEN"
+                              ? "bg-rose-500 animate-pulse"
+                              : ticket.status === "IN_PROGRESS"
+                              ? "bg-amber-400"
+                              : "bg-emerald-400"
+                          )}
+                        />
                       </div>
 
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60 mb-3">
-                        <User className="w-3 h-3" />
-                        <span className="truncate font-medium">{ticket.customerName || "Desconhecido"}</span>
+                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mb-2">
+                        <User className="w-3 h-3 text-zinc-400 shrink-0" />
+                        <span className="truncate">{ticket.customerName || "Desconhecido"}</span>
                       </div>
 
-                      <div className="flex justify-between items-center pt-3 border-t border-border/10">
-                        <Badge variant="outline" className={cn(
-                          "text-[8px] h-4 font-black uppercase tracking-widest px-2 border-none",
-                          ticket.status === "OPEN" ? "bg-destructive/10 text-destructive" :
-                            ticket.status === "IN_PROGRESS" ? "bg-amber-500/10 text-amber-500" :
-                              "bg-emerald-500/10 text-emerald-500"
-                        )}>
+                      <div className="flex justify-between items-center pt-2 border-t border-zinc-800/50 text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[9px] font-semibold px-2 py-0 border-none rounded-full",
+                            ticket.status === "OPEN"
+                              ? "bg-rose-500/15 text-rose-400"
+                              : ticket.status === "IN_PROGRESS"
+                              ? "bg-amber-500/15 text-amber-400"
+                              : "bg-emerald-500/15 text-emerald-400"
+                          )}
+                        >
                           {ticket.status === "OPEN" ? "Novo" : ticket.status === "IN_PROGRESS" ? "Em Atend." : "Finalizado"}
                         </Badge>
-                        <span className="text-[10px] opacity-30 font-mono">#{ticket.id.slice(-6).toUpperCase()}</span>
+                        <span className="font-mono text-zinc-400">#{ticket.id.slice(-6).toUpperCase()}</span>
                       </div>
                     </motion.button>
                   ))
@@ -319,92 +332,80 @@ export default function AdminSupportPage() {
             </div>
 
             {totalPages > 1 && (
-              <div className="p-3 border-t border-border bg-secondary/5 flex justify-center">
+              <div className="p-2.5 border-t border-zinc-800/80 bg-zinc-950/60 flex justify-center">
                 <Pagination>
-                  <PaginationContent className="bg-card border border-border rounded-full px-1.5 py-0.5 scale-90">
+                  <PaginationContent className="scale-90">
                     <PaginationItem>
                       <PaginationPrevious
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        className={cn("rounded-full h-7 w-7 p-0 cursor-pointer", page === 1 && "pointer-events-none opacity-20")}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        className={cn("h-7 w-7 p-0 cursor-pointer text-zinc-300", page === 1 && "pointer-events-none opacity-30")}
                       />
                     </PaginationItem>
-
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                      if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
-                        return (
-                          <PaginationItem key={p}>
-                            <PaginationLink
-                              onClick={() => setPage(p)}
-                              isActive={page === p}
-                              className={cn(
-                                "h-7 w-7 rounded-full cursor-pointer text-[10px]",
-                                page === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
-                              )}
-                            >
-                              {p}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      }
-                      return null;
-                    })}
-
+                    <span className="text-[11px] text-zinc-400 px-2 font-medium">
+                      {page} / {totalPages}
+                    </span>
                     <PaginationItem>
                       <PaginationNext
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        className={cn("rounded-full h-7 w-7 p-0 cursor-pointer", page === totalPages && "pointer-events-none opacity-20")}
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        className={cn("h-7 w-7 p-0 cursor-pointer text-zinc-300", page === totalPages && "pointer-events-none opacity-30")}
                       />
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>
               </div>
             )}
-          </Card>
+          </div>
         </div>
 
-        <div className={cn("lg:col-span-8 overflow-hidden h-full", selectedTicket ? "block" : "hidden lg:block")}>
-          <Card className="h-full flex flex-col bg-card border-border overflow-hidden">
+        {/* Right: Ticket Conversation Panel */}
+        <div className={cn("lg:col-span-8 overflow-hidden h-full flex flex-col", selectedTicket ? "flex" : "hidden lg:flex")}>
+          <div className="h-full flex flex-col bg-zinc-900/60 border border-zinc-800/80 rounded-2xl overflow-hidden shadow-sm">
             {selectedTicket ? (
               <>
-                <div className="p-4 border-b border-border bg-secondary/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                {/* Chat Top Header */}
+                <div className="p-3.5 px-4 border-b border-zinc-800/80 bg-zinc-950/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
                   <div className="flex items-center gap-3">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="lg:hidden shrink-0 -ml-2" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="lg:hidden shrink-0 -ml-2 text-zinc-400 hover:text-zinc-200"
                       onClick={() => setSelectedTicket(null)}
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </Button>
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
-                      <User className="w-5 h-5" />
+                    <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shrink-0 font-bold text-xs">
+                      {selectedTicket.customerName?.substring(0, 2).toUpperCase() || "CL"}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-sm leading-none mb-1">{selectedTicket.customerName || "Cliente"}</h3>
-                      <p className="text-xs text-muted-foreground">{selectedTicket.customerEmail || ""}</p>
+                      <h3 className="font-semibold text-xs text-zinc-100 truncate">{selectedTicket.customerName || "Cliente"}</h3>
+                      <p className="text-[11px] text-zinc-400 truncate">{selectedTicket.customerEmail || ""}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     {selectedTicket.orderId && (
-                      <Badge variant="outline" className="hidden sm:flex h-8 gap-2 bg-amber-500/5 border-amber-500/20 text-amber-500">
-                        <Package className="w-3 h-3" />
-                        <span className="font-mono text-[10px]">{selectedTicket.orderId}</span>
+                      <Badge variant="outline" className="h-7 text-[10px] gap-1.5 bg-zinc-900 border-zinc-700 text-zinc-300 font-mono">
+                        <Package className="w-3 h-3 text-amber-400" />
+                        <span>Pedido #{selectedTicket.orderId.slice(-6).toUpperCase()}</span>
                       </Badge>
                     )}
                     <Select
                       value={selectedTicket.status || "OPEN"}
                       onValueChange={(v: TicketStatus) => handleStatusUpdate(selectedTicket.id, v)}
                     >
-                      <SelectTrigger className={cn(
-                        "h-9 w-[160px] font-bold text-xs",
-                        selectedTicket.status === "OPEN" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                          selectedTicket.status === "IN_PROGRESS" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                            "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                      )}>
+                      <SelectTrigger
+                        className={cn(
+                          "h-8 w-[150px] font-semibold text-xs rounded-lg border",
+                          selectedTicket.status === "OPEN"
+                            ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                            : selectedTicket.status === "IN_PROGRESS"
+                            ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                        )}
+                      >
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200 text-xs">
                         <SelectItem value="OPEN">Novo</SelectItem>
                         <SelectItem value="IN_PROGRESS">Em Atendimento</SelectItem>
                         <SelectItem value="CLOSED">Finalizado</SelectItem>
@@ -413,47 +414,68 @@ export default function AdminSupportPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-[#0a0a0a]/30">
+                {/* Message Thread */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0a0b10]/60">
+                  {/* First message / Ticket description */}
                   <div className="flex flex-col items-start space-y-1">
-                    <div className="max-w-[85%] bg-secondary/50 border border-border/50 rounded-2xl rounded-tl-none p-4 shadow-sm">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-2 block">Abertura do Chamado</span>
+                    <div className="max-w-[85%] bg-zinc-900 border border-zinc-800/80 rounded-2xl rounded-tl-none p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-4 mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                          {selectedTicket.subject || "Chamado"}
+                        </span>
+                      </div>
                       {selectedTicket.images && selectedTicket.images.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                           {selectedTicket.images.map((img, i) => (
-                            <img key={i} src={img} alt="Anexo" className="rounded-lg w-full aspect-square object-cover border border-white/5 cursor-pointer hover:scale-[1.02] transition-transform" />
+                            <img
+                              key={i}
+                              src={img}
+                              alt="Anexo"
+                              className="rounded-lg w-full aspect-square object-cover border border-zinc-700/50 cursor-pointer hover:opacity-90"
+                              onClick={() => window.open(img, '_blank')}
+                            />
                           ))}
                         </div>
                       )}
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{selectedTicket.description || "Sem descrição"}</p>
+                      <p className="text-xs leading-relaxed text-zinc-200 whitespace-pre-wrap">{selectedTicket.description || "Sem descrição informada."}</p>
                     </div>
-                    <span className="text-[10px] text-muted-foreground ml-2">{safeDateFormat(selectedTicket.createdAt)}</span>
+                    <span className="text-[10px] text-zinc-400 ml-2">{safeDateFormat(selectedTicket.createdAt)}</span>
                   </div>
 
+                  {/* Reply messages */}
                   <AnimatePresence initial={false}>
                     {selectedTicket?.messages?.map((msg, mIdx) => (
                       <motion.div
                         key={msg.id}
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: mIdx * 0.05 }}
+                        transition={{ delay: mIdx * 0.03 }}
                         className={cn("flex flex-col space-y-1", msg.senderRole === "CUSTOMER" ? "items-start" : "items-end")}
                       >
-                        <div className={cn(
-                          "max-w-[85%] p-4 rounded-2xl",
-                          msg.senderRole === "CUSTOMER"
-                            ? "bg-secondary/50 border border-border/50 rounded-tl-none"
-                            : "bg-primary text-black font-medium rounded-tr-none"
-                        )}>
+                        <div
+                          className={cn(
+                            "max-w-[85%] p-3.5 rounded-2xl text-xs leading-relaxed",
+                            msg.senderRole === "CUSTOMER"
+                              ? "bg-zinc-900 border border-zinc-800/80 text-zinc-200 rounded-tl-none"
+                              : "bg-amber-400 text-zinc-950 font-medium rounded-tr-none shadow-sm"
+                          )}
+                        >
                           {msg.images && msg.images.length > 0 && (
-                            <div className="grid grid-cols-2 gap-2 mb-3">
+                            <div className="grid grid-cols-2 gap-2 mb-2">
                               {msg.images.map((img, i) => (
-                                <img key={i} src={img} alt="Anexo" className="rounded-lg w-full aspect-square object-cover border border-white/5 cursor-pointer" onClick={() => window.open(img, '_blank')} />
+                                <img
+                                  key={i}
+                                  src={img}
+                                  alt="Anexo"
+                                  className="rounded-lg w-full aspect-square object-cover border border-black/10 cursor-pointer"
+                                  onClick={() => window.open(img, '_blank')}
+                                />
                               ))}
                             </div>
                           )}
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
                         </div>
-                        <span className={cn("text-[10px] text-muted-foreground", msg.senderRole === "CUSTOMER" ? "ml-2" : "mr-2")}>
+                        <span className={cn("text-[10px] text-zinc-400", msg.senderRole === "CUSTOMER" ? "ml-2" : "mr-2")}>
                           {msg.senderName} • {safeDateFormat(msg.createdAt)}
                         </span>
                       </motion.div>
@@ -462,16 +484,17 @@ export default function AdminSupportPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {selectedTicket.status !== "CLOSED" && (
-                  <div className="p-4 bg-card border-t border-border space-y-4">
+                {/* Reply Input Bar */}
+                {selectedTicket.status !== "CLOSED" ? (
+                  <div className="p-3 bg-zinc-950/80 border-t border-zinc-800/80 space-y-2 shrink-0">
                     {replyImages.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 pb-1">
                         {replyImages.map((img, i) => (
-                          <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border group">
+                          <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden border border-zinc-700 group">
                             <img src={img.preview} alt="Preview" className="w-full h-full object-cover" />
                             <button
                               onClick={() => removeImage(i)}
-                              className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-0.5 opacity-90 hover:opacity-100"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -480,43 +503,50 @@ export default function AdminSupportPage() {
                       </div>
                     )}
 
-                    <div className="flex gap-3 items-end">
+                    <div className="flex gap-2 items-center">
                       <div className="flex-1 relative">
                         <Input
                           value={replyContent}
-                          onChange={e => setReplyContent(e.target.value)}
-                          placeholder="Digite sua resposta..."
-                          className="h-12 pr-12 bg-background/50 border-border/50 focus:border-primary/50"
-                          onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleReply()}
+                          onChange={(e) => setReplyContent(e.target.value)}
+                          placeholder="Digite a resposta ao cliente..."
+                          className="h-10 pr-10 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 text-xs rounded-xl focus:ring-1 focus:ring-amber-400"
+                          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleReply()}
                         />
-                        <label className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground hover:text-primary transition-colors">
-                          <ImageIcon className="w-5 h-5" />
+                        <label className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-zinc-400 hover:text-amber-400 transition-colors">
+                          <ImageIcon className="w-4 h-4" />
                           <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} disabled={isUploading} />
                         </label>
                       </div>
                       <Button
                         onClick={handleReply}
                         disabled={(!replyContent && replyImages.length === 0) || isUploading}
-                        className="h-12 px-6 font-bold"
+                        className="h-10 px-4 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold text-xs rounded-xl gap-1.5 transition-colors shrink-0"
                       >
                         {isUploading ? (
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <div className="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
                         ) : (
-                          <>Enviar <ChevronRight className="w-4 h-4 ml-2" /></>
+                          <>
+                            <span>Responder</span>
+                            <Send className="w-3.5 h-3.5" />
+                          </>
                         )}
                       </Button>
                     </div>
                   </div>
+                ) : (
+                  <div className="p-3 bg-zinc-950 border-t border-zinc-800 text-center text-xs text-zinc-400">
+                    Este chamado foi finalizado. Altere o status acima para reabri-lo.
+                  </div>
                 )}
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground opacity-30">
-                <MessageSquare className="w-16 h-16 mb-4" />
-                <h3 className="text-xl font-bold">Selecione um chamado</h3>
-                <p className="text-sm">Escolha um ticket na lista ao lado para ver os detalhes.</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 p-8">
+                <MessageSquare className="w-12 h-12 mb-3 opacity-20" />
+                <h3 className="text-sm font-semibold text-zinc-300">Nenhum chamado em foco</h3>
+                <p className="text-xs text-zinc-400 mt-1">Selecione uma solicitação na lista à esquerda para conversar com o comprador.</p>
               </div>
             )}
-          </Card>
+          </div>
         </div>
       </div>
     </div>

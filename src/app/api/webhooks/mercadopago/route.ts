@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMpClient } from "@/lib/mercadopago";
 import { Payment } from "mercadopago";
-
 import crypto from "crypto";
 
 export async function POST(req: Request) {
@@ -10,35 +9,6 @@ export async function POST(req: Request) {
     const { searchParams } = new URL(req.url);
     const queryType = searchParams.get("type") || searchParams.get("topic");
     const queryId = searchParams.get("data.id") || searchParams.get("id");
-
-    // Verificação de Assinatura (Segurança Mercado Pago)
-    const xSignature = req.headers.get("x-signature");
-    const xRequestId = req.headers.get("x-request-id");
-    let webhookSecret = process.env.MP_WEBHOOK_SECRET;
-    if (process.env.MP_MODE === 'test') {
-      webhookSecret = process.env.MP_TEST_WEBHOOK_SECRET || webhookSecret;
-    }
-
-    if (xSignature && xRequestId && webhookSecret && queryId) {
-      const parts = xSignature.split(",");
-      const tsPart = parts.find(p => p.trim().startsWith("ts="));
-      const v1Part = parts.find(p => p.trim().startsWith("v1="));
-
-      if (tsPart && v1Part) {
-        const ts = tsPart.split("=")[1];
-        const v1 = v1Part.split("=")[1];
-
-        const manifest = `id:${queryId};request-id:${xRequestId};ts:${ts};`;
-        const hmac = crypto.createHmac("sha256", webhookSecret);
-        hmac.update(manifest);
-        const sha = hmac.digest("hex");
-
-        if (sha !== v1) {
-          console.error("❌ Webhook: Assinatura inválida! Possível tentativa de fraude.");
-          return NextResponse.json({ error: "Invalid Signature" }, { status: 403 });
-        }
-      }
-    }
 
     const text = await req.text();
     let body: any = {};
@@ -51,7 +21,44 @@ export async function POST(req: Request) {
     const type = queryType || body?.type || (body?.action?.startsWith("payment") ? "payment" : null);
     const dataIdToUse = queryId || body?.data?.id;
 
-    console.log(`🔔 Webhook Mercado Pago recebido: Type=${type}, ID=${dataIdToUse}`);
+    // Verificação Estrita de Assinatura (Segurança Mercado Pago)
+    const xSignature = req.headers.get("x-signature");
+    const xRequestId = req.headers.get("x-request-id");
+    let webhookSecret = process.env.MP_WEBHOOK_SECRET;
+    if (process.env.MP_MODE === 'test') {
+      webhookSecret = process.env.MP_TEST_WEBHOOK_SECRET || webhookSecret;
+    }
+
+    if (webhookSecret) {
+      if (!xSignature || !xRequestId) {
+        console.warn("⚠️ Webhook Mercado Pago rejeitado: cabeçalhos de assinatura ausentes.");
+        return NextResponse.json({ error: "Missing Signature Headers" }, { status: 401 });
+      }
+
+      const parts = xSignature.split(",");
+      const tsPart = parts.find(p => p.trim().startsWith("ts="));
+      const v1Part = parts.find(p => p.trim().startsWith("v1="));
+
+      if (!tsPart || !v1Part) {
+        return NextResponse.json({ error: "Malformed Signature Header" }, { status: 400 });
+      }
+
+      const ts = tsPart.split("=")[1];
+      const v1 = v1Part.split("=")[1];
+      const targetId = dataIdToUse || "";
+
+      const manifest = `id:${targetId};request-id:${xRequestId};ts:${ts};`;
+      const hmac = crypto.createHmac("sha256", webhookSecret);
+      hmac.update(manifest);
+      const sha = hmac.digest("hex");
+
+      if (sha !== v1) {
+        console.error("❌ Webhook Mercado Pago: Assinatura HMAC inválida! Tentativa de falsificação rejeitada.");
+        return NextResponse.json({ error: "Invalid Signature" }, { status: 403 });
+      }
+    }
+
+    console.log(`🔔 Webhook Mercado Pago validado: Type=${type}, ID=${dataIdToUse}`);
 
     if ((type === "payment" || type === "payment.created" || type === "payment.updated") && dataIdToUse) {
       const client = await getMpClient();
@@ -61,8 +68,7 @@ export async function POST(req: Request) {
       try {
         payment = await paymentClient.get({ id: dataIdToUse.toString() });
       } catch (err: any) {
-        console.warn(`⚠️ Pagamento ID=${dataIdToUse} não encontrado no Mercado Pago. Possível simulação de teste.`, err.message);
-        // Retornar 200 para o painel do MP entender que recebemos, senão o "Simular Notificação" dá 502/500
+        console.warn(`⚠️ Pagamento ID=${dataIdToUse} não encontrado no Mercado Pago.`, err.message);
         return NextResponse.json({ message: "OK (Ignorado - Pagamento Inexistente)" }, { status: 200 });
       }
 
@@ -72,14 +78,13 @@ export async function POST(req: Request) {
       console.log(`📦 Pagamento ${dataIdToUse} do Pedido ${orderId}: Status=${status}`);
 
       if (orderId && (status === "approved" || status === "authorized")) {
-        // Verificar o status atual do pedido para evitar reprocessamento e múltiplos decrementos de estoque
         const currentOrder = await prisma.order.findUnique({
           where: { id: orderId },
           select: { status: true, couponCode: true }
         });
 
         if (currentOrder && currentOrder.status !== "PAID") {
-          // 1. Atualizar pedido para pago e incluir items na mesma query
+          // 1. Atualizar pedido para pago
           const orderWithItems = await prisma.order.update({
             where: { id: orderId },
             data: {
@@ -94,10 +99,9 @@ export async function POST(req: Request) {
             include: { items: true }
           });
 
-          // 2. Baixar estoque dos itens do pedido (concorrente)
+          // 2. Baixar estoque dos itens do pedido com segurança
           if (orderWithItems && orderWithItems.items.length > 0) {
             const updatePromises = orderWithItems.items.map(async (item) => {
-              // Decrementar estoque do produto principal
               const product = await prisma.product.update({
                 where: { id: item.productId },
                 data: { stockQuantity: { decrement: item.quantity } }
@@ -109,7 +113,6 @@ export async function POST(req: Request) {
                 });
               }
 
-              // Se o item tiver variante, decrementar estoque da variante
               if (item.variantId) {
                 const variant = await prisma.productVariant.update({
                   where: { id: item.variantId },
@@ -126,7 +129,7 @@ export async function POST(req: Request) {
             await Promise.all(updatePromises);
           }
 
-          // 3. Atualizar os passos do pedido (Timeline) concorrentemente
+          // 3. Atualizar etapas da timeline
           await Promise.all([
             prisma.orderStep.updateMany({
               where: {
@@ -149,7 +152,7 @@ export async function POST(req: Request) {
             })
           ]);
 
-          // 4. Atualizar uso do cupom se existir (contabiliza apenas no pedido confirmado)
+          // 4. Incrementar uso do cupom se existir
           if (currentOrder.couponCode) {
             await prisma.coupon.updateMany({
               where: { code: currentOrder.couponCode },
@@ -157,9 +160,7 @@ export async function POST(req: Request) {
             });
           }
 
-          console.log(`✅ Pedido ${orderId}: Pagamento confirmado e ESTOQUE ATUALIZADO.`);
-        } else {
-          console.log(`ℹ️ Pedido ${orderId} já está marcado como pago (PAID). Ignorando atualização de estoque.`);
+          console.log(`✅ Pedido ${orderId}: Pagamento confirmado e estoque atualizado com sucesso.`);
         }
       }
     }

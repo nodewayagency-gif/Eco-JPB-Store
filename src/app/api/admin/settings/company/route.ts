@@ -4,6 +4,11 @@ import { getAuthUser } from "@/lib/auth-utils";
 
 export async function GET() {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const settings = await prisma.companyConfig.findFirst();
 
     if (!settings) {

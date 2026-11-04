@@ -4,6 +4,11 @@ import { getAuthUser } from "@/lib/auth-utils";
 
 export async function GET() {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const coupons = await prisma.coupon.findMany({
       orderBy: {
         code: 'asc'
@@ -17,7 +22,10 @@ export async function GET() {
             total: true,
             createdAt: true,
             customer: {
-              include: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
                 customerProfile: true
               }
             }
@@ -55,9 +63,9 @@ export async function POST(request: Request) {
 
     const coupon = await prisma.coupon.create({
       data: {
-        code,
+        code: String(code).trim().toUpperCase(),
         discountType: discountType || "PERCENTAGE",
-        discountValue: discountValue || 0,
+        discountValue: discountValue ? Number(discountValue) : 0,
         minOrderValue: minOrderValue ? Number(minOrderValue) : null,
         maxUses: maxUses ? Number(maxUses) : null,
         active: active !== undefined ? active : true,

@@ -6,6 +6,18 @@ type Params = {
   id: string;
 };
 
+const userSafeSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  image: true,
+  customerProfile: true,
+};
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<Params> }
@@ -28,7 +40,8 @@ export async function PUT(
         email,
         role,
         status
-      }
+      },
+      select: userSafeSelect
     });
 
     return NextResponse.json(user);

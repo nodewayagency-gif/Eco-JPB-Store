@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       paymentBody.notification_url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago`;
     }
 
-    // Remover propriedades vazias, undefined ou null do payer para evitar communication_error: 400
+    // Remover propriedades vazias, undefined ou null do payer para evitar erro 400 no Mercado Pago
     Object.keys(paymentBody.payer).forEach(key => {
       const val = paymentBody.payer[key];
       if (val === undefined || val === null || val === '') {
@@ -76,18 +76,74 @@ export async function POST(req: Request) {
     // 3. Atualizar o pedido com o status do pagamento e detalhes
     const mpStatus = paymentResponse.status;
     const mpId = paymentResponse.id;
+    const isApproved = mpStatus === 'approved';
 
-    await prisma.order.update({
+    const updatedOrder = await prisma.order.update({
       where: { id: order.id },
       data: {
-        status: "CREATED", // Aguarda webhook do Mercado Pago para confirmar
+        status: isApproved ? "PAID" : "CREATED",
+        paidAt: isApproved ? new Date() : undefined,
         paymentStatus: mpStatus,
         gatewayTransactionId: mpId?.toString(),
         paymentMethodId: paymentResponse.payment_method_id,
         installments: paymentResponse.installments,
-        gatewayResponse: paymentResponse as any, // Guardar resposta completa
-      }
+        gatewayResponse: paymentResponse as any,
+      },
+      include: { items: true }
     });
+
+    // Se o pagamento já foi aprovado imediatamente (ex: cartão sem análise manual)
+    if (isApproved && updatedOrder.items && updatedOrder.items.length > 0) {
+      const updatePromises = updatedOrder.items.map(async (item) => {
+        const product = await prisma.product.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { decrement: item.quantity } }
+        });
+        if (product && product.stockQuantity <= 0) {
+          await prisma.product.update({
+            where: { id: item.productId },
+            data: { inStock: false }
+          });
+        }
+
+        if (item.variantId) {
+          const variant = await prisma.productVariant.update({
+            where: { id: item.variantId },
+            data: { stockQuantity: { decrement: item.quantity } }
+          });
+          if (variant && variant.stockQuantity <= 0) {
+            await prisma.productVariant.update({
+              where: { id: item.variantId },
+              data: { active: false }
+            });
+          }
+        }
+      });
+      await Promise.all(updatePromises);
+
+      // Atualiza etapas da timeline
+      await Promise.all([
+        prisma.orderStep.updateMany({
+          where: {
+            orderId: order.id,
+            key: { in: ['waiting_payment', 'paid'] }
+          },
+          data: { completed: true, active: false }
+        }),
+        prisma.orderStep.updateMany({
+          where: { orderId: order.id, key: 'in_separation' },
+          data: { active: true }
+        })
+      ]);
+
+      // Incrementar cupom se houver
+      if (order.couponCode) {
+        await prisma.coupon.updateMany({
+          where: { code: order.couponCode },
+          data: { usedCount: { increment: 1 } }
+        });
+      }
+    }
 
     return NextResponse.json({
       status: mpStatus,

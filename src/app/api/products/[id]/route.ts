@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth-utils";
 
 type Params = {
   id: string;
@@ -11,9 +12,6 @@ export async function GET(
 ) {
   const { id } = await props.params;
 
-  console.log(`🔍 Buscando produto: ${id}`);
-  const startTime = Date.now();
-
   try {
     const product = await prisma.product.findUnique({
       where: { id },
@@ -23,19 +21,15 @@ export async function GET(
       },
     });
 
-    const duration = Date.now() - startTime;
-    console.log(`✅ Produto ${id} encontrado em ${duration}ms`);
-
     if (!product) {
       return NextResponse.json({ message: 'Produto não encontrado' }, { status: 404 });
     }
 
     return NextResponse.json(product);
   } catch (error: any) {
-    console.error(`❌ Erro ao buscar produto ${id}:`, error);
+    console.error(`Erro ao buscar produto ${id}:`, error);
     return NextResponse.json({
-      message: 'Erro ao buscar produto',
-      error: error.message
+      message: 'Erro ao buscar produto'
     }, { status: 500 });
   }
 }
@@ -45,6 +39,11 @@ export async function PUT(
   props: { params: Promise<Params> }
 ) {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const { id } = await props.params;
     const data = await request.json();
     const {
@@ -66,6 +65,7 @@ export async function PUT(
         categoryId: updateData.categoryId === "" ? null : updateData.categoryId,
         slug: data.name ? data.name.toLowerCase().replace(/ /g, '-') : undefined,
         price: data.price !== undefined ? Number(data.price) : undefined,
+        originalPrice: data.originalPrice !== undefined ? (data.originalPrice ? Number(data.originalPrice) : null) : undefined,
         costPrice: data.costPrice !== undefined ? Number(data.costPrice) : undefined,
         stockQuantity: data.stockQuantity !== undefined ? Number(data.stockQuantity) : undefined,
         minStockAlert: data.minStockAlert !== undefined ? Number(data.minStockAlert) : undefined,
@@ -78,8 +78,6 @@ export async function PUT(
         topics: data.topics !== undefined ? data.topics : undefined,
         gatewayProductId: data.gatewayProductId || undefined,
       };
-
-      // console.log('Final Update Data for Prisma:', JSON.stringify(finalUpdateData, null, 2));
 
       const updatedProduct = await tx.product.update({
         where: { id },
@@ -98,7 +96,7 @@ export async function PUT(
         });
 
         for (const v of data.variants) {
-          const variantSku = v.sku || `${finalUpdateData.sku || id}-${v.name.replace(/ /g, '-').toUpperCase()}`;
+          const variantSku = v.sku || `${productDataSku(updatedProduct.sku)}-${(v.name || 'VAR').substring(0, 3).toUpperCase()}`;
 
           if (v.id) {
             await tx.productVariant.update({
@@ -107,7 +105,7 @@ export async function PUT(
                 name: v.name,
                 sku: variantSku,
                 price: v.price !== undefined ? Number(v.price) : undefined,
-                stockQuantity: v.stockQuantity !== undefined ? Number(v.stockQuantity) : undefined,
+                stockQuantity: v.stockQuantity !== undefined ? Number(v.stockQuantity) : 0,
                 colorHex: v.colorHex,
                 image: v.image,
                 active: v.active ?? true,
@@ -135,15 +133,15 @@ export async function PUT(
 
     return NextResponse.json(product);
   } catch (error: any) {
-    console.error('CRITICAL ERROR updating product:', error);
-    // Retornando o erro completo para debug (remover em produção)
+    console.error('Erro ao atualizar produto:', error);
     return NextResponse.json({
-      message: 'Erro ao atualizar produto',
-      error: error.message,
-      stack: error.stack,
-      details: error
+      message: 'Erro ao atualizar produto'
     }, { status: 500 });
   }
+}
+
+function productDataSku(sku: string | undefined): string {
+  return sku || 'JPB-PROD';
 }
 
 export async function DELETE(
@@ -151,6 +149,11 @@ export async function DELETE(
   props: { params: Promise<Params> }
 ) {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const { id } = await props.params;
     await prisma.product.delete({
       where: { id }
@@ -158,7 +161,7 @@ export async function DELETE(
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error deleting product:', error);
-    return NextResponse.json({ message: 'Erro ao deletar produto', error }, { status: 500 });
+    console.error('Erro ao deletar produto:', error);
+    return NextResponse.json({ message: 'Erro ao deletar produto' }, { status: 500 });
   }
 }

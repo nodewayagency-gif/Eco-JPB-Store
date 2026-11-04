@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
-
-const JWT_SECRET = process.env.JWT_SECRET || 'premium-electronics-secret-key-2024';
+import { getJwtSecret } from "@/lib/auth-utils";
 
 export async function POST(request: Request) {
   try {
@@ -95,7 +94,7 @@ export async function POST(request: Request) {
         role: result.role,
         email: result.email,
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: "1d" }
     );
 

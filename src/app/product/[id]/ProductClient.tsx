@@ -189,17 +189,32 @@ export default function ProductClient() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-baseline gap-3">
-                <span className="text-4xl font-black text-foreground">{formatPrice(product.price)}</span>
-                {product.originalPrice && (
-                  <span className="text-lg text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
-                )}
-                {product.freeShipping && (
-                  <span className="text-xs font-black uppercase tracking-tighter text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
-                    Frete Grátis
-                  </span>
-                )}
-              </div>
+              {(() => {
+                const hasDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
+                const discountPercent = hasDiscount ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
+                const savings = hasDiscount ? product.originalPrice - product.price : 0;
+                return (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-4xl font-black text-foreground">{formatPrice(product.price)}</span>
+                    {hasDiscount && (
+                      <span className="text-xl text-muted-foreground line-through opacity-70 font-medium">
+                        {formatPrice(product.originalPrice)}
+                      </span>
+                    )}
+                    {discountPercent > 0 && (
+                      <span className="text-xs font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        {discountPercent}% OFF • Economize {formatPrice(savings)}
+                      </span>
+                    )}
+                    {product.freeShipping && (
+                      <span className="text-xs font-black uppercase tracking-tighter text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                        Frete Grátis
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
 
               {product.topics && product.topics.length > 0 && (

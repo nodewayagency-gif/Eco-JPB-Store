@@ -1,21 +1,25 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { getAuthUser } from "@/lib/auth-utils";
+import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   req: Request,
-  context: { params: Promise<{ id: string, reviewId: string }> }
+  context: { params: Promise<{ id: string; reviewId: string }> }
 ) {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const params = await context.params;
     const { id, reviewId } = params;
-    
+
     await prisma.review.delete({
       where: { id: reviewId }
     });
 
-    // Update product average rating and review count
+    // Atualiza a média de avaliações do produto
     const allReviews = await prisma.review.findMany({
       where: { productId: id, status: "APPROVED" }
     });
@@ -27,13 +31,13 @@ export async function DELETE(
       where: { id },
       data: {
         reviewCount: count,
-        rating: avg
+        rating: Number(avg.toFixed(1))
       }
     });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Error deleting review:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ message: "Erro ao excluir avaliação" }, { status: 500 });
   }
 }

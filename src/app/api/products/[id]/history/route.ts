@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth-utils";
 
 type Params = {
   id: string;
@@ -21,6 +22,11 @@ export async function GET(
   { params }: { params: Promise<Params> }
 ) {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || (authUser.role !== 'ADMIN' && authUser.role !== 'OPERATOR')) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const { id } = await params;
     
     const items = await prisma.orderItem.findMany({

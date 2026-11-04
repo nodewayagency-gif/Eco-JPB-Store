@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
-
-const JWT_SECRET = process.env.JWT_SECRET || 'premium-electronics-secret-key-2024';
+import { getJwtSecret } from "@/lib/auth-utils";
 
 export async function POST(request: Request) {
   try {
@@ -58,7 +57,7 @@ export async function POST(request: Request) {
         role: user.role,
         email: user.email,
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: "1d" }
     );
 
@@ -76,7 +75,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Login error full details:", error);
     return NextResponse.json(
-      { message: "Erro interno no servidor", error: error.message },
+      { message: "Erro interno no servidor" },
       { status: 500 }
     );
   }

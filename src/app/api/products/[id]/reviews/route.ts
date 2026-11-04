@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
   req: Request,
@@ -10,7 +8,6 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // Using prisma to fetch reviews for the product
     const reviews = await prisma.review.findMany({
       where: { productId: id },
       orderBy: { createdAt: 'desc' }
@@ -28,7 +25,7 @@ export async function GET(
     return NextResponse.json(mapped);
   } catch (error: any) {
     console.error("Error listing reviews:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ message: "Erro ao listar avaliações" }, { status: 500 });
   }
 }
 
@@ -43,20 +40,20 @@ export async function POST(
     const { authorName, rating, comment } = body;
 
     if (!authorName || !rating) {
-      return NextResponse.json({ error: "Name and rating are required" }, { status: 400 });
+      return NextResponse.json({ message: "Nome e nota são obrigatórios" }, { status: 400 });
     }
 
     const review = await prisma.review.create({
       data: {
         productId: id,
         authorName,
-        rating: Number(rating),
+        rating: Math.min(5, Math.max(1, Number(rating))),
         comment: comment || "",
         status: "APPROVED",
       }
     });
 
-    // Update product average rating and review count
+    // Atualiza a média de avaliações do produto
     const allReviews = await prisma.review.findMany({
       where: { productId: id, status: "APPROVED" }
     });
@@ -68,7 +65,7 @@ export async function POST(
       where: { id },
       data: {
         reviewCount: count,
-        rating: avg
+        rating: Number(avg.toFixed(1))
       }
     });
 
@@ -82,6 +79,6 @@ export async function POST(
     }, { status: 201 });
   } catch (error: any) {
     console.error("Error creating review:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ message: "Erro ao criar avaliação" }, { status: 500 });
   }
 }

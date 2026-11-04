@@ -1,6 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://oxpnlbldyxjrgbuicttx.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94cG5sYmxkeXhqcmdidWljdHR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1OTc3MjIsImV4cCI6MjA5MzE3MzcyMn0.MRmSDnHL3O7IGZtfMaIFuGSMpBquNQgwJbqNvybyajY';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  if (typeof window !== 'undefined') {
+    console.warn('Variáveis do Supabase (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY) não estão configuradas.');
+  }
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

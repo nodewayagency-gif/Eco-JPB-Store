@@ -1,10 +1,10 @@
 import crypto from "crypto";
+import { getJwtSecret } from "@/lib/auth-utils";
 
 const ALGORITHM = "aes-256-cbc";
-// Usaremos o JWT_SECRET como chave (deve ter 32 caracteres para aes-256-cbc)
-// Faremos um hash sha256 dele para garantir que tem o tamanho correto.
+
 const getSecretKey = () => {
-  const secret = process.env.JWT_SECRET || "default_unsafe_secret_key_change_me_in_prod";
+  const secret = getJwtSecret();
   return crypto.createHash("sha256").update(String(secret)).digest("base64").substring(0, 32);
 };
 
@@ -30,6 +30,6 @@ export function decrypt(encryptedData: string): string {
     return decrypted.toString("utf8");
   } catch (error) {
     console.error("Erro ao descriptografar dado:", error);
-    return encryptedData; // Retorna original se falhar a decriptação
+    return encryptedData;
   }
 }

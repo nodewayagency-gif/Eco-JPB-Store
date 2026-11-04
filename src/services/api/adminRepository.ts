@@ -61,6 +61,7 @@ const toInput = (product: AdminProductRow): AdminProductInput => ({
   category: product.category || "",
   categoryId: (product as any).categoryId || "",
   price: product.price || 0,
+  originalPrice: product.originalPrice ? Number(product.originalPrice) : undefined,
   costPrice: product.costPrice || 0,
   inStock: product.inStock,
   stockQuantity: product.stockQuantity || 0,
@@ -345,6 +346,7 @@ export const adminRepository: AdminRepository = {
       categoryId: p.categoryId,
       category: p.category?.name || "Geral",
       price: Number(p.price),
+      originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
       costPrice: Number(p.costPrice) || 0,
       rating: p.rating || 5,
       reviews: p.reviewCount || 0,
@@ -376,6 +378,7 @@ export const adminRepository: AdminRepository = {
     return {
       ...data,
       price: Number(data.price),
+      originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
       category: data.category?.name || "Geral",
     } as AdminProductRow;
   },

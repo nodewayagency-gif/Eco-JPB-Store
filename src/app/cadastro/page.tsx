@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { User, Mail, Lock, Phone, MapPin, Building2, UserCircle, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,13 +15,22 @@ import Footer from "@/components/store/Footer";
 import { api } from "@/services/api";
 import { maskCEP, maskDocument, maskPhone } from "@/lib/utils";
 
-export default function RegisterPage() {
-  const { registerCustomer } = useAuth();
+function RegisterForm() {
+  const { registerCustomer, isCustomerAuthenticated } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams?.get("from") || "/minha-conta";
+
   const [docType, setDocType] = useState<"CPF" | "CNPJ">("CPF");
   const [loading, setLoading] = useState(false);
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+
+  useEffect(() => {
+    if (isCustomerAuthenticated) {
+      router.replace(redirectTo);
+    }
+  }, [isCustomerAuthenticated, router, redirectTo]);
 
   const [form, setForm] = useState({
     name: "",
@@ -53,14 +62,14 @@ export default function RegisterPage() {
           const { data } = await api.get(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
           setForm(prev => ({
             ...prev,
-            name: data.razao_social,
-            zipCode: maskCEP(data.cep),
-            street: data.logradouro,
-            number: data.numero,
-            complement: data.complemento,
-            neighborhood: data.bairro,
-            city: data.municipio,
-            state: data.uf
+            name: data.razao_social || data.nome_fantasia || prev.name,
+            zipCode: maskCEP(data.cep || ""),
+            street: data.logradouro || prev.street,
+            number: data.numero || prev.number,
+            complement: data.complemento || prev.complement,
+            neighborhood: data.bairro || prev.neighborhood,
+            city: data.municipio || prev.city,
+            state: data.uf || prev.state
           }));
           toast.success("Dados da empresa importados!");
         } catch (error) {
@@ -84,10 +93,10 @@ export default function RegisterPage() {
           if (data.erro) throw new Error();
           setForm(prev => ({
             ...prev,
-            street: data.logradouro,
-            neighborhood: data.bairro,
-            city: data.localidade,
-            state: data.uf
+            street: data.logradouro || prev.street,
+            neighborhood: data.bairro || prev.neighborhood,
+            city: data.localidade || prev.city,
+            state: data.uf || prev.state
           }));
         } catch (error) {
           toast.error("CEP não encontrado");
@@ -101,6 +110,9 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.password.length < 6) {
+      return toast.error("A senha deve ter pelo menos 6 caracteres");
+    }
     if (form.password !== form.confirmPassword) {
       return toast.error("As senhas não coincidem");
     }
@@ -115,7 +127,7 @@ export default function RegisterPage() {
         zipCode: form.zipCode.replace(/\D/g, "")
       });
       toast.success("Cadastro realizado com sucesso!");
-      router.push("/checkout");
+      router.push(redirectTo);
     } catch (error: any) {
       const msg = error.response?.status === 404 
         ? "Sistema de cadastro temporariamente indisponível" 
@@ -131,13 +143,13 @@ export default function RegisterPage() {
       <Navbar />
       <main className="flex-1 pt-32 pb-20">
         <div className="container mx-auto px-4 max-w-2xl">
-          <Card className="bg-card border-border overflow-hidden">
-            <div className="h-2 bg-primary w-full" />
+          <Card className="bg-card border-border overflow-hidden shadow-2xl">
+            <div className="h-1.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60 w-full" />
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-black tracking-tight flex items-center gap-2">
                 <UserCircle className="w-6 h-6 text-primary" /> Crie sua conta
               </CardTitle>
-              <CardDescription>Preencha os dados abaixo para uma experiência premium.</CardDescription>
+              <CardDescription>Preencha os dados abaixo para uma experiência de compra premium.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -190,7 +202,7 @@ export default function RegisterPage() {
                     <div className="relative">
                       <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Como deseja ser chamado"
+                        placeholder={docType === "CPF" ? "Como deseja ser chamado" : "Nome ou Razão Social"}
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                         required
@@ -221,6 +233,7 @@ export default function RegisterPage() {
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                           type="password"
+                          placeholder="Mínimo 6 caracteres"
                           value={form.password}
                           onChange={(e) => setForm({ ...form, password: e.target.value })}
                           required
@@ -234,6 +247,7 @@ export default function RegisterPage() {
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                           type="password"
+                          placeholder="Repita a senha"
                           value={form.confirmPassword}
                           onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                           required
@@ -246,7 +260,7 @@ export default function RegisterPage() {
                   <div className="pt-4 pb-2">
                     <div className="flex items-center gap-2 mb-4">
                       <MapPin className="w-4 h-4 text-primary" />
-                      <h3 className="text-sm font-bold uppercase tracking-wider">Endereço de Entrega</h3>
+                      <h3 className="text-sm font-bold uppercase tracking-wider">Endereço de Entrega Principal</h3>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div className="space-y-2 sm:col-span-1">
@@ -337,5 +351,17 @@ export default function RegisterPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }

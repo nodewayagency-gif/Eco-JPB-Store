@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,12 +22,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(config);
   } catch (error: any) {
     console.error('Error getting company config:', error);
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return NextResponse.json({ message: "Erro ao buscar dados da empresa" }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || authUser.role !== 'ADMIN') {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const data = await request.json();
     const config = await prisma.companyConfig.findFirst();
     
@@ -47,6 +53,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(updatedConfig);
   } catch (error: any) {
     console.error('Error updating company config:', error);
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return NextResponse.json({ message: "Erro ao atualizar dados da empresa" }, { status: 500 });
   }
 }

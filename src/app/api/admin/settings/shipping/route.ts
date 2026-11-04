@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth-utils";
-import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function GET() {
   try {
+    const authUser = await getAuthUser();
+    if (!authUser || authUser.role !== 'ADMIN') {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
+    }
+
     const isTestMode = process.env.MELHOR_ENVIO_MODE === 'test';
+    const hasToken = Boolean(isTestMode ? process.env.MELHOR_ENVIO_TEST_TOKEN : process.env.MELHOR_ENVIO_TOKEN);
+
     const settings = {
-      mercadoLivre: { enabled: false, appId: '', clientSecret: '', accessToken: '' },
+      mercadoLivre: { enabled: false, configured: false },
       melhorEnvio: { 
-        enabled: !!(process.env.MELHOR_ENVIO_TOKEN || process.env.MELHOR_ENVIO_TEST_TOKEN), 
-        clientId: '', 
-        clientSecret: '', 
-        accessToken: isTestMode ? process.env.MELHOR_ENVIO_TEST_TOKEN : process.env.MELHOR_ENVIO_TOKEN, 
-        tokenType: 'Bearer', 
-        sandbox: isTestMode 
+        enabled: hasToken, 
+        sandbox: isTestMode,
+        configured: hasToken
       }
     };
 
@@ -33,8 +35,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: "Não autorizado" }, { status: 403 });
     }
 
-    // Now handled via .env, we just return success to not break the frontend form
-    return NextResponse.json({ success: true, message: "As configurações agora são gerenciadas via arquivo .env" });
+    return NextResponse.json({ success: true, message: "As configurações são gerenciadas com segurança via arquivo .env" });
   } catch (error: any) {
     console.error("Save shipping settings error:", error);
     return NextResponse.json({ message: "Erro ao salvar configurações" }, { status: 500 });
