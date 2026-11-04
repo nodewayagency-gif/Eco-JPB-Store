@@ -21,7 +21,8 @@ import {
   X,
   MessageSquare,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (pathname.startsWith("/admin/leads")) return "Leads & Lista de Espera";
     if (pathname.startsWith("/admin/cupons")) return "Cupons & Comissões de Afiliados";
     if (pathname.startsWith("/admin/usuarios")) return "Gestão da Equipe & Permissões";
+    if (pathname.startsWith("/admin/configuracoes/regras")) return "Regras de Checkout & Frete";
     if (pathname.startsWith("/admin/configuracoes")) return "Configurações & Integrações";
     return "Painel de Controle";
   };
@@ -293,6 +295,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 )}
               >
                 <Truck className="w-3 h-3" /> Integração de Frete
+              </Link>
+              <Link
+                href="/admin/configuracoes/regras"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors",
+                  pathname === "/admin/configuracoes/regras"
+                    ? "bg-zinc-800 text-amber-400 font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
+                )}
+              >
+                <Zap className="w-3 h-3" /> Regras de Checkout
               </Link>
             </CollapsibleContent>
           </Collapsible>

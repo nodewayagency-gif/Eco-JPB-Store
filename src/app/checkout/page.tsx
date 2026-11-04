@@ -368,13 +368,13 @@ export default function CheckoutPage() {
         try {
           const { data } = await api.post("/checkout/shipping", {
             destinationZip: zip,
-            items: items.map(i => ({ productId: i.product.id, quantity: i.quantity }))
+            destinationState: form.state, items: items.map(i => ({ productId: i.product.id, quantity: i.quantity }))
           });
           setShippingOptions(data);
           
           if (data && data.length > 0) {
             // Auto-selecionar se for a única opção (ex: Frete Grátis)
-            if (data.length === 1 && data[0].id === "free-shipping") {
+            const freeOpt = data.find((o: any) => o.price === 0 || o.id === "free-shipping"); if (freeOpt) { setSelectedShipping(freeOpt); } else if (data.length === 1) {
               setSelectedShipping(data[0]);
             } else if (!data.find((o: any) => o.id === selectedShipping?.id)) {
               setSelectedShipping(null);

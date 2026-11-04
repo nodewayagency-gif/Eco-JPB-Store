@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { decrypt } from "@/lib/encryption";
 import axios from "axios";
+import { evaluateShippingRules } from "@/lib/checkoutRules";
 
 export async function POST(req: Request) {
   try {
-    const { destinationZip, items } = await req.json();
+    const { destinationZip, destinationState, items } = await req.json();
 
     if (!destinationZip || !items || !items.length) {
       return NextResponse.json({ message: "CEP de destino e itens são obrigatórios" }, { status: 400 });
@@ -19,13 +19,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "CEP de origem não configurado no sistema" }, { status: 400 });
     }
 
-    // 2. Buscar dados reais dos produtos para evitar manipulação de peso/dimensões
+    // 2. Buscar dados reais dos produtos para evitar manipulação de peso/dimensões/preço
     const productIds = items.map((i: any) => i.productId);
     const dbProducts = await prisma.product.findMany({
       where: { id: { in: productIds } },
       select: {
         id: true,
         name: true,
+        price: true,
         weightKg: true,
         widthCm: true,
         heightCm: true,
@@ -38,7 +39,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Produtos não encontrados" }, { status: 404 });
     }
 
-    // 3. Identificar produtos pagantes vs gratuitos
+    // 3. Calcular subtotal real para checagem de regras dinâmicas
+    const subtotal = items.reduce((acc: number, item: any) => {
+      const p = dbProducts.find((prod) => prod.id === item.productId);
+      return acc + (Number(p?.price || 0) * (item.quantity || 1));
+    }, 0);
+
+    // 4. Avaliar regras ativas de Frete Grátis configuradas no Painel Admin
+    const shippingRuleEvaluation = await evaluateShippingRules(subtotal, destinationState);
+
+    // 5. Identificar produtos pagantes vs gratuitos
     const payloadProducts = items
       .filter((item: any) => {
         const dbProduct = dbProducts.find((p) => p.id === item.productId);
@@ -61,68 +71,32 @@ export async function POST(req: Request) {
         };
       });
 
-    // Se TODOS os itens do carrinho tem frete grátis, retornar opção de Frete Grátis
-    if (payloadProducts.length === 0) {
-      return NextResponse.json([{
+    // Se todos os produtos tiverem frete grátis no cadastro OU se o carrinho atendeu à regra dinâmica do Admin
+    if (payloadProducts.length === 0 || shippingRuleEvaluation.isEligible) {
+      const freeOption = {
         id: "free-shipping",
         name: "Frete Grátis",
-        company: "Logística JPB",
+        company: shippingRuleEvaluation.isEligible ? (shippingRuleEvaluation.rule?.name || "Frete Grátis Promocional") : "Logística JPB",
         price: 0,
-        deliveryTime: 7,
+        deliveryTime: 6,
         currency: "BRL"
-      }]);
-    }
+      };
 
-    let token = process.env.MELHOR_ENVIO_TOKEN;
-    let isTestMode = process.env.MELHOR_ENVIO_MODE === 'test';
-
-    if (isTestMode) {
-      token = process.env.MELHOR_ENVIO_TEST_TOKEN || token;
-    }
-
-    if (!token) {
-      console.error("Token do Melhor Envio não configurado.");
-      return NextResponse.json({ message: "Integração de frete indisponível" }, { status: 500 });
-    }
-
-    const payload = {
-      from: {
-        postal_code: originZip
-      },
-      to: {
-        postal_code: destinationZip.replace(/\D/g, "")
-      },
-      products: payloadProducts,
-      options: {
-        receipt: false,
-        own_hand: false
-      },
-      services: "1,2,18" // 1: PAC, 2: SEDEX, 18: Jadlog, etc.
-    };
-
-    // 4. Fazer a requisição
-    const baseUrl = isTestMode ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br";
-    const response = await axios.post(`${baseUrl}/api/v2/me/shipment/calculate`, payload, {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'JPB-Store breno.parizotto10@gmail.com'
+      // Se elegível por regra do admin, podemos tentar cotar opções expressas (ex: Sedex) e colocar a grátis no topo
+      if (shippingRuleEvaluation.isEligible && payloadProducts.length > 0) {
+        try {
+          const expressOptions = await fetchMelhorEnvioQuotes(originZip, destinationZip, payloadProducts);
+          return NextResponse.json([freeOption, ...expressOptions.filter((o: any) => o.price > 0)]);
+        } catch {
+          return NextResponse.json([freeOption]);
+        }
       }
-    });
 
-    // 5. Filtrar e formatar as opções válidas
-    const validOptions = response.data.filter((option: any) => !option.error && option.price);
+      return NextResponse.json([freeOption]);
+    }
 
-    const shippingOptions = validOptions.map((option: any) => ({
-      id: option.id,
-      name: option.name,
-      company: option.company?.name || option.name,
-      price: Number(option.price),
-      deliveryTime: option.custom_delivery_time || option.delivery_time,
-      currency: option.currency || 'BRL'
-    }));
-
+    // Cotação normal via Melhor Envio
+    const shippingOptions = await fetchMelhorEnvioQuotes(originZip, destinationZip, payloadProducts);
     return NextResponse.json(shippingOptions);
 
   } catch (error: any) {
@@ -132,4 +106,46 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+async function fetchMelhorEnvioQuotes(originZip: string, destinationZip: string, payloadProducts: any[]) {
+  let token = process.env.MELHOR_ENVIO_TOKEN;
+  let isTestMode = process.env.MELHOR_ENVIO_MODE === 'test';
+
+  if (isTestMode) {
+    token = process.env.MELHOR_ENVIO_TEST_TOKEN || token;
+  }
+
+  if (!token) {
+    throw new Error("Token do Melhor Envio não configurado");
+  }
+
+  const payload = {
+    from: { postal_code: originZip },
+    to: { postal_code: destinationZip.replace(/\D/g, "") },
+    products: payloadProducts,
+    options: { receipt: false, own_hand: false },
+    services: "1,2,18" // 1: PAC, 2: SEDEX, 18: Jadlog
+  };
+
+  const baseUrl = isTestMode ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br";
+  const response = await axios.post(`${baseUrl}/api/v2/me/shipment/calculate`, payload, {
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'JPB-Store breno.parizotto10@gmail.com'
+    }
+  });
+
+  const validOptions = (response.data || []).filter((option: any) => !option.error && option.price);
+
+  return validOptions.map((option: any) => ({
+    id: option.id,
+    name: option.name,
+    company: option.company?.name || option.name,
+    price: Number(option.price),
+    deliveryTime: option.custom_delivery_time || option.delivery_time,
+    currency: option.currency || 'BRL'
+  }));
 }

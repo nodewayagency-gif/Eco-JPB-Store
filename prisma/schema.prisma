@@ -396,3 +396,32 @@ model Lead {
   @@index([status])
   @@map("jpb_leads")
 }
+
+
+enum CheckoutRuleType {
+  FREE_SHIPPING
+  PAYMENT_DISCOUNT
+  MIN_ORDER_VALUE
+}
+
+model CheckoutRule {
+  id                 String           @id @default(cuid())
+  name               String
+  description        String?
+  type               CheckoutRuleType
+  active             Boolean          @default(true)
+  minSubtotal        Decimal?         @db.Decimal(12, 2)
+  discountPercentage Decimal?         @db.Decimal(5, 2)
+  discountFixed      Decimal?         @db.Decimal(12, 2)
+  paymentMethod      String?          // Ex: "PIX", "CREDIT_CARD", "TICKET"
+  targetStates       String[]         @default([]) // Ex: ["SP", "RJ"] ou vazio para Brasil todo
+  startDate          DateTime?
+  endDate            DateTime?
+  priority           Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([active])
+  @@index([type])
+  @@map("jpb_checkout_rules")
+}
