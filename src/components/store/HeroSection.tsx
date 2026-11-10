@@ -19,7 +19,7 @@ const HeroSection = () => {
               className="space-y-6"
             >
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-                {/* Seu Ecossistema de
+                {/* Seu Ecossistema d
                 <br /> */}
                 <span className="gold-text">Simplesmente Melhor.</span>
               </h1>
