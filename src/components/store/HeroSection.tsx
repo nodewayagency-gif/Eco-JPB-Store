@@ -2,14 +2,14 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ShieldCheck, Users } from "lucide-react";
-const logo = "/brand/logo.png";
+const heroImage = "/hero.png";
 
 const HeroSection = () => {
   return (
-    <section className="relative bg-[#0a0a0a] pt-28 pb-8 md:pt-36 md:pb-12 overflow-hidden">
+    <section className="relative bg-[#0a0a0a] pt-36 pb-8 sm:pt-36 md:pt-44 md:pb-12 overflow-hidden">
       <div className="absolute inset-0 bg-background/50 pointer-events-none" />
       <div className="container mx-auto px-4 md:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
 
           <div className="order-2 lg:order-1 max-w-[700px] text-left">
             <motion.div
@@ -47,19 +47,16 @@ const HeroSection = () => {
           </div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.85, delay: 0.1, ease: "easeOut" }}
-            className="order-1 lg:order-2 flex justify-center lg:justify-end"
+            className="order-1 lg:order-2 flex justify-center lg:justify-end w-full"
           >
-            <div className="relative">
-              <div className="absolute inset-0 w-[300px] h-[300px] sm:w-[420px] sm:h-[420px] lg:w-[560px] lg:h-[560px] bg-[radial-gradient(circle_at_center,rgba(225,171,45,0.32)_0%,rgba(225,171,45,0.08)_35%,rgba(225,171,45,0)_72%)] blur-2xl rounded-full" />
-              <motion.img
-                src={logo}
-                alt="Logo JPB Store"
-                className="relative w-[220px] sm:w-[300px] lg:w-[460px] object-contain"
-                animate={{ y: [0, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+            <div className="relative -mx-4 sm:mx-0 w-[calc(100%+2rem)] sm:w-full flex justify-center">
+              <img
+                src={heroImage}
+                alt="Hero JPB Store"
+                className="w-full h-auto object-contain block"
               />
             </div>
           </motion.div>
