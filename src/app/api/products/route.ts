@@ -58,7 +58,6 @@ export async function POST(request: NextRequest) {
         data: {
           ...productData,
           price: Number(data.price),
-          originalPrice: data.originalPrice ? Number(data.originalPrice) : null,
           costPrice: data.costPrice ? Number(data.costPrice) : 0,
           stockQuantity: Number(data.stockQuantity),
           minStockAlert: data.minStockAlert ? Number(data.minStockAlert) : 0,

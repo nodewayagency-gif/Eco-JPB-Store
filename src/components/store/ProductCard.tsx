@@ -57,7 +57,6 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               </Badge>
             )}
             {discountPercent > 0 && (
-              <Badge className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-black shadow-md border-none">
               <Badge className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-600 hover:bg-red-600 text-white shadow-md border-none">
                 -{discountPercent}% OFF
               </Badge>
